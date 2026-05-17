@@ -14,6 +14,7 @@ import { validateEnv } from './config/env.validation';
 import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 
 @Module({
   imports: [
@@ -69,11 +70,19 @@ import { StorageModule } from './modules/storage/storage.module';
     FinanceModule,
     PlatformModule,
   ],
+  providers: [RateLimitMiddleware],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
       .forRoutes({ path: '*path', method: RequestMethod.ALL });
+
+    // Apply rate limiting to all API routes
+    // Note: RateLimitMiddleware needs to be used as a class, not instantiated manually
+    // The middleware configuration will be handled by applying the middleware class
+    consumer
+      .apply(RateLimitMiddleware)
+      .forRoutes({ path: 'api/*', method: RequestMethod.ALL });
   }
 }

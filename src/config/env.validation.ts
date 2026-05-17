@@ -78,6 +78,8 @@ export function validateEnv(config: Record<string, unknown>) {
     REFRESH_TOKEN_SECRET: asString(env, 'REFRESH_TOKEN_SECRET'),
     REFRESH_TOKEN_EXPIRATION: asString(env, 'REFRESH_TOKEN_EXPIRATION', '7d'),
 
+    WEBHOOK_SECRET: asString(env, 'WEBHOOK_SECRET'),
+
     OTEL_ENABLED: asBoolean(env, 'OTEL_ENABLED', false),
     OTEL_SERVICE_NAME: asString(
       env,
