@@ -1,7 +1,7 @@
 import { Entity, Column, Unique } from 'typeorm';
 import { BaseEntity } from './base.entity';
 
-@Entity({ name: 'role_permissions', schema: 'public' })
+@Entity({ name: 'role_permissions', schema: 'global' })
 @Unique(['roleId', 'permissionId'])
 export class RolePermission extends BaseEntity {
   @Column()

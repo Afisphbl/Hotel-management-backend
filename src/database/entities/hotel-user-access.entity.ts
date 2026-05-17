@@ -3,7 +3,7 @@ import { BaseEntity } from './base.entity';
 import { User } from './user.entity';
 import { Hotel } from './hotel.entity';
 
-@Entity({ name: 'hotel_user_access', schema: 'public' })
+@Entity({ name: 'hotel_user_access', schema: 'global' })
 @Unique(['userId', 'hotelId'])
 export class HotelUserAccess extends BaseEntity {
   @Column()

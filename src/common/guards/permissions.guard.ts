@@ -14,7 +14,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
     const { user } = context.switchToHttp().getRequest();
-    
+
     // permissions are embedded in JWT and potentially cached in Redis
     // The JwtStrategy should populate req.user.permissions
     return requiredPermissions.every((permission) =>

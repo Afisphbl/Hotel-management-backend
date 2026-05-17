@@ -37,7 +37,7 @@ export class AuthService {
 
   async login(user: any, hotelId?: string) {
     let permissions: string[] = [];
-    let roleName = 'USER';
+    const roleName = 'USER';
 
     if (hotelId) {
       const access = await this.accessRepository.findOne({
@@ -52,7 +52,7 @@ export class AuthService {
       const rolePermissions = await this.rolePermissionRepository.find({
         where: { roleId: access.roleId },
       });
-      
+
       const permissionIds = rolePermissions.map((rp) => rp.permissionId);
       if (permissionIds.length > 0) {
         const perms = await this.permissionRepository.find({

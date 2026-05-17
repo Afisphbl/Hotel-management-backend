@@ -22,7 +22,7 @@ export class TenantInterceptor implements NestInterceptor {
       const queryRunner = this.dataSource.createQueryRunner();
       await queryRunner.connect();
       await queryRunner.query(`SET search_path TO "${tenantSchema}", public`);
-      
+
       // We attach the queryRunner to the request so repositories can use it
       request['queryRunner'] = queryRunner;
 

@@ -7,21 +7,30 @@ import { AuthModule } from './modules/auth/auth.module';
 import { HotelsModule } from './modules/hotels/hotels.module';
 import { UsersModule } from './modules/users/users.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
-import { JwtModule } from '@nestjs/jwt';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { PlatformModule } from './modules/platform/platform.module';
+import { validateEnv } from './config/env.validation';
+import { RedisModule } from './modules/redis/redis.module';
+import { ObservabilityModule } from './modules/observability/observability.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      expandVariables: true,
+      validate: validateEnv,
+    }),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
         redact: ['req.headers.authorization', 'req.body.password'],
-        transport: process.env.NODE_ENV !== 'production'
-          ? { target: 'pino-pretty', options: { colorize: true } }
-          : undefined,
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { colorize: true } }
+            : undefined,
       },
     }),
     BullModule.forRootAsync({
@@ -29,17 +38,33 @@ import { PlatformModule } from './modules/platform/platform.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
-          password: configService.get<string>('REDIS_PASSWORD'),
+          host: configService.getOrThrow<string>('REDIS_HOST'),
+          port: configService.getOrThrow<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
+          db: configService.get<number>('REDIS_DB', 0),
+          tls: configService.get<boolean>('REDIS_TLS')
+            ? { rejectUnauthorized: false }
+            : undefined,
+        },
+        prefix: 'hotel-mgmt',
+        defaultJobOptions: {
+          removeOnComplete: 1000,
+          removeOnFail: 5000,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
         },
       }),
     }),
     DatabaseModule,
+    RedisModule,
+    ObservabilityModule,
+    StorageModule,
     AuthModule,
     HotelsModule,
     UsersModule,
-    JwtModule.register({}),
     BookingsModule,
     FinanceModule,
     PlatformModule,

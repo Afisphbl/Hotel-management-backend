@@ -6,7 +6,7 @@ export enum UserScope {
   HOTEL = 'hotel',
 }
 
-@Entity({ name: 'users', schema: 'public' })
+@Entity({ name: 'users', schema: 'global' })
 export class User extends BaseEntity {
   @Column({ unique: true })
   email: string;

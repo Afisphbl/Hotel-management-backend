@@ -8,9 +8,7 @@ import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Hotel, User, Booking]),
-  ],
+  imports: [TypeOrmModule.forFeature([Hotel, User, Booking])],
   controllers: [PlatformHotelsController, PlatformAnalyticsController],
   providers: [PlatformService],
 })

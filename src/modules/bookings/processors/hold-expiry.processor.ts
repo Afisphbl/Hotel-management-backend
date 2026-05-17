@@ -2,8 +2,14 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
-import { Booking, BookingStatus } from '../../../database/entities/booking.entity';
-import { RoomNight, RoomNightStatus } from '../../../database/entities/room-night.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../../database/entities/booking.entity';
+import {
+  RoomNight,
+  RoomNightStatus,
+} from '../../../database/entities/room-night.entity';
 
 @Processor('hold-expiry')
 export class HoldExpiryProcessor extends WorkerHost {
@@ -18,7 +24,7 @@ export class HoldExpiryProcessor extends WorkerHost {
 
   async process(job: Job<any>): Promise<any> {
     const { bookingId } = job.data;
-    
+
     const booking = await this.bookingRepository.findOneBy({ id: bookingId });
     if (booking && booking.status === BookingStatus.HOLD) {
       // Check if 15 minutes have passed
@@ -30,7 +36,7 @@ export class HoldExpiryProcessor extends WorkerHost {
         // Release room nights
         await this.roomNightRepository.update(
           { bookingId },
-          { status: RoomNightStatus.HELD } // Or delete if appropriate
+          { status: RoomNightStatus.HELD }, // Or delete if appropriate
         );
       }
     }

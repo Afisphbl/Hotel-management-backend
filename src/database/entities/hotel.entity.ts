@@ -7,7 +7,7 @@ export enum HotelStatus {
   SUSPENDED = 'suspended',
 }
 
-@Entity({ name: 'hotels', schema: 'public' })
+@Entity({ name: 'hotels', schema: 'global' })
 export class Hotel extends BaseEntity {
   @Column({ unique: true })
   name: string;

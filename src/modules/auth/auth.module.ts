@@ -13,7 +13,12 @@ import { Permission } from '../../database/entities/permission.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, HotelUserAccess, RolePermission, Permission]),
+    TypeOrmModule.forFeature([
+      User,
+      HotelUserAccess,
+      RolePermission,
+      Permission,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

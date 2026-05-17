@@ -37,7 +37,7 @@ export class PlatformService {
       const hotelId = crypto.randomUUID();
       const schemaName = `hotel_${hotelId.replace(/-/g, '_')}`;
 
-      // 1. Create Hotel Record in Public Schema
+      // 1. Create Hotel Record in Global Schema
       const hotel = this.hotelRepository.create({
         id: hotelId,
         name: data.name,
@@ -45,11 +45,11 @@ export class PlatformService {
         schemaName: schemaName,
         status: HotelStatus.ACTIVE,
       });
-      
+
       const savedHotel = await queryRunner.manager.save(hotel);
 
       // 2. Create the Physical Schema
-      await queryRunner.query(`CREATE SCHEMA "${schemaName}"`);
+      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
       // 3. TODO: In a real app, run migrations for the new schema here
       // await queryRunner.query(`SET search_path TO "${schemaName}"`);
@@ -59,7 +59,9 @@ export class PlatformService {
       return savedHotel;
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException(`Failed to create hotel: ${err.message}`);
+      throw new InternalServerErrorException(
+        `Failed to create hotel: ${err.message}`,
+      );
     } finally {
       await queryRunner.release();
     }
@@ -73,7 +75,7 @@ export class PlatformService {
   async deleteHotel(id: string) {
     const hotel = await this.findHotelById(id);
     if (hotel) {
-      // Note: We usually don't delete schemas for audit reasons, 
+      // Note: We usually don't delete schemas for audit reasons,
       // but we could drop it if needed.
       await this.hotelRepository.delete(id);
       return { success: true };
