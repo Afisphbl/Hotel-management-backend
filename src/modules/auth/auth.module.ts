@@ -10,6 +10,8 @@ import { User } from '../../database/entities/user.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
+import { RefreshToken } from '../../database/entities/refresh-token.entity';
+import { AuditLog } from '../../database/entities/audit-log.entity';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { Permission } from '../../database/entities/permission.entity';
       HotelUserAccess,
       RolePermission,
       Permission,
+      RefreshToken,
+      AuditLog,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
