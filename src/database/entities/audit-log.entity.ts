@@ -39,10 +39,10 @@ export enum AuditResource {
 @Index(['createdAt'])
 export class AuditLog extends BaseEntity {
   @Column({ nullable: true })
-  userId: string;
+  userId: string | null;
 
   @Column({ nullable: true })
-  hotelId: string;
+  hotelId: string | null;
 
   @Column({
     type: 'enum',

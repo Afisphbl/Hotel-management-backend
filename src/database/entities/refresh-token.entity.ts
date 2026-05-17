@@ -21,6 +21,12 @@ export class RefreshToken extends BaseEntity {
   @Column({ unique: true })
   token: string;
 
+  @Column({ nullable: true })
+  hotelId: string | null;
+
+  @Column({ default: 'hmac-sha256' })
+  tokenHashAlgorithm: string;
+
   @Column({ type: 'timestamptz' })
   expiresAt: Date;
 

@@ -8,6 +8,9 @@ export class PermissionsGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const { user } = context.switchToHttp().getRequest();
+    if (!user) {
+      return false;
+    }
 
     // Check PII permission first
     const piiPermission = this.reflector.getAllAndOverride<string>(
@@ -16,6 +19,7 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (piiPermission) {
+      // if (!user.permissions?.includes(piiPermission)) {
       if (!user.permissions?.includes(piiPermission)) {
         return false;
       }

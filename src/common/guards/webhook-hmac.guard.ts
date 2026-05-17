@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
@@ -21,11 +26,15 @@ export class WebhookHmacGuard implements CanActivate {
     }
 
     // Check timestamp is within 5 minutes to prevent replay attacks
-    const webhookTime = parseInt(timestamp, 10);
+    const webhookTime = Number(timestamp);
+    if (!Number.isInteger(webhookTime)) {
+      throw new UnauthorizedException('Invalid webhook timestamp');
+    }
     const now = Math.floor(Date.now() / 1000);
     const timeDiff = Math.abs(now - webhookTime);
 
-    if (timeDiff > 300) { // 5 minutes
+    if (timeDiff > 300) {
+      // 5 minutes
       throw new UnauthorizedException('Webhook timestamp too old');
     }
 

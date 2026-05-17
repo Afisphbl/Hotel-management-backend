@@ -11,8 +11,11 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 class RefreshTokenDto {
+  @IsNotEmpty()
+  @IsString()
   refreshToken: string;
 }
 

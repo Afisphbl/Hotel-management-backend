@@ -17,7 +17,7 @@ import {
 } from '../../database/entities/audit-log.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -53,7 +53,7 @@ export class AuthService {
 
   async login(
     user: any,
-    hotelId?: string,
+    hotelId?: string | null,
     metadata?: { userAgent?: string; ipAddress?: string; device?: string },
   ) {
     let permissions: string[] = [];
@@ -101,7 +101,7 @@ export class AuthService {
     // Create audit log
     await this.createAuditLog({
       userId: user.id,
-      hotelId: hotelId || null,
+      hotelId: hotelId ?? null,
       action: AuditAction.LOGIN,
       resourceType: AuditResource.USER,
       resourceId: user.id,
@@ -112,56 +112,65 @@ export class AuthService {
 
     return {
       access_token: accessToken,
-      refresh_token: refreshToken.token,
+      refresh_token: refreshToken,
       expires_in: this.configService.get('JWT_EXPIRATION'),
     };
   }
 
   async generateRefreshToken(
     userId: string,
-    hotelId: string | null,
+    hotelId: string | null | undefined,
     metadata?: any,
-  ): Promise<RefreshToken> {
+  ): Promise<string> {
     const token = randomBytes(32).toString('hex');
-    const expiresIn = this.configService.get('REFRESH_TOKEN_EXPIRATION', '7d');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Default 7 days
+    const tokenHash = this.hashRefreshToken(token);
+    const expiresAt = this.getRefreshTokenExpiresAt();
 
     const refreshToken = this.refreshTokenRepository.create({
       userId,
-      token,
+      hotelId: hotelId ?? null,
+      token: tokenHash,
       expiresAt,
       status: RefreshTokenStatus.ACTIVE,
       metadata,
     });
 
-    return this.refreshTokenRepository.save(refreshToken);
+    await this.refreshTokenRepository.save(refreshToken);
+    return token;
   }
 
   async refreshTokens(
     refreshToken: string,
     metadata?: { userAgent?: string; ipAddress?: string },
   ) {
-    const tokenRecord = await this.refreshTokenRepository.findOne({
-      where: { token: refreshToken },
-      relations: ['user'],
-    });
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    const revokeResult = await this.refreshTokenRepository
+      .createQueryBuilder()
+      .update(RefreshToken)
+      .set({
+        status: RefreshTokenStatus.REVOKED,
+        revokedAt: () => 'NOW()',
+        revokedBy: () => '"userId"',
+      })
+      .where('token = :token', { token: tokenHash })
+      .andWhere('status = :status', { status: RefreshTokenStatus.ACTIVE })
+      .andWhere('"expiresAt" > NOW()')
+      .execute();
 
-    if (!tokenRecord) {
+    if (!revokeResult.affected) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    if (tokenRecord.status === RefreshTokenStatus.REVOKED) {
-      throw new UnauthorizedException('Refresh token has been revoked');
-    }
+    const tokenRecord = await this.refreshTokenRepository.findOne({
+      where: { token: tokenHash },
+      relations: ['user'],
+    });
 
     if (
-      tokenRecord.status === RefreshTokenStatus.EXPIRED ||
-      tokenRecord.expiresAt < new Date()
+      !tokenRecord ||
+      !this.compareRefreshTokenHash(tokenRecord.token, tokenHash)
     ) {
-      tokenRecord.status = RefreshTokenStatus.EXPIRED;
-      await this.refreshTokenRepository.save(tokenRecord);
-      throw new UnauthorizedException('Refresh token has expired');
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
     const user = await this.userRepository.findOne({
@@ -173,16 +182,10 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    // Revoke old refresh token
-    tokenRecord.status = RefreshTokenStatus.REVOKED;
-    tokenRecord.revokedAt = new Date();
-    tokenRecord.revokedBy = user.id;
-    await this.refreshTokenRepository.save(tokenRecord);
-
     // Create audit log for refresh
     await this.createAuditLog({
       userId: user.id,
-      hotelId: null,
+      hotelId: tokenRecord.hotelId,
       action: AuditAction.REFRESH_TOKEN,
       resourceType: AuditResource.REFRESH_TOKEN,
       resourceId: tokenRecord.id,
@@ -192,15 +195,19 @@ export class AuthService {
     });
 
     // Generate new tokens
-    return this.login(user, null, metadata);
+    return this.login(user, tokenRecord.hotelId, metadata);
   }
 
   async revokeRefreshToken(refreshToken: string, userId: string) {
+    const tokenHash = this.hashRefreshToken(refreshToken);
     const tokenRecord = await this.refreshTokenRepository.findOne({
-      where: { token: refreshToken, userId },
+      where: { token: tokenHash, userId },
     });
 
-    if (!tokenRecord) {
+    if (
+      !tokenRecord ||
+      !this.compareRefreshTokenHash(tokenRecord.token, tokenHash)
+    ) {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -241,7 +248,7 @@ export class AuthService {
 
   private async createAuditLog(data: {
     userId?: string;
-    hotelId?: string;
+    hotelId?: string | null;
     action: AuditAction;
     resourceType: AuditResource;
     resourceId?: string;
@@ -253,5 +260,57 @@ export class AuthService {
   }) {
     const auditLog = this.auditLogRepository.create(data);
     return this.auditLogRepository.save(auditLog);
+  }
+
+  private hashRefreshToken(token: string): string {
+    const secret = this.configService.getOrThrow<string>(
+      'REFRESH_TOKEN_SECRET',
+    );
+    return createHmac('sha256', secret).update(token, 'utf8').digest('hex');
+  }
+
+  private compareRefreshTokenHash(a: string, b: string): boolean {
+    const left = Buffer.from(a, 'hex');
+    const right = Buffer.from(b, 'hex');
+
+    if (left.length !== right.length) {
+      return false;
+    }
+
+    return timingSafeEqual(left, right);
+  }
+
+  private getRefreshTokenExpiresAt(): Date {
+    const expiresIn = this.configService.get<string>(
+      'REFRESH_TOKEN_EXPIRATION',
+      '7d',
+    );
+    const durationMs =
+      this.parseDurationMs(expiresIn) ?? 7 * 24 * 60 * 60 * 1000;
+    return new Date(Date.now() + durationMs);
+  }
+
+  private parseDurationMs(value: string): number | null {
+    const trimmed = value.trim();
+    const match = /^(\d+)([dhms])?$/.exec(trimmed);
+
+    if (!match) {
+      return null;
+    }
+
+    const amount = Number(match[1]);
+    if (!Number.isSafeInteger(amount)) {
+      return null;
+    }
+
+    const unit = match[2] ?? 's';
+    const multipliers: Record<string, number> = {
+      d: 24 * 60 * 60 * 1000,
+      h: 60 * 60 * 1000,
+      m: 60 * 1000,
+      s: 1000,
+    };
+
+    return amount * multipliers[unit];
   }
 }

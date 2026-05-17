@@ -6,7 +6,10 @@ import { startOpenTelemetry, stopOpenTelemetry } from './observability/otel';
 
 async function bootstrap() {
   await startOpenTelemetry();
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
 
   // Use Pino for logging
   app.useLogger(app.get(Logger));
