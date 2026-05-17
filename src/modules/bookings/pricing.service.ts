@@ -20,9 +20,11 @@ export class PricingService {
     // 3. Check for seasonal rates
     // 4. Check for weekday rules
     // 5. Fallback to base rate
-    
+
     // Simplified for now: return base price
-    const roomType = await this.roomTypeRepository.findOneBy({ id: roomTypeId });
+    const roomType = await this.roomTypeRepository.findOneBy({
+      id: roomTypeId,
+    });
     return roomType ? Number(roomType.basePrice) : 0;
   }
 }

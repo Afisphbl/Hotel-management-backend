@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { UserScope } from '../../database/entities/user.entity';
 
 @Injectable()
@@ -12,11 +17,16 @@ export class TenantGuard implements CanActivate {
       return true;
     }
 
-    const hotelIdFromToken = user.hotel_id;
+    const hotelIdFromToken = user.hotelId ?? user.hotel_id;
     const hotelIdFromRequest = request['hotel_id'];
 
-    if (!hotelIdFromToken || (hotelIdFromRequest && hotelIdFromToken !== hotelIdFromRequest)) {
-      throw new ForbiddenException('Tenant mismatch or unauthorized access to tenant');
+    if (
+      !hotelIdFromToken ||
+      (hotelIdFromRequest && hotelIdFromToken !== hotelIdFromRequest)
+    ) {
+      throw new ForbiddenException(
+        'Tenant mismatch or unauthorized access to tenant',
+      );
     }
 
     return true;

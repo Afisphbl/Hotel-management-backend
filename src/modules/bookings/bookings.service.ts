@@ -1,8 +1,18 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { DataSource, QueryRunner } from 'typeorm';
 import { Booking, BookingStatus } from '../../database/entities/booking.entity';
-import { RoomNight, RoomNightStatus } from '../../database/entities/room-night.entity';
-import { OutboxEvent, OutboxStatus } from '../../database/entities/outbox-event.entity';
+import {
+  RoomNight,
+  RoomNightStatus,
+} from '../../database/entities/room-night.entity';
+import {
+  OutboxEvent,
+  OutboxStatus,
+} from '../../database/entities/outbox-event.entity';
 import { PricingService } from './pricing.service';
 
 @Injectable()
@@ -20,7 +30,7 @@ export class BookingsService {
     try {
       // 1. Validate availability and lock room_nights
       const dates = this.getDatesBetween(createDto.checkIn, createDto.checkOut);
-      
+
       const availability = await queryRunner.manager
         .createQueryBuilder(RoomNight, 'rn')
         .setLock('pessimistic_write')
@@ -38,9 +48,12 @@ export class BookingsService {
       let total = 0;
       const roomNights: RoomNight[] = [];
       for (const date of dates) {
-        const price = await this.pricingService.calculatePrice(createDto.roomTypeId, new Date(date));
+        const price = await this.pricingService.calculatePrice(
+          createDto.roomTypeId,
+          new Date(date),
+        );
         total += price;
-        
+
         const rn = new RoomNight();
         rn.roomId = createDto.roomId;
         rn.date = date;
@@ -57,7 +70,7 @@ export class BookingsService {
       booking.status = BookingStatus.HOLD;
       booking.totalPrice = total;
       booking.idempotencyKey = createDto.idempotencyKey;
-      
+
       const savedBooking = await queryRunner.manager.save(booking);
 
       // 4. Update Room Nights with Booking ID
@@ -69,7 +82,10 @@ export class BookingsService {
       // 5. Insert Outbox Event
       const outbox = new OutboxEvent();
       outbox.type = 'BOOKING_CREATED';
-      outbox.payload = { bookingId: savedBooking.id, guestId: savedBooking.guestId };
+      outbox.payload = {
+        bookingId: savedBooking.id,
+        guestId: savedBooking.guestId,
+      };
       await queryRunner.manager.save(outbox);
 
       await queryRunner.commitTransaction();
@@ -84,7 +100,7 @@ export class BookingsService {
 
   private getDatesBetween(startDate: string, endDate: string): string[] {
     const dates: string[] = [];
-    let curr = new Date(startDate);
+    const curr = new Date(startDate);
     const last = new Date(endDate);
     while (curr < last) {
       dates.push(curr.toISOString().split('T')[0]);
