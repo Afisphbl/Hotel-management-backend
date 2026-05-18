@@ -12,6 +12,10 @@ import { Room } from '../../database/entities/room.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
+import { SeasonalRate } from '../../database/entities/seasonal-rate.entity';
+import { Promotion } from '../../database/entities/promotion.entity';
+import { PriceOverride } from '../../database/entities/price-override.entity';
+import { RatePlan } from '../../database/entities/rate-plan.entity';
 
 @Module({
   imports: [
@@ -23,6 +27,10 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
       Guest,
       OutboxEvent,
       AuditLog,
+      SeasonalRate,
+      Promotion,
+      PriceOverride,
+      RatePlan,
     ]),
     BullModule.registerQueue({
       name: 'hold-expiry',
