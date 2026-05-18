@@ -20,11 +20,11 @@ import { UserScope } from '../../../database/entities/user.entity';
 import { BookingStatus } from '../../../database/entities/booking.entity';
 import { PaginationDto } from '../dto/pagination.dto';
 import { success, paginated } from '../common/response.interceptor';
-import { IsUUID, IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsUUID, IsString, IsNotEmpty, IsOptional, IsArray, ArrayMinSize } from 'class-validator';
 
 class CreateBookingBodyDto {
   @IsUUID() guestId: string;
-  @IsUUID() roomId: string;
+  @IsUUID('4', { each: true }) @IsArray() @ArrayMinSize(1) roomIds: string[];
   @IsString() @IsNotEmpty() checkIn: string;
   @IsString() @IsNotEmpty() checkOut: string;
   @IsString() @IsNotEmpty() idempotencyKey: string;
@@ -58,7 +58,7 @@ export class BookingsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateBookingBodyDto, @Request() req: any) {
-    const booking = await this.bookingsService.create(dto as CreateBookingDto, req.user.userId);
+    const booking = await this.bookingsService.create({ ...dto, roomIds: dto.roomIds } as CreateBookingDto, req.user.userId);
     return success(booking);
   }
 
