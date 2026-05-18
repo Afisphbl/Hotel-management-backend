@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Staff } from '../../../database/entities/staff.entity';
 import { CreateStaffDto, UpdateStaffDto, QueryStaffDto } from '../dto/staff.dto';
+import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()
 export class StaffService {
@@ -11,22 +12,18 @@ export class StaffService {
     private staffRepository: Repository<Staff>,
   ) {}
 
-  async findAll(query: QueryStaffDto) {
+  async findAll(query: QueryStaffDto): Promise<PaginatedResult<Staff>> {
     const where: any = {};
     if (query.role) where.role = query.role;
     if (query.status) where.status = query.status;
     if (query.department) where.department = query.department;
 
-    const page = query.page || 1;
-    const limit = query.limit || 50;
-    const [items, total] = await this.staffRepository.findAndCount({
+    return paginate<Staff>(this.staffRepository, {
+      page: query.page,
+      limit: query.limit,
       where,
       order: { firstName: 'ASC', lastName: 'ASC' },
-      skip: (page - 1) * limit,
-      take: limit,
     });
-
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<Staff> {

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Shift, ShiftStatus } from '../../../database/entities/shift.entity';
 import { CreateShiftDto, UpdateShiftDto, QueryShiftDto } from '../dto/shift.dto';
+import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()
 export class ShiftsService {
@@ -11,7 +12,7 @@ export class ShiftsService {
     private shiftRepository: Repository<Shift>,
   ) {}
 
-  async findAll(query: QueryShiftDto) {
+  async findAll(query: QueryShiftDto): Promise<PaginatedResult<Shift>> {
     const where: any = {};
     if (query.staffId) where.staffId = query.staffId;
     if (query.status) where.status = query.status;
@@ -19,16 +20,12 @@ export class ShiftsService {
       where.startTime = Between(new Date(query.dateFrom), new Date(query.dateTo));
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 50;
-    const [items, total] = await this.shiftRepository.findAndCount({
+    return paginate<Shift>(this.shiftRepository, {
+      page: query.page,
+      limit: query.limit,
       where,
       order: { startTime: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
     });
-
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<Shift> {
