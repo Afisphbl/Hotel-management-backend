@@ -5,6 +5,7 @@ import { Refund, RefundReason, RefundStatus } from '../../../database/entities/r
 import { Payment, PaymentStatus } from '../../../database/entities/payment.entity';
 import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
+import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { CreateRefundDto, QueryRefundDto } from '../dto/refund.dto';
 import { paginate, PaginatedResult } from '../common/pagination';
@@ -20,6 +21,8 @@ export class RefundsService {
     private invoiceRepository: Repository<Invoice>,
     @InjectRepository(LedgerEntry)
     private ledgerRepository: Repository<LedgerEntry>,
+    @InjectRepository(OutboxEvent)
+    private outboxRepository: Repository<OutboxEvent>,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
   ) {}
@@ -111,6 +114,11 @@ export class RefundsService {
       payment.status = PaymentStatus.PARTIALLY_REFUNDED;
     }
     await this.paymentRepository.save(payment);
+
+    await this.outboxRepository.save(this.outboxRepository.create({
+      type: 'REFUND_PROCESSED',
+      payload: { refundId: saved.id, paymentId: dto.paymentId, amount: dto.amount, reason: dto.reason },
+    }));
 
     return saved;
   }
