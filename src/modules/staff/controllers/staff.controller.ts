@@ -20,18 +20,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { CreateStaffDto, UpdateStaffDto, QueryStaffDto } from '../dto/staff.dto';
-
-function paginated(data: any[], total: number, page: number, limit: number) {
-  return {
-    success: true,
-    data,
-    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-  };
-}
-
-function success(data: any) {
-  return { success: true, data };
-}
+import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('staff')
 @UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
@@ -42,7 +31,7 @@ export class StaffController {
   @Get()
   async findAll(@Query() query: QueryStaffDto) {
     const result = await this.staffService.findAll(query);
-    return paginated(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(result.items, result.total, result.page, result.limit);
   }
 
   @Get(':id')
