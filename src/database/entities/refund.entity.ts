@@ -23,6 +23,7 @@ export enum RefundStatus {
 @Index(['paymentId'])
 @Index(['invoiceId'])
 @Index(['bookingId'])
+@Index(['idempotencyKey'], { unique: true, where: '"idempotencyKey" IS NOT NULL' })
 export class Refund extends BaseEntity {
   @Column()
   paymentId: string;

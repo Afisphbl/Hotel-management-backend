@@ -95,15 +95,20 @@ export class BookingsService {
     await queryRunner.startTransaction();
 
     try {
-      const existing = await this.bookingRepository.findOneBy({
-        idempotencyKey: createDto.idempotencyKey,
+      const existing = await queryRunner.manager.findOne(Booking, {
+        where: { idempotencyKey: createDto.idempotencyKey },
       });
-      if (existing) return existing;
+      if (existing) {
+        await queryRunner.rollbackTransaction();
+        return existing;
+      }
 
-      const guest = await this.guestRepository.findOneBy({ id: createDto.guestId });
+      const guest = await queryRunner.manager.findOne(Guest, {
+        where: { id: createDto.guestId },
+      });
       if (!guest) throw new NotFoundException('Guest not found');
 
-      const rooms = await this.roomRepository.find({
+      const rooms = await queryRunner.manager.find(Room, {
         where: createDto.roomIds.map(id => ({ id })),
         relations: ['roomType'],
       });

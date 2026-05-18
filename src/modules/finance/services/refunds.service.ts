@@ -54,73 +54,99 @@ export class RefundsService {
   }
 
   async createRefund(dto: CreateRefundDto): Promise<Refund> {
-    const payment = await this.paymentRepository.findOne({
-      where: { id: dto.paymentId },
-      relations: ['invoice'],
-    });
-    if (!payment) throw new NotFoundException('Payment not found');
-    if (payment.status === PaymentStatus.REFUNDED) {
-      throw new BadRequestException('Payment already fully refunded');
+    const queryRunner = this.refundRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Check idempotency
+      const existing = await queryRunner.manager.findOne(Refund, {
+        where: { idempotencyKey: dto.idempotencyKey },
+      });
+      if (existing) {
+        await queryRunner.rollbackTransaction();
+        return existing;
+      }
+
+      const payment = await queryRunner.manager.findOne(Payment, {
+        where: { id: dto.paymentId },
+        relations: ['invoice'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!payment) throw new NotFoundException('Payment not found');
+      if (payment.status === PaymentStatus.REFUNDED) {
+        throw new BadRequestException('Payment already fully refunded');
+      }
+
+      const invoiceId = dto.invoiceId || payment.invoiceId;
+      const bookingId = dto.bookingId || payment.bookingId;
+
+      const totalRefundedResult = await queryRunner.manager
+        .createQueryBuilder(Refund, 'refund')
+        .where('refund.paymentId = :paymentId', { paymentId: dto.paymentId })
+        .select('COALESCE(SUM(refund.amount), 0)', 'total')
+        .getRawOne();
+
+      const refundedSoFar = Number(totalRefundedResult?.total || 0);
+      const remaining = Number(payment.amount) - refundedSoFar;
+      if (dto.amount > remaining) {
+        throw new BadRequestException(
+          `Refund amount ${dto.amount} exceeds remaining balance ${remaining}`,
+        );
+      }
+
+      // 2. Create refund record
+      const refund = queryRunner.manager.create(Refund, {
+        paymentId: dto.paymentId,
+        invoiceId: invoiceId || undefined,
+        bookingId: bookingId || undefined,
+        amount: dto.amount,
+        currency: dto.currency || 'USD',
+        reason: dto.reason,
+        status: RefundStatus.COMPLETED,
+        transactionId: dto.transactionId,
+        idempotencyKey: dto.idempotencyKey,
+        processedAt: new Date(),
+        notes: dto.notes,
+      });
+      const saved = await queryRunner.manager.save(refund);
+
+      // 3. Create ledger entry
+      const ledger = queryRunner.manager.create(LedgerEntry, {
+        accountId: 'ACCOUNTS_RECEIVABLE',
+        debit: dto.amount,
+        credit: 0,
+        currency: dto.currency || 'USD',
+        referenceType: 'REFUND',
+        referenceId: saved.id,
+        bookingId: bookingId || undefined,
+        description: `Refund: ${dto.reason} for payment ${dto.paymentId}`,
+      });
+      await queryRunner.manager.save(ledger);
+
+      // 4. Update payment status
+      const newTotal = refundedSoFar + dto.amount;
+      if (newTotal >= Number(payment.amount)) {
+        payment.status = PaymentStatus.REFUNDED;
+      } else {
+        payment.status = PaymentStatus.PARTIALLY_REFUNDED;
+      }
+      await queryRunner.manager.save(payment);
+
+      // 5. Create outbox event
+      await queryRunner.manager.save(queryRunner.manager.create(OutboxEvent, {
+        type: 'REFUND_PROCESSED',
+        payload: { refundId: saved.id, paymentId: dto.paymentId, amount: dto.amount, reason: dto.reason },
+      }));
+
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    const invoiceId = dto.invoiceId || payment.invoiceId;
-    const bookingId = dto.bookingId || payment.bookingId;
-
-    const totalRefunded = await this.refundRepository
-      .createQueryBuilder('refund')
-      .where('refund.paymentId = :paymentId', { paymentId: dto.paymentId })
-      .select('COALESCE(SUM(refund.amount), 0)', 'total')
-      .getRawOne();
-
-    const refundedSoFar = Number(totalRefunded?.total || 0);
-    const remaining = Number(payment.amount) - refundedSoFar;
-    if (dto.amount > remaining) {
-      throw new BadRequestException(
-        `Refund amount ${dto.amount} exceeds remaining balance ${remaining}`,
-      );
-    }
-
-    const refund = this.refundRepository.create({
-      paymentId: dto.paymentId,
-      invoiceId: invoiceId || undefined,
-      bookingId: bookingId || undefined,
-      amount: dto.amount,
-      currency: dto.currency || 'USD',
-      reason: dto.reason,
-      status: RefundStatus.COMPLETED,
-      transactionId: dto.transactionId,
-      idempotencyKey: dto.idempotencyKey,
-      processedAt: new Date(),
-      notes: dto.notes,
-    });
-    const saved = await this.refundRepository.save(refund);
-
-    const ledger = this.ledgerRepository.create({
-      accountId: 'ACCOUNTS_RECEIVABLE',
-      debit: dto.amount,
-      credit: 0,
-      currency: dto.currency || 'USD',
-      referenceType: 'REFUND',
-      referenceId: saved.id,
-      bookingId: bookingId || undefined,
-      description: `Refund: ${dto.reason} for payment ${dto.paymentId}`,
-    });
-    await this.ledgerRepository.save(ledger);
-
-    const newTotal = refundedSoFar + dto.amount;
-    if (newTotal >= Number(payment.amount)) {
-      payment.status = PaymentStatus.REFUNDED;
-    } else {
-      payment.status = PaymentStatus.PARTIALLY_REFUNDED;
-    }
-    await this.paymentRepository.save(payment);
-
-    await this.outboxRepository.save(this.outboxRepository.create({
-      type: 'REFUND_PROCESSED',
-      payload: { refundId: saved.id, paymentId: dto.paymentId, amount: dto.amount, reason: dto.reason },
-    }));
-
-    return saved;
   }
 
   async findByPayment(paymentId: string): Promise<Refund[]> {

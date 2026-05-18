@@ -34,6 +34,7 @@ class ProcessPaymentBodyDto {
 class RefundBodyDto {
   @IsNumber() @Min(0) amount: number;
   @IsString() reason: RefundReason;
+  @IsString() idempotencyKey: string;
   @IsOptional() @IsString() notes?: string;
 }
 

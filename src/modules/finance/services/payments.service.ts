@@ -55,77 +55,107 @@ export class PaymentsService {
   }
 
   async processPayment(dto: CreatePaymentDto): Promise<Payment> {
-    const existing = dto.transactionId
-      ? await this.paymentRepository.findOneBy({ transactionId: dto.transactionId })
-      : null;
-    if (existing) return existing;
+    const queryRunner = this.paymentRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const invoice = await this.invoiceRepository.findOne({
-      where: { id: dto.invoiceId },
-      relations: ['booking'],
-    });
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    try {
+      // 1. Check idempotency
+      const existingByIdempotency = await queryRunner.manager.findOne(Payment, {
+        where: { idempotencyKey: dto.idempotencyKey },
+      });
+      if (existingByIdempotency) {
+        await queryRunner.rollbackTransaction();
+        return existingByIdempotency;
+      }
 
-    const bookingId = dto.bookingId || invoice.bookingId;
+      if (dto.transactionId) {
+        const existingByTransaction = await queryRunner.manager.findOne(Payment, {
+          where: { transactionId: dto.transactionId },
+        });
+        if (existingByTransaction) {
+          await queryRunner.rollbackTransaction();
+          return existingByTransaction;
+        }
+      }
 
-    const fee = dto.fee ?? 0;
-    const netAmount = dto.amount - fee;
+      const invoice = await queryRunner.manager.findOne(Invoice, {
+        where: { id: dto.invoiceId },
+        relations: ['booking'],
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const payment = this.paymentRepository.create({
-      invoiceId: dto.invoiceId,
-      bookingId: bookingId || undefined,
-      amount: dto.amount,
-      fee,
-      netAmount,
-      currency: dto.currency || 'USD',
-      method: dto.method,
-      status: PaymentStatus.COMPLETED,
-      transactionId: dto.transactionId,
-      gatewayResponse: dto.gatewayResponse,
-      idempotencyKey: dto.idempotencyKey,
-      description: dto.description,
-      paidAt: new Date(),
-    });
-    const saved = await this.paymentRepository.save(payment);
+      const bookingId = dto.bookingId || invoice.bookingId;
+      const fee = dto.fee ?? 0;
+      const netAmount = dto.amount - fee;
 
-    const ledger = this.ledgerRepository.create({
-      accountId: 'ACCOUNTS_RECEIVABLE',
-      debit: 0,
-      credit: dto.amount,
-      currency: dto.currency || 'USD',
-      referenceType: 'PAYMENT',
-      referenceId: saved.id,
-      bookingId: bookingId || undefined,
-      description: dto.description || `Payment via ${dto.method} for invoice ${dto.invoiceId}`,
-    });
-    await this.ledgerRepository.save(ledger);
+      // 2. Create payment record
+      const payment = queryRunner.manager.create(Payment, {
+        invoiceId: dto.invoiceId,
+        bookingId: bookingId || undefined,
+        amount: dto.amount,
+        fee,
+        netAmount,
+        currency: dto.currency || 'USD',
+        method: dto.method,
+        status: PaymentStatus.COMPLETED,
+        transactionId: dto.transactionId,
+        gatewayResponse: dto.gatewayResponse,
+        idempotencyKey: dto.idempotencyKey,
+        description: dto.description,
+        paidAt: new Date(),
+      });
+      const saved = await queryRunner.manager.save(payment);
 
-    if (fee > 0) {
-      const feeLedger = this.ledgerRepository.create({
-        accountId: 'FEES_EXPENSE',
-        debit: fee,
-        credit: 0,
+      // 3. Create ledger entry
+      const ledger = queryRunner.manager.create(LedgerEntry, {
+        accountId: 'ACCOUNTS_RECEIVABLE',
+        debit: 0,
+        credit: dto.amount,
         currency: dto.currency || 'USD',
         referenceType: 'PAYMENT',
         referenceId: saved.id,
         bookingId: bookingId || undefined,
-        description: `Processing fee for payment ${saved.id}`,
+        description: dto.description || `Payment via ${dto.method} for invoice ${dto.invoiceId}`,
       });
-      await this.ledgerRepository.save(feeLedger);
+      await queryRunner.manager.save(ledger);
+
+      if (fee > 0) {
+        const feeLedger = queryRunner.manager.create(LedgerEntry, {
+          accountId: 'FEES_EXPENSE',
+          debit: fee,
+          credit: 0,
+          currency: dto.currency || 'USD',
+          referenceType: 'PAYMENT',
+          referenceId: saved.id,
+          bookingId: bookingId || undefined,
+          description: `Processing fee for payment ${saved.id}`,
+        });
+        await queryRunner.manager.save(feeLedger);
+      }
+
+      // 4. Update invoice status
+      if (invoice.status !== InvoiceStatus.PAID) {
+        invoice.status = InvoiceStatus.PAID;
+        invoice.paidAt = new Date();
+        await queryRunner.manager.save(invoice);
+      }
+
+      // 5. Create outbox event
+      await queryRunner.manager.save(queryRunner.manager.create(OutboxEvent, {
+        type: 'PAYMENT_PROCESSED',
+        payload: { paymentId: saved.id, invoiceId: dto.invoiceId, amount: dto.amount },
+      }));
+
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    if (invoice.status !== InvoiceStatus.PAID) {
-      invoice.status = InvoiceStatus.PAID;
-      invoice.paidAt = new Date();
-      await this.invoiceRepository.save(invoice);
-    }
-
-    await this.outboxRepository.save(this.outboxRepository.create({
-      type: 'PAYMENT_PROCESSED',
-      payload: { paymentId: saved.id, invoiceId: dto.invoiceId, amount: dto.amount },
-    }));
-
-    return saved;
   }
 
   async findByInvoice(invoiceId: string): Promise<Payment[]> {
