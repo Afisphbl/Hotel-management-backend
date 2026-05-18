@@ -19,18 +19,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { CreateShiftDto, UpdateShiftDto, QueryShiftDto } from '../dto/shift.dto';
-
-function paginated(data: any[], total: number, page: number, limit: number) {
-  return {
-    success: true,
-    data,
-    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-  };
-}
-
-function success(data: any) {
-  return { success: true, data };
-}
+import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('shifts')
 @UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
@@ -41,7 +30,7 @@ export class ShiftsController {
   @Get()
   async findAll(@Query() query: QueryShiftDto) {
     const result = await this.shiftsService.findAll(query);
-    return paginated(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(result.items, result.total, result.page, result.limit);
   }
 
   @Get(':id')

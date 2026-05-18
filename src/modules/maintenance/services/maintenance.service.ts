@@ -6,6 +6,7 @@ import {
   TicketStatus,
 } from '../../../database/entities/maintenance-ticket.entity';
 import { CreateTicketDto, UpdateTicketDto, QueryTicketDto } from '../dto/maintenance.dto';
+import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()
 export class MaintenanceService {
@@ -14,23 +15,19 @@ export class MaintenanceService {
     private ticketRepository: Repository<MaintenanceTicket>,
   ) {}
 
-  async findAll(query: QueryTicketDto) {
+  async findAll(query: QueryTicketDto): Promise<PaginatedResult<MaintenanceTicket>> {
     const where: any = {};
     if (query.status) where.status = query.status;
     if (query.priority) where.priority = query.priority;
     if (query.roomId) where.roomId = query.roomId;
     if (query.assignedTo) where.assignedTo = query.assignedTo;
 
-    const page = query.page || 1;
-    const limit = query.limit || 50;
-    const [items, total] = await this.ticketRepository.findAndCount({
+    return paginate<MaintenanceTicket>(this.ticketRepository, {
+      page: query.page,
+      limit: query.limit,
       where,
       order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
     });
-
-    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<MaintenanceTicket> {
