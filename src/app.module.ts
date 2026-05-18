@@ -8,6 +8,7 @@ import { HotelsModule } from './modules/hotels/hotels.module';
 import { UsersModule } from './modules/users/users.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { HotelModule } from './modules/hotel/hotel.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { validateEnv } from './config/env.validation';
@@ -67,6 +68,7 @@ import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
     HotelsModule,
     UsersModule,
     BookingsModule,
+    HotelModule,
     FinanceModule,
     PlatformModule,
   ],
