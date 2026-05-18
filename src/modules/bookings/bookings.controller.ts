@@ -64,7 +64,7 @@ export class BookingsController {
   async create(@Body() dto: CreateBookingDto, @Request() req: any) {
     const booking = await this.bookingsService.createBooking({
       guestId: dto.guestId,
-      roomId: dto.roomId,
+      roomIds: dto.roomIds,
       checkIn: dto.checkIn,
       checkOut: dto.checkOut,
       idempotencyKey: dto.idempotencyKey,

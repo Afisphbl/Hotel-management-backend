@@ -1,6 +1,7 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Guest } from './guest.entity';
+import { BookingRoom } from './booking-room.entity';
 
 export enum BookingStatus {
   PENDING = 'pending',
@@ -42,4 +43,7 @@ export class Booking extends BaseEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   priceSnapshot: any;
+
+  @OneToMany(() => BookingRoom, br => br.booking)
+  bookingRooms: BookingRoom[];
 }

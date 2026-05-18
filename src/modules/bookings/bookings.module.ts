@@ -6,6 +6,7 @@ import { BookingsService } from './bookings.service';
 import { PricingService } from './pricing.service';
 import { HoldExpiryProcessor } from './processors/hold-expiry.processor';
 import { Booking } from '../../database/entities/booking.entity';
+import { BookingRoom } from '../../database/entities/booking-room.entity';
 import { RoomNight } from '../../database/entities/room-night.entity';
 import { RoomType } from '../../database/entities/room-type.entity';
 import { Room } from '../../database/entities/room.entity';
@@ -21,6 +22,7 @@ import { RatePlan } from '../../database/entities/rate-plan.entity';
   imports: [
     TypeOrmModule.forFeature([
       Booking,
+      BookingRoom,
       RoomNight,
       RoomType,
       Room,

@@ -9,6 +9,7 @@ import { DataSource, Repository, SelectQueryBuilder, ObjectLiteral } from 'typeo
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Booking, BookingStatus } from '../../database/entities/booking.entity';
+import { BookingRoom } from '../../database/entities/booking-room.entity';
 import {
   RoomNight,
   RoomNightStatus,
@@ -35,6 +36,8 @@ export class BookingsService {
     private dataSource: DataSource,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
+    @InjectRepository(BookingRoom)
+    private bookingRoomRepository: Repository<BookingRoom>,
     @InjectRepository(RoomNight)
     private roomNightRepository: Repository<RoomNight>,
     @InjectRepository(Guest)
@@ -57,6 +60,8 @@ export class BookingsService {
   }): Promise<PaginatedResult<Booking>> {
     const qb = this.bookingRepository.createQueryBuilder('booking')
       .leftJoinAndSelect('booking.guest', 'guest')
+      .leftJoinAndSelect('booking.bookingRooms', 'bookingRooms')
+      .leftJoinAndSelect('bookingRooms.room', 'room')
       .orderBy('booking.createdAt', 'DESC');
 
     if (query.status) qb.andWhere('booking.status = :status', { status: query.status });
@@ -70,7 +75,7 @@ export class BookingsService {
   async findById(id: string): Promise<Booking> {
     const booking = await this.bookingRepository.findOne({
       where: { id },
-      relations: ['guest'],
+      relations: ['guest', 'bookingRooms', 'bookingRooms.room'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
@@ -78,7 +83,7 @@ export class BookingsService {
 
   async createBooking(createDto: {
     guestId: string;
-    roomId: string;
+    roomIds: string[];
     checkIn: string;
     checkOut: string;
     idempotencyKey: string;
@@ -98,46 +103,60 @@ export class BookingsService {
       const guest = await this.guestRepository.findOneBy({ id: createDto.guestId });
       if (!guest) throw new NotFoundException('Guest not found');
 
-      const room = await this.roomRepository.findOne({
-        where: { id: createDto.roomId },
+      const rooms = await this.roomRepository.find({
+        where: createDto.roomIds.map(id => ({ id })),
         relations: ['roomType'],
       });
-      if (!room) throw new NotFoundException('Room not found');
+      if (rooms.length !== createDto.roomIds.length) {
+        throw new NotFoundException('One or more rooms not found');
+      }
 
       const dates = this.getDatesBetween(createDto.checkIn, createDto.checkOut);
 
-      const conflictingNights = await queryRunner.manager
-        .createQueryBuilder(RoomNight, 'rn')
-        .setLock('pessimistic_write')
-        .where('rn.roomId = :roomId AND rn.date IN (:...dates)', {
-          roomId: createDto.roomId,
-          dates,
-        })
-        .andWhere('rn.status IN (:...statuses)', {
-          statuses: [RoomNightStatus.HELD, RoomNightStatus.BOOKED],
-        })
-        .getMany();
+      for (const room of rooms) {
+        const conflictingNights = await queryRunner.manager
+          .createQueryBuilder(RoomNight, 'rn')
+          .setLock('pessimistic_write')
+          .where('rn.roomId = :roomId AND rn.date IN (:...dates)', {
+            roomId: room.id,
+            dates,
+          })
+          .andWhere('rn.status IN (:...statuses)', {
+            statuses: [RoomNightStatus.HELD, RoomNightStatus.BOOKED],
+          })
+          .getMany();
 
-      if (conflictingNights.length > 0) {
-        throw new ConflictException('Room is not available for selected dates');
+        if (conflictingNights.length > 0) {
+          throw new ConflictException(`Room ${room.roomNumber} is not available for selected dates`);
+        }
       }
 
       let total = 0;
-      const roomNights: RoomNight[] = [];
-      for (const date of dates) {
-        const price = await this.pricingService.calculatePrice(
-          room.roomTypeId,
-          new Date(date),
-        );
-        total += price;
+      const allRoomNights: RoomNight[] = [];
+      const bookingRoomsData: { room: Room; nightPrices: { date: string; price: number }[] }[] = [];
 
-        const rn = queryRunner.manager.create(RoomNight, {
-          roomId: createDto.roomId,
-          date,
-          status: RoomNightStatus.HELD,
-          price,
-        });
-        roomNights.push(rn);
+      for (const room of rooms) {
+        const nightPrices: { date: string; price: number }[] = [];
+
+        for (const date of dates) {
+          const price = await this.pricingService.calculatePrice(
+            room.roomTypeId,
+            new Date(date),
+          );
+          total += price;
+
+          nightPrices.push({ date, price });
+
+          const rn = queryRunner.manager.create(RoomNight, {
+            roomId: room.id,
+            date,
+            status: RoomNightStatus.HELD,
+            price,
+          });
+          allRoomNights.push(rn);
+        }
+
+        bookingRoomsData.push({ room, nightPrices });
       }
 
       const booking = queryRunner.manager.create(Booking, {
@@ -148,18 +167,30 @@ export class BookingsService {
         totalPrice: total,
         idempotencyKey: createDto.idempotencyKey,
         priceSnapshot: {
-          roomTypeId: room.roomTypeId,
-          roomNumber: room.roomNumber,
-          nights: roomNights.map((rn) => ({ date: rn.date, price: rn.price })),
+          rooms: bookingRoomsData.map(br => ({
+            roomTypeId: br.room.roomTypeId,
+            roomNumber: br.room.roomNumber,
+            nights: br.nightPrices,
+          })),
           pricingDate: new Date().toISOString(),
         },
       });
 
       const savedBooking = await queryRunner.manager.save(booking);
 
-      for (const rn of roomNights) {
+      for (const rn of allRoomNights) {
         rn.bookingId = savedBooking.id;
         await queryRunner.manager.save(rn);
+      }
+
+      for (const br of bookingRoomsData) {
+        const bookingRoom = queryRunner.manager.create(BookingRoom, {
+          bookingId: savedBooking.id,
+          roomId: br.room.id,
+          price: br.nightPrices.reduce((s, n) => s + n.price, 0),
+          nightPrices: br.nightPrices,
+        });
+        await queryRunner.manager.save(bookingRoom);
       }
 
       const outbox = queryRunner.manager.create(OutboxEvent, {

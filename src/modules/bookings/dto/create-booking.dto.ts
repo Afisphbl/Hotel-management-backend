@@ -1,11 +1,13 @@
-import { IsUUID, IsString, IsNotEmpty, IsOptional, IsDateString } from 'class-validator';
+import { IsUUID, IsString, IsNotEmpty, IsOptional, IsDateString, IsArray, ArrayMinSize } from 'class-validator';
 
 export class CreateBookingDto {
   @IsUUID()
   guestId: string;
 
-  @IsUUID()
-  roomId: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  roomIds: string[];
 
   @IsDateString()
   @IsNotEmpty()

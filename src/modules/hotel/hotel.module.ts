@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { Booking } from '../../database/entities/booking.entity';
+import { BookingRoom } from '../../database/entities/booking-room.entity';
 import { RoomNight } from '../../database/entities/room-night.entity';
 import { RoomType } from '../../database/entities/room-type.entity';
 import { Room } from '../../database/entities/room.entity';
@@ -46,6 +47,7 @@ import { DashboardService } from './services/dashboard.service';
 
 const entities = [
   Booking,
+  BookingRoom,
   RoomNight,
   RoomType,
   Room,

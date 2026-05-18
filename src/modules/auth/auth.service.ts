@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, LessThan } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
+import { Role } from '../../database/entities/role.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
 import {
@@ -26,6 +27,8 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(HotelUserAccess)
     private accessRepository: Repository<HotelUserAccess>,
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>,
     @InjectRepository(RolePermission)
     private rolePermissionRepository: Repository<RolePermission>,
     @InjectRepository(Permission)
@@ -57,7 +60,7 @@ export class AuthService {
     metadata?: { userAgent?: string; ipAddress?: string; device?: string },
   ) {
     let permissions: string[] = [];
-    const roleName = 'USER';
+    let roleName = 'SUPER_ADMIN';
 
     if (hotelId) {
       const access = await this.accessRepository.findOne({
@@ -67,6 +70,10 @@ export class AuthService {
       if (!access) {
         throw new UnauthorizedException('No access to this hotel');
       }
+
+      // Resolve the actual role name
+      const role = await this.roleRepository.findOne({ where: { id: access.roleId } });
+      roleName = role?.name ?? 'USER';
 
       // Resolve permissions for the role
       const rolePermissions = await this.rolePermissionRepository.find({
