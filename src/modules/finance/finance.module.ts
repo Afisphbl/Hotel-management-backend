@@ -4,6 +4,7 @@ import { Invoice } from '../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../database/entities/ledger-entry.entity';
 import { Payment } from '../../database/entities/payment.entity';
 import { Refund } from '../../database/entities/refund.entity';
+import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { TaxRule } from '../../database/entities/tax-rule.entity';
 import { Booking } from '../../database/entities/booking.entity';
 import { PaymentsController } from './controllers/payments.controller';
@@ -24,6 +25,7 @@ import { TaxRulesService } from './services/tax-rules.service';
       LedgerEntry,
       Payment,
       Refund,
+      OutboxEvent,
       TaxRule,
       Booking,
     ]),

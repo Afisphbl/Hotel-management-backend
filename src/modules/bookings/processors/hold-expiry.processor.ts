@@ -33,11 +33,8 @@ export class HoldExpiryProcessor extends WorkerHost {
         booking.status = BookingStatus.CANCELLED;
         await this.bookingRepository.save(booking);
 
-        // Release room nights
-        await this.roomNightRepository.update(
-          { bookingId },
-          { status: RoomNightStatus.HELD }, // Or delete if appropriate
-        );
+        // Release room nights by removing held records so dates become available
+        await this.roomNightRepository.delete({ bookingId });
       }
     }
   }

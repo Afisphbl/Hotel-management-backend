@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { TaxRule, TaxApplication } from '../../../database/entities/tax-rule.entity';
+import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { CreateInvoiceDto, QueryInvoiceDto } from '../dto/invoice.dto';
 import { paginate, PaginatedResult } from '../common/pagination';
 
@@ -16,6 +17,8 @@ export class InvoicesService {
     private bookingRepository: Repository<Booking>,
     @InjectRepository(TaxRule)
     private taxRuleRepository: Repository<TaxRule>,
+    @InjectRepository(OutboxEvent)
+    private outboxRepository: Repository<OutboxEvent>,
   ) {}
 
   async findAll(query: QueryInvoiceDto): Promise<PaginatedResult<Invoice>> {
@@ -86,13 +89,30 @@ export class InvoicesService {
       dueDate: dto.dueDate ? new Date(dto.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       notes: dto.notes,
     });
-    return this.invoiceRepository.save(invoice);
+    const saved = await this.invoiceRepository.save(invoice);
+
+    await this.outboxRepository.save(this.outboxRepository.create({
+      type: 'INVOICE_CREATED',
+      payload: { invoiceId: saved.id, bookingId: dto.bookingId, amount },
+    }));
+
+    return saved;
   }
 
   async issue(id: string): Promise<Invoice> {
     const invoice = await this.findById(id);
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Only draft invoices can be issued');
+    }
     invoice.status = InvoiceStatus.ISSUED;
-    return this.invoiceRepository.save(invoice);
+    const saved = await this.invoiceRepository.save(invoice);
+
+    await this.outboxRepository.save(this.outboxRepository.create({
+      type: 'INVOICE_ISSUED',
+      payload: { invoiceId: saved.id, bookingId: saved.bookingId },
+    }));
+
+    return saved;
   }
 
   async markPaid(id: string): Promise<Invoice> {
@@ -112,8 +132,19 @@ export class InvoicesService {
 
   async void(id: string): Promise<Invoice> {
     const invoice = await this.findById(id);
+    if (invoice.status === InvoiceStatus.VOID) return invoice;
+    if (invoice.status === InvoiceStatus.PAID) {
+      throw new BadRequestException('Cannot void a paid invoice');
+    }
     invoice.status = InvoiceStatus.VOID;
-    return this.invoiceRepository.save(invoice);
+    const saved = await this.invoiceRepository.save(invoice);
+
+    await this.outboxRepository.save(this.outboxRepository.create({
+      type: 'INVOICE_VOIDED',
+      payload: { invoiceId: saved.id, bookingId: saved.bookingId },
+    }));
+
+    return saved;
   }
 
   async findByBooking(bookingId: string): Promise<Invoice[]> {

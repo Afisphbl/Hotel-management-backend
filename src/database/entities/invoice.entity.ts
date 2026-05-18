@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index, BeforeUpdate, AfterLoad } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Booking } from './booking.entity';
 
@@ -10,6 +10,11 @@ export enum InvoiceStatus {
   OVERDUE = 'overdue',
   VOID = 'void',
 }
+
+const IMMUTABLE_STATUSES: InvoiceStatus[] = [
+  InvoiceStatus.PAID,
+  InvoiceStatus.VOID,
+];
 
 @Entity({ name: 'invoices' })
 @Index(['bookingId'])
@@ -37,11 +42,7 @@ export class Invoice extends BaseEntity {
   @Column({ type: 'varchar', default: 'USD' })
   currency: string;
 
-  @Column({
-    type: 'enum',
-    enum: InvoiceStatus,
-    default: InvoiceStatus.DRAFT,
-  })
+  @Column({ type: 'enum', enum: InvoiceStatus, default: InvoiceStatus.DRAFT })
   status: InvoiceStatus;
 
   @Column({ type: 'jsonb', nullable: true })
@@ -55,4 +56,18 @@ export class Invoice extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  private _originalStatus: InvoiceStatus;
+
+  @AfterLoad()
+  trackOriginalStatus() {
+    this._originalStatus = this.status;
+  }
+
+  @BeforeUpdate()
+  checkImmutability() {
+    if (this._originalStatus && IMMUTABLE_STATUSES.includes(this._originalStatus)) {
+      throw new Error(`Invoice is ${this._originalStatus} and cannot be modified`);
+    }
+  }
 }
