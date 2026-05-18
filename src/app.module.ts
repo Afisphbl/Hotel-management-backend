@@ -11,6 +11,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { HotelModule } from './modules/hotel/hotel.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { PlatformModule } from './modules/platform/platform.module';
+import { WorkersModule } from './modules/workers/workers.module';
 import { validateEnv } from './config/env.validation';
 import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
@@ -71,6 +72,7 @@ import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
     HotelModule,
     FinanceModule,
     PlatformModule,
+    WorkersModule,
   ],
   providers: [RateLimitMiddleware],
 })
