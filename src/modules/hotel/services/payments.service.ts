@@ -9,6 +9,7 @@ import {
 import {
   Refund,
   RefundReason,
+  RefundStatus,
 } from '../../../database/entities/refund.entity';
 import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
@@ -115,7 +116,7 @@ export class PaymentsService {
       paymentId,
       amount: data.amount,
       reason: data.reason,
-      status: 'completed',
+      status: RefundStatus.COMPLETED,
       processedAt: new Date(),
       notes: data.notes,
     });
