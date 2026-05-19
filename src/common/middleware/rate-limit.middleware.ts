@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
-import { REDIS_CLIENT } from '../../modules/redis/redis.module';
+import { REDIS_CLIENT } from '../../modules/redis/redis.service';
 
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {

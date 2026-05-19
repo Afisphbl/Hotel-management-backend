@@ -15,6 +15,12 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
+  // Enable CORS for frontend requests
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
+
   // Versioning
   app.setGlobalPrefix('api/v1');
 

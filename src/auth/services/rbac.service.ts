@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PlatformUser, Role, Permission, RolePermission, HotelUserAccess } from '../../database/entities/global';
+import { PlatformUser, Role, Permission, RolePermission, HotelUserAccess, UserStatus } from '../../database/entities/global';
 import { RedisService } from '../../modules/redis/redis.service';
 
 @Injectable()

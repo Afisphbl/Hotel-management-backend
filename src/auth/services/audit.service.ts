@@ -5,6 +5,12 @@ import { AuditLog } from '../../database/entities/global';
 import { AuditAction, AuditResource } from '../../database/entities/global/audit-log.entity';
 import { Request } from 'express';
 
+declare module 'express' {
+  interface Request {
+    session?: { id?: string };
+  }
+}
+
 @Injectable()
 export class AuditService {
   constructor(

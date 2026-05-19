@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '../../modules/redis/redis.service';
-import { PlatformUser } from '../../database/entities/global';
+import { PlatformUser, UserStatus } from '../../database/entities/global';
 import { Role, Permission, RolePermission } from '../../database/entities/global';
 import { JWTPayload, RefreshTokenPayload } from '../interfaces/jwt-payload.interface';
 
@@ -27,7 +27,7 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<PlatformUser | null> {
     const user = await this.userRepository.findOne({
-      where: { email, status: 'ACTIVE' },
+      where: { email, status: UserStatus.ACTIVE },
       relations: ['hotelAccesses'],
     });
 
@@ -100,7 +100,7 @@ export class AuthService {
       }) as RefreshTokenPayload;
 
       const user = await this.userRepository.findOne({
-        where: { id: payload.sub, status: 'ACTIVE' },
+        where: { id: payload.sub, status: UserStatus.ACTIVE },
       });
 
       if (!user) {

@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
+import { RolePermission } from './role-permission.entity';
 
 @Entity('permissions')
 export class Permission {
@@ -37,4 +38,7 @@ export class Permission {
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
+
+  @OneToMany(() => RolePermission, rolePermission => rolePermission.permission)
+  rolePermissions: RolePermission[];
 }

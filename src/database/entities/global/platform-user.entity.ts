@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany, OneToOne, ManyToOne } from 'typeorm';
 import { RolePermission } from './role-permission.entity';
+import { Role } from './role.entity';
 import { HotelUserAccess } from './hotel-user-access.entity';
 import { AuditLog } from './audit-log.entity';
 
@@ -66,6 +67,9 @@ export class PlatformUser {
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
+
+  @ManyToOne(() => Role)
+  role: Role;
 
   @OneToMany(() => HotelUserAccess, access => access.user)
   hotelAccesses: HotelUserAccess[];

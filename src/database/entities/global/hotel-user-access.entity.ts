@@ -1,5 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne } from 'typeorm';
 import { PlatformUser } from './platform-user.entity';
+import { Hotel } from './hotel.entity';
+import { Role } from './role.entity';
 
 export enum HotelAccessStatus {
   ACTIVE = 'ACTIVE',
@@ -14,6 +16,12 @@ export class HotelUserAccess {
 
   @Column()
   hotelId: string;
+
+  @ManyToOne(() => Hotel, hotel => hotel.userAccesses)
+  hotel: Hotel;
+
+  @ManyToOne(() => Role)
+  role: Role;
 
   @ManyToOne(() => PlatformUser, user => user.hotelAccesses)
   user: PlatformUser;
