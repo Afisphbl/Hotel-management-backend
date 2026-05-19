@@ -18,7 +18,11 @@ import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
-import { CreateShiftDto, UpdateShiftDto, QueryShiftDto } from '../dto/shift.dto';
+import {
+  CreateShiftDto,
+  UpdateShiftDto,
+  QueryShiftDto,
+} from '../dto/shift.dto';
 import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('shifts')
@@ -30,7 +34,12 @@ export class ShiftsController {
   @Get()
   async findAll(@Query() query: QueryShiftDto) {
     const result = await this.shiftsService.findAll(query);
-    return paginatedResponse(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(
+      result.items,
+      result.total,
+      result.page,
+      result.limit,
+    );
   }
 
   @Get(':id')

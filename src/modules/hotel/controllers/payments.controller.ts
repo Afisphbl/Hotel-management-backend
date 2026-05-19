@@ -10,7 +10,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { PaymentsService } from '../services/payments.service';
-import { PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
+import {
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
 import { RefundReason } from '../../../database/entities/refund.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -46,7 +49,12 @@ export class PaymentsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: PaymentStatus; invoiceId?: string; method?: PaymentMethod },
+    @Query()
+    query: PaginationDto & {
+      status?: PaymentStatus;
+      invoiceId?: string;
+      method?: PaymentMethod;
+    },
   ) {
     const result = await this.paymentsService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);

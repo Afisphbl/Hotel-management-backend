@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { PlatformUser } from './platform-user.entity';
 import { Hotel } from './hotel.entity';
 import { Role } from './role.entity';
@@ -17,13 +25,13 @@ export class HotelUserAccess {
   @Column()
   hotelId: string;
 
-  @ManyToOne(() => Hotel, hotel => hotel.userAccesses)
+  @ManyToOne(() => Hotel, (hotel) => hotel.userAccesses)
   hotel: Hotel;
 
   @ManyToOne(() => Role)
   role: Role;
 
-  @ManyToOne(() => PlatformUser, user => user.hotelAccesses)
+  @ManyToOne(() => PlatformUser, (user) => user.hotelAccesses)
   user: PlatformUser;
 
   @Column({ type: 'timestamptz' })
@@ -35,7 +43,11 @@ export class HotelUserAccess {
   @Column({ type: 'timestamptz', nullable: true })
   lastAccessedAt: Date | null;
 
-  @Column({ type: 'enum', enum: HotelAccessStatus, default: HotelAccessStatus.ACTIVE })
+  @Column({
+    type: 'enum',
+    enum: HotelAccessStatus,
+    default: HotelAccessStatus.ACTIVE,
+  })
   status: HotelAccessStatus;
 
   @Column({ type: 'jsonb', nullable: true })

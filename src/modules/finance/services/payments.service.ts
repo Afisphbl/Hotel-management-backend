@@ -1,8 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Payment, PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
 import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { Booking } from '../../../database/entities/booking.entity';
@@ -55,7 +66,8 @@ export class PaymentsService {
   }
 
   async processPayment(dto: CreatePaymentDto): Promise<Payment> {
-    const queryRunner = this.paymentRepository.manager.connection.createQueryRunner();
+    const queryRunner =
+      this.paymentRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -70,9 +82,12 @@ export class PaymentsService {
       }
 
       if (dto.transactionId) {
-        const existingByTransaction = await queryRunner.manager.findOne(Payment, {
-          where: { transactionId: dto.transactionId },
-        });
+        const existingByTransaction = await queryRunner.manager.findOne(
+          Payment,
+          {
+            where: { transactionId: dto.transactionId },
+          },
+        );
         if (existingByTransaction) {
           await queryRunner.rollbackTransaction();
           return existingByTransaction;
@@ -117,7 +132,9 @@ export class PaymentsService {
         referenceType: 'PAYMENT',
         referenceId: saved.id,
         bookingId: bookingId || undefined,
-        description: dto.description || `Payment via ${dto.method} for invoice ${dto.invoiceId}`,
+        description:
+          dto.description ||
+          `Payment via ${dto.method} for invoice ${dto.invoiceId}`,
       });
       await queryRunner.manager.save(ledger);
 
@@ -143,10 +160,16 @@ export class PaymentsService {
       }
 
       // 5. Create outbox event
-      await queryRunner.manager.save(queryRunner.manager.create(OutboxEvent, {
-        type: 'PAYMENT_PROCESSED',
-        payload: { paymentId: saved.id, invoiceId: dto.invoiceId, amount: dto.amount },
-      }));
+      await queryRunner.manager.save(
+        queryRunner.manager.create(OutboxEvent, {
+          type: 'PAYMENT_PROCESSED',
+          payload: {
+            paymentId: saved.id,
+            invoiceId: dto.invoiceId,
+            amount: dto.amount,
+          },
+        }),
+      );
 
       await queryRunner.commitTransaction();
       return saved;

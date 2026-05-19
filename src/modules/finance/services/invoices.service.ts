@@ -1,9 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 import { Booking } from '../../../database/entities/booking.entity';
-import { TaxRule, TaxApplication } from '../../../database/entities/tax-rule.entity';
+import {
+  TaxRule,
+  TaxApplication,
+} from '../../../database/entities/tax-rule.entity';
 import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { CreateInvoiceDto, QueryInvoiceDto } from '../dto/invoice.dto';
 import { paginate, PaginatedResult } from '../common/pagination';
@@ -45,7 +55,9 @@ export class InvoicesService {
   }
 
   async createForBooking(dto: CreateInvoiceDto): Promise<Invoice> {
-    const booking = await this.bookingRepository.findOneBy({ id: dto.bookingId });
+    const booking = await this.bookingRepository.findOneBy({
+      id: dto.bookingId,
+    });
     if (!booking) throw new NotFoundException('Booking not found');
 
     let subtotal = 0;
@@ -86,15 +98,19 @@ export class InvoicesService {
       currency: dto.currency || 'USD',
       status: InvoiceStatus.DRAFT,
       lineItems: dto.lineItems || [],
-      dueDate: dto.dueDate ? new Date(dto.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      dueDate: dto.dueDate
+        ? new Date(dto.dueDate)
+        : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       notes: dto.notes,
     });
     const saved = await this.invoiceRepository.save(invoice);
 
-    await this.outboxRepository.save(this.outboxRepository.create({
-      type: 'INVOICE_CREATED',
-      payload: { invoiceId: saved.id, bookingId: dto.bookingId, amount },
-    }));
+    await this.outboxRepository.save(
+      this.outboxRepository.create({
+        type: 'INVOICE_CREATED',
+        payload: { invoiceId: saved.id, bookingId: dto.bookingId, amount },
+      }),
+    );
 
     return saved;
   }
@@ -107,10 +123,12 @@ export class InvoicesService {
     invoice.status = InvoiceStatus.ISSUED;
     const saved = await this.invoiceRepository.save(invoice);
 
-    await this.outboxRepository.save(this.outboxRepository.create({
-      type: 'INVOICE_ISSUED',
-      payload: { invoiceId: saved.id, bookingId: saved.bookingId },
-    }));
+    await this.outboxRepository.save(
+      this.outboxRepository.create({
+        type: 'INVOICE_ISSUED',
+        payload: { invoiceId: saved.id, bookingId: saved.bookingId },
+      }),
+    );
 
     return saved;
   }
@@ -139,10 +157,12 @@ export class InvoicesService {
     invoice.status = InvoiceStatus.VOID;
     const saved = await this.invoiceRepository.save(invoice);
 
-    await this.outboxRepository.save(this.outboxRepository.create({
-      type: 'INVOICE_VOIDED',
-      payload: { invoiceId: saved.id, bookingId: saved.bookingId },
-    }));
+    await this.outboxRepository.save(
+      this.outboxRepository.create({
+        type: 'INVOICE_VOIDED',
+        payload: { invoiceId: saved.id, bookingId: saved.bookingId },
+      }),
+    );
 
     return saved;
   }

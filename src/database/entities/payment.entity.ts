@@ -23,8 +23,14 @@ export enum PaymentStatus {
 @Index(['invoiceId'])
 @Index(['bookingId'])
 @Index(['status'])
-@Index(['transactionId'], { unique: true, where: '"transactionId" IS NOT NULL' })
-@Index(['idempotencyKey'], { unique: true, where: '"idempotencyKey" IS NOT NULL' })
+@Index(['transactionId'], {
+  unique: true,
+  where: '"transactionId" IS NOT NULL',
+})
+@Index(['idempotencyKey'], {
+  unique: true,
+  where: '"idempotencyKey" IS NOT NULL',
+})
 export class Payment extends BaseEntity {
   @Column()
   invoiceId: string;

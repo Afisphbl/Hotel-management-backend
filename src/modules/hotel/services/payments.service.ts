@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -11,7 +15,10 @@ import {
   RefundReason,
   RefundStatus,
 } from '../../../database/entities/refund.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 
@@ -62,7 +69,8 @@ export class PaymentsService {
     gatewayResponse?: any;
     idempotencyKey: string;
   }): Promise<Payment> {
-    const queryRunner = this.paymentRepository.manager.connection.createQueryRunner();
+    const queryRunner =
+      this.paymentRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -78,9 +86,12 @@ export class PaymentsService {
 
       // 2. Check for existing payment via transaction ID
       if (data.transactionId) {
-        const existingByTransaction = await queryRunner.manager.findOne(Payment, {
-          where: { transactionId: data.transactionId },
-        });
+        const existingByTransaction = await queryRunner.manager.findOne(
+          Payment,
+          {
+            where: { transactionId: data.transactionId },
+          },
+        );
         if (existingByTransaction) {
           await queryRunner.rollbackTransaction();
           return existingByTransaction;
@@ -135,13 +146,17 @@ export class PaymentsService {
     }
   }
 
-  async refund(paymentId: string, data: {
-    amount: number;
-    reason: RefundReason;
-    idempotencyKey: string;
-    notes?: string;
-  }): Promise<Refund> {
-    const queryRunner = this.paymentRepository.manager.connection.createQueryRunner();
+  async refund(
+    paymentId: string,
+    data: {
+      amount: number;
+      reason: RefundReason;
+      idempotencyKey: string;
+      notes?: string;
+    },
+  ): Promise<Refund> {
+    const queryRunner =
+      this.paymentRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 

@@ -5,7 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, SelectQueryBuilder, ObjectLiteral } from 'typeorm';
+import {
+  DataSource,
+  Repository,
+  SelectQueryBuilder,
+  ObjectLiteral,
+} from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Booking, BookingStatus } from '../../database/entities/booking.entity';
@@ -14,13 +19,15 @@ import {
   RoomNight,
   RoomNightStatus,
 } from '../../database/entities/room-night.entity';
-import {
-  OutboxEvent,
-} from '../../database/entities/outbox-event.entity';
+import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Room } from '../../database/entities/room.entity';
 import { PricingService } from './pricing.service';
-import { AuditLog, AuditAction, AuditResource } from '../../database/entities/audit-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+} from '../../database/entities/audit-log.entity';
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -58,16 +65,21 @@ export class BookingsService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResult<Booking>> {
-    const qb = this.bookingRepository.createQueryBuilder('booking')
+    const qb = this.bookingRepository
+      .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.guest', 'guest')
       .leftJoinAndSelect('booking.bookingRooms', 'bookingRooms')
       .leftJoinAndSelect('bookingRooms.room', 'room')
       .orderBy('booking.createdAt', 'DESC');
 
-    if (query.status) qb.andWhere('booking.status = :status', { status: query.status });
-    if (query.guestId) qb.andWhere('booking.guestId = :guestId', { guestId: query.guestId });
-    if (query.dateFrom) qb.andWhere('booking.checkIn >= :dateFrom', { dateFrom: query.dateFrom });
-    if (query.dateTo) qb.andWhere('booking.checkOut <= :dateTo', { dateTo: query.dateTo });
+    if (query.status)
+      qb.andWhere('booking.status = :status', { status: query.status });
+    if (query.guestId)
+      qb.andWhere('booking.guestId = :guestId', { guestId: query.guestId });
+    if (query.dateFrom)
+      qb.andWhere('booking.checkIn >= :dateFrom', { dateFrom: query.dateFrom });
+    if (query.dateTo)
+      qb.andWhere('booking.checkOut <= :dateTo', { dateTo: query.dateTo });
 
     return this.paginateQuery(qb, query.page, query.limit);
   }
@@ -109,7 +121,7 @@ export class BookingsService {
       if (!guest) throw new NotFoundException('Guest not found');
 
       const rooms = await queryRunner.manager.find(Room, {
-        where: createDto.roomIds.map(id => ({ id })),
+        where: createDto.roomIds.map((id) => ({ id })),
         relations: ['roomType'],
       });
       if (rooms.length !== createDto.roomIds.length) {
@@ -132,13 +144,18 @@ export class BookingsService {
           .getMany();
 
         if (conflictingNights.length > 0) {
-          throw new ConflictException(`Room ${room.roomNumber} is not available for selected dates`);
+          throw new ConflictException(
+            `Room ${room.roomNumber} is not available for selected dates`,
+          );
         }
       }
 
       let total = 0;
       const allRoomNights: RoomNight[] = [];
-      const bookingRoomsData: { room: Room; nightPrices: { date: string; price: number }[] }[] = [];
+      const bookingRoomsData: {
+        room: Room;
+        nightPrices: { date: string; price: number }[];
+      }[] = [];
 
       for (const room of rooms) {
         const nightPrices: { date: string; price: number }[] = [];
@@ -172,7 +189,7 @@ export class BookingsService {
         totalPrice: total,
         idempotencyKey: createDto.idempotencyKey,
         priceSnapshot: {
-          rooms: bookingRoomsData.map(br => ({
+          rooms: bookingRoomsData.map((br) => ({
             roomTypeId: br.room.roomTypeId,
             roomNumber: br.room.roomNumber,
             nights: br.nightPrices,
@@ -233,7 +250,11 @@ export class BookingsService {
     }
   }
 
-  async confirm(id: string, idempotencyKey: string, userId?: string): Promise<Booking> {
+  async confirm(
+    id: string,
+    idempotencyKey: string,
+    userId?: string,
+  ): Promise<Booking> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -245,7 +266,9 @@ export class BookingsService {
       });
       if (!booking) throw new NotFoundException('Booking not found');
       if (booking.status !== BookingStatus.HOLD) {
-        throw new BadRequestException('Booking must be in HOLD status to confirm');
+        throw new BadRequestException(
+          'Booking must be in HOLD status to confirm',
+        );
       }
 
       booking.status = BookingStatus.CONFIRMED;
@@ -353,7 +376,11 @@ export class BookingsService {
     const validTransitions: Record<BookingStatus, BookingStatus[]> = {
       [BookingStatus.PENDING]: [BookingStatus.HOLD, BookingStatus.CANCELLED],
       [BookingStatus.HOLD]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
-      [BookingStatus.CONFIRMED]: [BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NOSHOW],
+      [BookingStatus.CONFIRMED]: [
+        BookingStatus.CHECKED_IN,
+        BookingStatus.CANCELLED,
+        BookingStatus.NOSHOW,
+      ],
       [BookingStatus.CHECKED_IN]: [BookingStatus.CHECKED_OUT],
       [BookingStatus.CHECKED_OUT]: [],
       [BookingStatus.CANCELLED]: [],

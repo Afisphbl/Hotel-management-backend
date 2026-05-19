@@ -4,9 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AnalyticsService } from '../services/analytics.service';
 import { SnapshotType } from '../../../database/entities/analytics-snapshot.entity';
 
-export type SnapshotJobData =
-  | { type: 'all' }
-  | { type: SnapshotType };
+export type SnapshotJobData = { type: 'all' } | { type: SnapshotType };
 
 @Processor('analytics-snapshot')
 export class AnalyticsSnapshotProcessor extends WorkerHost {

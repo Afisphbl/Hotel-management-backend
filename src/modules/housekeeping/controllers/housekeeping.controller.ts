@@ -12,14 +12,21 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { HousekeepingService } from '../services/housekeeping.service';
-import { TaskPriority, TaskStatus } from '../../../database/entities/housekeeping-task.entity';
+import {
+  TaskPriority,
+  TaskStatus,
+} from '../../../database/entities/housekeeping-task.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
-import { CreateTaskDto, UpdateTaskDto, QueryTaskDto } from '../dto/housekeeping.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  QueryTaskDto,
+} from '../dto/housekeeping.dto';
 import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('housekeeping')
@@ -31,7 +38,12 @@ export class HousekeepingController {
   @Get()
   async findAll(@Query() query: QueryTaskDto) {
     const result = await this.housekeepingService.findAll(query);
-    return paginatedResponse(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(
+      result.items,
+      result.total,
+      result.page,
+      result.limit,
+    );
   }
 
   @Get(':id')
@@ -60,10 +72,7 @@ export class HousekeepingController {
   }
 
   @Post(':id/complete')
-  async complete(
-    @Param('id') id: string,
-    @Body('notes') notes?: string,
-  ) {
+  async complete(@Param('id') id: string, @Body('notes') notes?: string) {
     const task = await this.housekeepingService.complete(id, notes);
     return success(task);
   }

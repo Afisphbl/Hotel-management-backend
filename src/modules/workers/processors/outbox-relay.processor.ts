@@ -99,9 +99,7 @@ export class OutboxRelayProcessor extends WorkerHost {
     }
 
     if (pending.length > 0) {
-      this.logger.log(
-        `Outbox relay: ${processed} processed, ${failed} failed`,
-      );
+      this.logger.log(`Outbox relay: ${processed} processed, ${failed} failed`);
     }
 
     return { processed, failed };

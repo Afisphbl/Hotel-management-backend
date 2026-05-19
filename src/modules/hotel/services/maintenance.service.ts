@@ -47,7 +47,10 @@ export class MaintenanceService {
     return this.ticketRepository.save(this.ticketRepository.create(data));
   }
 
-  async update(id: string, data: Partial<MaintenanceTicket>): Promise<MaintenanceTicket> {
+  async update(
+    id: string,
+    data: Partial<MaintenanceTicket>,
+  ): Promise<MaintenanceTicket> {
     const ticket = await this.findById(id);
     if (data.status === TicketStatus.RESOLVED) {
       data.resolvedAt = new Date();
@@ -63,7 +66,11 @@ export class MaintenanceService {
     return this.ticketRepository.save(ticket);
   }
 
-  async resolve(id: string, notes?: string, cost?: number): Promise<MaintenanceTicket> {
+  async resolve(
+    id: string,
+    notes?: string,
+    cost?: number,
+  ): Promise<MaintenanceTicket> {
     const ticket = await this.findById(id);
     ticket.status = TicketStatus.RESOLVED;
     ticket.resolvedAt = new Date();

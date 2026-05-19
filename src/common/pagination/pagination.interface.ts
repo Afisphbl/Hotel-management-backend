@@ -21,7 +21,9 @@ export interface PaginationParams {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export function toPaginationMeta(result: PaginatedResult<unknown>): PaginationMeta {
+export function toPaginationMeta(
+  result: PaginatedResult<unknown>,
+): PaginationMeta {
   return {
     total: result.total,
     page: result.page,

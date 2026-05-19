@@ -1,5 +1,14 @@
-import { IsOptional, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
-import { TaskPriority, TaskStatus } from '../../../database/entities/housekeeping-task.entity';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsDateString,
+} from 'class-validator';
+import {
+  TaskPriority,
+  TaskStatus,
+} from '../../../database/entities/housekeeping-task.entity';
 import { PaginationDto } from './pagination.dto';
 
 export class CreateTaskDto {

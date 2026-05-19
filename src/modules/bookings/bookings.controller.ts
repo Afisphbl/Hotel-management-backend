@@ -75,14 +75,30 @@ export class BookingsController {
   }
 
   @Post(':id/confirm')
-  async confirm(@Param('id') id: string, @Body() _dto: ConfirmBookingDto, @Request() req: any) {
-    const booking = await this.bookingsService.confirm(id, _dto.idempotencyKey, req.user.userId);
+  async confirm(
+    @Param('id') id: string,
+    @Body() _dto: ConfirmBookingDto,
+    @Request() req: any,
+  ) {
+    const booking = await this.bookingsService.confirm(
+      id,
+      _dto.idempotencyKey,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 
   @Post(':id/cancel')
-  async cancel(@Param('id') id: string, @Body() dto: CancelBookingDto, @Request() req: any) {
-    const booking = await this.bookingsService.cancel(id, dto.reason, req.user.userId);
+  async cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelBookingDto,
+    @Request() req: any,
+  ) {
+    const booking = await this.bookingsService.cancel(
+      id,
+      dto.reason,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 

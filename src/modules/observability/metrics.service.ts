@@ -14,7 +14,7 @@ export class MetricsService {
   private readonly httpRequestTotal: Counter<string>;
 
   constructor() {
-    this.registry = register as Registry;
+    this.registry = register;
 
     if (
       !this.registry.getSingleMetric(

@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { Hotel } from '../hotel.entity';
 
 export enum FeatureFlagStatus {
@@ -21,7 +28,11 @@ export class FeatureFlag {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'enum', enum: FeatureFlagStatus, default: FeatureFlagStatus.DISABLED })
+  @Column({
+    type: 'enum',
+    enum: FeatureFlagStatus,
+    default: FeatureFlagStatus.DISABLED,
+  })
   status: FeatureFlagStatus;
 
   @Column({ type: 'jsonb', nullable: true })

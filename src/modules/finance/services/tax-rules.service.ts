@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TaxRule } from '../../../database/entities/tax-rule.entity';
-import { CreateTaxRuleDto, UpdateTaxRuleDto, QueryTaxRuleDto } from '../dto/tax-rule.dto';
+import {
+  CreateTaxRuleDto,
+  UpdateTaxRuleDto,
+  QueryTaxRuleDto,
+} from '../dto/tax-rule.dto';
 import { paginate, PaginatedResult } from '../common/pagination';
 
 @Injectable()

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JWTPayload } from '../interfaces/jwt-payload.interface';
 
@@ -21,7 +26,9 @@ export class TenantGuard implements CanActivate {
 
     // HOTEL scope users must have hotel_id
     if (!user.hotel_id) {
-      throw new UnauthorizedException('Hotel ID required for hotel scope access');
+      throw new UnauthorizedException(
+        'Hotel ID required for hotel scope access',
+      );
     }
 
     // Set tenant context for database queries

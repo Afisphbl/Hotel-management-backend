@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { HotelUserAccess } from './hotel-user-access.entity';
 import { FeatureFlag } from './feature-flag.entity';
 import { Subscription } from './subscriptions.entity';
@@ -88,12 +96,12 @@ export class Hotel {
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
 
-  @OneToMany(() => HotelUserAccess, access => access.hotel)
+  @OneToMany(() => HotelUserAccess, (access) => access.hotel)
   userAccesses: HotelUserAccess[];
 
-  @OneToMany(() => FeatureFlag, featureFlag => featureFlag.hotel)
+  @OneToMany(() => FeatureFlag, (featureFlag) => featureFlag.hotel)
   featureFlags: FeatureFlag[];
 
-  @OneToMany(() => Subscription, subscription => subscription.hotel)
+  @OneToMany(() => Subscription, (subscription) => subscription.hotel)
   subscriptions: Subscription[];
 }

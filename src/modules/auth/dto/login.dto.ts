@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsOptional, IsUUID } from 'class-validator';
+import { IsEmail, IsString, IsOptional } from 'class-validator';
 
 export class LoginDto {
   @IsEmail()
@@ -8,6 +8,6 @@ export class LoginDto {
   password: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   hotelId?: string;
 }

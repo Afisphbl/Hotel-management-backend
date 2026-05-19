@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditLog } from '../../database/entities/global';
-import { AuditAction, AuditResource } from '../../database/entities/global/audit-log.entity';
+import {
+  AuditAction,
+  AuditResource,
+} from '../../database/entities/global/audit-log.entity';
 import { Request } from 'express';
 
 declare module 'express' {
@@ -49,8 +52,8 @@ export class AuditService {
     }
 
     return (
-      request.headers['x-forwarded-for'] as string ||
-      request.headers['x-real-ip'] as string ||
+      (request.headers['x-forwarded-for'] as string) ||
+      (request.headers['x-real-ip'] as string) ||
       request.connection.remoteAddress ||
       request.socket.remoteAddress ||
       'unknown'

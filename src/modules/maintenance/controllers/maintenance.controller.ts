@@ -12,14 +12,22 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { MaintenanceService } from '../services/maintenance.service';
-import { TicketPriority, TicketStatus } from '../../../database/entities/maintenance-ticket.entity';
+import {
+  TicketPriority,
+  TicketStatus,
+} from '../../../database/entities/maintenance-ticket.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
-import { CreateTicketDto, UpdateTicketDto, ResolveTicketDto, QueryTicketDto } from '../dto/maintenance.dto';
+import {
+  CreateTicketDto,
+  UpdateTicketDto,
+  ResolveTicketDto,
+  QueryTicketDto,
+} from '../dto/maintenance.dto';
 import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('maintenance')
@@ -31,7 +39,12 @@ export class MaintenanceController {
   @Get()
   async findAll(@Query() query: QueryTicketDto) {
     const result = await this.maintenanceService.findAll(query);
-    return paginatedResponse(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(
+      result.items,
+      result.total,
+      result.page,
+      result.limit,
+    );
   }
 
   @Get(':id')
@@ -61,7 +74,11 @@ export class MaintenanceController {
 
   @Post(':id/resolve')
   async resolve(@Param('id') id: string, @Body() dto: ResolveTicketDto) {
-    const ticket = await this.maintenanceService.resolve(id, dto.notes, dto.cost);
+    const ticket = await this.maintenanceService.resolve(
+      id,
+      dto.notes,
+      dto.cost,
+    );
     return success(ticket);
   }
 

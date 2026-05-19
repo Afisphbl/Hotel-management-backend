@@ -19,7 +19,10 @@ export interface ErrorResponse {
   meta?: Record<string, unknown>;
 }
 
-export function success<T>(data: T, meta?: Record<string, unknown>): SuccessResponse<T> {
+export function success<T>(
+  data: T,
+  meta?: Record<string, unknown>,
+): SuccessResponse<T> {
   return { success: true, data, meta };
 }
 
@@ -42,9 +45,10 @@ export function paginated<T>(
 }
 
 @Injectable()
-export class ResponseEnvelopeInterceptor<T>
-  implements NestInterceptor<T, SuccessResponse<T>>
-{
+export class ResponseEnvelopeInterceptor<T> implements NestInterceptor<
+  T,
+  SuccessResponse<T>
+> {
   intercept(
     _context: ExecutionContext,
     next: CallHandler,

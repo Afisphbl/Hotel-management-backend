@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JWTPayload } from '../interfaces/jwt-payload.interface';
 
@@ -28,7 +33,9 @@ export class ScopeGuard implements CanActivate {
     }
 
     if (user.scope !== requiredScope) {
-      throw new UnauthorizedException(`Access denied. Required scope: ${requiredScope}`);
+      throw new UnauthorizedException(
+        `Access denied. Required scope: ${requiredScope}`,
+      );
     }
 
     return true;

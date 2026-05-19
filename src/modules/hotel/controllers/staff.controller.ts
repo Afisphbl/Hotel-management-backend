@@ -10,7 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { StaffService } from '../services/staff.service';
-import { StaffRole, StaffStatus } from '../../../database/entities/staff.entity';
+import {
+  StaffRole,
+  StaffStatus,
+} from '../../../database/entities/staff.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -28,7 +31,12 @@ export class StaffController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { role?: StaffRole; status?: StaffStatus; department?: string },
+    @Query()
+    query: PaginationDto & {
+      role?: StaffRole;
+      status?: StaffStatus;
+      department?: string;
+    },
   ) {
     const result = await this.staffService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);

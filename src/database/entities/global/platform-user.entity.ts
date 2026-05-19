@@ -1,4 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, OneToMany, OneToOne, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  OneToMany,
+  OneToOne,
+  ManyToOne,
+} from 'typeorm';
 import { RolePermission } from './role-permission.entity';
 import { Role } from './role.entity';
 import { HotelUserAccess } from './hotel-user-access.entity';
@@ -71,9 +81,9 @@ export class PlatformUser {
   @ManyToOne(() => Role)
   role: Role;
 
-  @OneToMany(() => HotelUserAccess, access => access.user)
+  @OneToMany(() => HotelUserAccess, (access) => access.user)
   hotelAccesses: HotelUserAccess[];
 
-  @OneToMany(() => AuditLog, audit => audit.user)
+  @OneToMany(() => AuditLog, (audit) => audit.user)
   auditLogs: AuditLog[];
 }

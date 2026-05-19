@@ -5,7 +5,11 @@ import {
   HousekeepingTask,
   TaskStatus,
 } from '../../../database/entities/housekeeping-task.entity';
-import { CreateTaskDto, UpdateTaskDto, QueryTaskDto } from '../dto/housekeeping.dto';
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  QueryTaskDto,
+} from '../dto/housekeeping.dto';
 import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()
@@ -15,7 +19,9 @@ export class HousekeepingService {
     private taskRepository: Repository<HousekeepingTask>,
   ) {}
 
-  async findAll(query: QueryTaskDto): Promise<PaginatedResult<HousekeepingTask>> {
+  async findAll(
+    query: QueryTaskDto,
+  ): Promise<PaginatedResult<HousekeepingTask>> {
     const where: any = {};
     if (query.status) where.status = query.status;
     if (query.assignedTo) where.assignedTo = query.assignedTo;

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JWTPayload } from '../interfaces/jwt-payload.interface';
 
@@ -10,10 +15,10 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // If no permissions required, allow access
     if (!requiredPermissions || requiredPermissions.length === 0) {
@@ -28,8 +33,8 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Check if user has all required permissions
-    const hasAllPermissions = requiredPermissions.every(permission => 
-      user.permissions.includes(permission)
+    const hasAllPermissions = requiredPermissions.every((permission) =>
+      user.permissions.includes(permission),
     );
 
     if (!hasAllPermissions) {

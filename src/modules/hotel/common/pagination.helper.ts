@@ -10,7 +10,13 @@ export interface PaginatedResult<T> {
 
 export async function paginate<T extends ObjectLiteral>(
   repo: Repository<T>,
-  options: { page?: number; limit?: number; where?: any; order?: any; relations?: string[] },
+  options: {
+    page?: number;
+    limit?: number;
+    where?: any;
+    order?: any;
+    relations?: string[];
+  },
 ): Promise<PaginatedResult<T>> {
   const page = options.page || 1;
   const limit = options.limit || 50;

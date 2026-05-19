@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import {
-  Shift,
-  ShiftStatus,
-} from '../../../database/entities/shift.entity';
+import { Shift, ShiftStatus } from '../../../database/entities/shift.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 
 @Injectable()
@@ -26,7 +23,10 @@ export class ShiftsService {
     if (options.staffId) where.staffId = options.staffId;
     if (options.status) where.status = options.status;
     if (options.dateFrom && options.dateTo) {
-      where.startTime = Between(new Date(options.dateFrom), new Date(options.dateTo));
+      where.startTime = Between(
+        new Date(options.dateFrom),
+        new Date(options.dateTo),
+      );
     }
 
     return paginate<Shift>(this.shiftRepository, {

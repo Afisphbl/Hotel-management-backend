@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { RoomType } from '../../database/entities/room-type.entity';
 import { SeasonalRate } from '../../database/entities/seasonal-rate.entity';
-import { Promotion, DiscountType } from '../../database/entities/promotion.entity';
+import {
+  Promotion,
+  DiscountType,
+} from '../../database/entities/promotion.entity';
 import { PriceOverride } from '../../database/entities/price-override.entity';
 import { RatePlan } from '../../database/entities/rate-plan.entity';
 
@@ -59,9 +62,7 @@ export class PricingService {
         : Number(ratePlan.weekdayAdjustment);
       if (adjustment !== 0) {
         price = price + price * (adjustment / 100);
-        this.logger.debug(
-          `RatePlan adjustment: ${adjustment}% → ${price}`,
-        );
+        this.logger.debug(`RatePlan adjustment: ${adjustment}% → ${price}`);
       }
     }
 
@@ -81,9 +82,7 @@ export class PricingService {
       } else if (seasonal.multiplier) {
         price = price * Number(seasonal.multiplier);
       }
-      this.logger.debug(
-        `SeasonalRate "${seasonal.name}" applied → ${price}`,
-      );
+      this.logger.debug(`SeasonalRate "${seasonal.name}" applied → ${price}`);
     }
 
     // 5. Apply Promotion discount

@@ -27,7 +27,13 @@ export class ShiftsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { staffId?: string; status?: ShiftStatus; dateFrom?: string; dateTo?: string },
+    @Query()
+    query: PaginationDto & {
+      staffId?: string;
+      status?: ShiftStatus;
+      dateFrom?: string;
+      dateTo?: string;
+    },
   ) {
     const result = await this.shiftsService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);

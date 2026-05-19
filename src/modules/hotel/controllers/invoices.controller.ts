@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { InvoicesService } from '../services/invoices.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -25,7 +18,8 @@ export class InvoicesController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: InvoiceStatus; bookingId?: string },
+    @Query()
+    query: PaginationDto & { status?: InvoiceStatus; bookingId?: string },
   ) {
     const result = await this.invoicesService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);

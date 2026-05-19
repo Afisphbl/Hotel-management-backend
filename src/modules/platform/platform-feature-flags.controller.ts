@@ -16,7 +16,13 @@ import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
 import { FeatureFlagStatus } from '../../database/entities/global/feature-flag.entity';
-import { IsString, IsEnum, IsOptional, IsUUID, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 
 class CreateFeatureFlagDto {
   @IsString() name: string;

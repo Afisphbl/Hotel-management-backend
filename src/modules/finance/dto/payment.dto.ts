@@ -1,5 +1,16 @@
-import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, Min, IsDateString } from 'class-validator';
-import { PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
+import {
+  IsUUID,
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsEnum,
+  Min,
+  IsDateString,
+} from 'class-validator';
+import {
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
 import { PaginationDto } from './pagination.dto';
 
 export class CreatePaymentDto {

@@ -28,7 +28,9 @@ export class GuestsController {
   constructor(private guestsService: GuestsService) {}
 
   @Get()
-  async findAll(@Query() query: PaginationDto & { search?: string; email?: string }) {
+  async findAll(
+    @Query() query: PaginationDto & { search?: string; email?: string },
+  ) {
     const result = await this.guestsService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);
   }

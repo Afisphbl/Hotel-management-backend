@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  Index,
+} from 'typeorm';
 import { Role } from './role.entity';
 import { Permission } from './permission.entity';
 
@@ -7,11 +14,15 @@ export class RolePermission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Role, role => role.rolePermissions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Role, (role) => role.rolePermissions, {
+    onDelete: 'CASCADE',
+  })
   @Index()
   role: Role;
 
-  @ManyToOne(() => Permission, permission => permission.rolePermissions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Permission, (permission) => permission.rolePermissions, {
+    onDelete: 'CASCADE',
+  })
   @Index()
   permission: Permission;
 

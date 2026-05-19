@@ -1,5 +1,15 @@
-import { IsOptional, IsString, IsEnum, IsUUID, IsNumber, Min } from 'class-validator';
-import { TicketPriority, TicketStatus } from '../../../database/entities/maintenance-ticket.entity';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsNumber,
+  Min,
+} from 'class-validator';
+import {
+  TicketPriority,
+  TicketStatus,
+} from '../../../database/entities/maintenance-ticket.entity';
 import { PaginationDto } from './pagination.dto';
 
 export class CreateTicketDto {

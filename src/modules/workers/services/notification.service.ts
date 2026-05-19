@@ -41,15 +41,22 @@ export class NotificationService {
 
     const saved = await this.notificationRepository.save(notification);
 
-    if (options.channel === NotificationChannel.EMAIL || options.channel === NotificationChannel.BOTH) {
+    if (
+      options.channel === NotificationChannel.EMAIL ||
+      options.channel === NotificationChannel.BOTH
+    ) {
       this.dispatchEmail(options);
     }
 
-    this.logger.log(`Notification sent: ${options.type} -> user ${options.userId}`);
+    this.logger.log(
+      `Notification sent: ${options.type} -> user ${options.userId}`,
+    );
     return saved;
   }
 
-  async sendBulk(optionsList: SendNotificationOptions[]): Promise<Notification[]> {
+  async sendBulk(
+    optionsList: SendNotificationOptions[],
+  ): Promise<Notification[]> {
     const results: Notification[] = [];
     for (const opts of optionsList) {
       const n = await this.send(opts);
@@ -65,10 +72,9 @@ export class NotificationService {
   }
 
   async markAllRead(userId: string): Promise<void> {
-    await this.notificationRepository.update(
-      { userId, readAt: null } as any,
-      { readAt: new Date() },
-    );
+    await this.notificationRepository.update({ userId, readAt: null } as any, {
+      readAt: new Date(),
+    });
   }
 
   async findByUser(userId: string, limit = 50): Promise<Notification[]> {

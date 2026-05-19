@@ -1,5 +1,9 @@
 export { PaginationDto } from './pagination.dto';
-export type { PaginatedResult, PaginationMeta, PaginationParams } from './pagination.interface';
+export type {
+  PaginatedResult,
+  PaginationMeta,
+  PaginationParams,
+} from './pagination.interface';
 export { toPaginationMeta } from './pagination.interface';
 export { PaginationParams as PaginationParamsDecorator } from './pagination.decorator';
 export { paginate, paginateQuery } from './pagination.helper';

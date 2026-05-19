@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsEnum, IsUUID, IsDateString } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsDateString,
+} from 'class-validator';
 import { ShiftStatus } from '../../../database/entities/shift.entity';
 import { PaginationDto } from './pagination.dto';
 

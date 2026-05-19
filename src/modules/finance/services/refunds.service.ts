@@ -1,9 +1,23 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Refund, RefundReason, RefundStatus } from '../../../database/entities/refund.entity';
-import { Payment, PaymentStatus } from '../../../database/entities/payment.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Refund,
+  RefundReason,
+  RefundStatus,
+} from '../../../database/entities/refund.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
 import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { Booking } from '../../../database/entities/booking.entity';
@@ -54,7 +68,8 @@ export class RefundsService {
   }
 
   async createRefund(dto: CreateRefundDto): Promise<Refund> {
-    const queryRunner = this.refundRepository.manager.connection.createQueryRunner();
+    const queryRunner =
+      this.refundRepository.manager.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -134,10 +149,17 @@ export class RefundsService {
       await queryRunner.manager.save(payment);
 
       // 5. Create outbox event
-      await queryRunner.manager.save(queryRunner.manager.create(OutboxEvent, {
-        type: 'REFUND_PROCESSED',
-        payload: { refundId: saved.id, paymentId: dto.paymentId, amount: dto.amount, reason: dto.reason },
-      }));
+      await queryRunner.manager.save(
+        queryRunner.manager.create(OutboxEvent, {
+          type: 'REFUND_PROCESSED',
+          payload: {
+            refundId: saved.id,
+            paymentId: dto.paymentId,
+            amount: dto.amount,
+            reason: dto.reason,
+          },
+        }),
+      );
 
       await queryRunner.commitTransaction();
       return saved;

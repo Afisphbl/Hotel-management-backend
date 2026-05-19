@@ -8,15 +8,25 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Booking, BookingStatus } from '../../../database/entities/booking.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../../database/entities/booking.entity';
 import { BookingRoom } from '../../../database/entities/booking-room.entity';
-import { RoomNight, RoomNightStatus } from '../../../database/entities/room-night.entity';
+import {
+  RoomNight,
+  RoomNightStatus,
+} from '../../../database/entities/room-night.entity';
 import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { Guest } from '../../../database/entities/guest.entity';
 import { Room } from '../../../database/entities/room.entity';
 import { PricingService } from './pricing.service';
 import { PaginatedResult, paginateQuery } from '../common/pagination.helper';
-import { AuditLog, AuditAction, AuditResource } from '../../../database/entities/audit-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+} from '../../../database/entities/audit-log.entity';
 
 export class CreateBookingDto {
   guestId: string;
@@ -72,16 +82,23 @@ export class BookingsService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResult<Booking>> {
-    const qb = this.bookingRepository.createQueryBuilder('booking')
+    const qb = this.bookingRepository
+      .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.guest', 'guest')
       .leftJoinAndSelect('booking.bookingRooms', 'bookingRooms')
       .leftJoinAndSelect('bookingRooms.room', 'room')
       .orderBy('booking.createdAt', 'DESC');
 
-    if (options.status) qb.andWhere('booking.status = :status', { status: options.status });
-    if (options.guestId) qb.andWhere('booking.guestId = :guestId', { guestId: options.guestId });
-    if (options.dateFrom) qb.andWhere('booking.checkIn >= :dateFrom', { dateFrom: options.dateFrom });
-    if (options.dateTo) qb.andWhere('booking.checkOut <= :dateTo', { dateTo: options.dateTo });
+    if (options.status)
+      qb.andWhere('booking.status = :status', { status: options.status });
+    if (options.guestId)
+      qb.andWhere('booking.guestId = :guestId', { guestId: options.guestId });
+    if (options.dateFrom)
+      qb.andWhere('booking.checkIn >= :dateFrom', {
+        dateFrom: options.dateFrom,
+      });
+    if (options.dateTo)
+      qb.andWhere('booking.checkOut <= :dateTo', { dateTo: options.dateTo });
 
     return paginateQuery(qb, options.page, options.limit);
   }
@@ -110,7 +127,7 @@ export class BookingsService {
       if (!guest) throw new NotFoundException('Guest not found');
 
       const rooms = await this.roomRepository.find({
-        where: dto.roomIds.map(id => ({ id })),
+        where: dto.roomIds.map((id) => ({ id })),
         relations: ['roomType'],
       });
       if (rooms.length !== dto.roomIds.length) {
@@ -133,13 +150,18 @@ export class BookingsService {
           .getMany();
 
         if (conflictingNights.length > 0) {
-          throw new ConflictException(`Room ${room.roomNumber} is not available for selected dates`);
+          throw new ConflictException(
+            `Room ${room.roomNumber} is not available for selected dates`,
+          );
         }
       }
 
       let total = 0;
       const allRoomNights: RoomNight[] = [];
-      const bookingRoomsData: { room: Room; nightPrices: { date: string; price: number }[] }[] = [];
+      const bookingRoomsData: {
+        room: Room;
+        nightPrices: { date: string; price: number }[];
+      }[] = [];
 
       for (const room of rooms) {
         const nightPrices: { date: string; price: number }[] = [];
@@ -173,7 +195,7 @@ export class BookingsService {
         totalPrice: total,
         idempotencyKey: dto.idempotencyKey,
         priceSnapshot: {
-          rooms: bookingRoomsData.map(br => ({
+          rooms: bookingRoomsData.map((br) => ({
             roomTypeId: br.room.roomTypeId,
             roomTypeName: br.room.roomType?.name,
             roomNumber: br.room.roomNumber,
@@ -211,14 +233,23 @@ export class BookingsService {
         action: AuditAction.BOOKING_CREATE,
         resourceType: AuditResource.BOOKING,
         resourceId: savedBooking.id,
-        newValues: { status: BookingStatus.HOLD, totalPrice: total, checkIn: dto.checkIn, checkOut: dto.checkOut },
+        newValues: {
+          status: BookingStatus.HOLD,
+          totalPrice: total,
+          checkIn: dto.checkIn,
+          checkOut: dto.checkOut,
+        },
         performedBy: userId,
       });
       await queryRunner.manager.save(audit);
 
       await queryRunner.commitTransaction();
 
-      await this.holdExpiryQueue.add('hold-expiry', { bookingId: savedBooking.id }, { delay: 15 * 60 * 1000 });
+      await this.holdExpiryQueue.add(
+        'hold-expiry',
+        { bookingId: savedBooking.id },
+        { delay: 15 * 60 * 1000 },
+      );
 
       return savedBooking;
     } catch (err) {
@@ -229,7 +260,11 @@ export class BookingsService {
     }
   }
 
-  async confirm(id: string, dto: ConfirmBookingDto, userId: string): Promise<Booking> {
+  async confirm(
+    id: string,
+    dto: ConfirmBookingDto,
+    userId: string,
+  ): Promise<Booking> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -241,7 +276,9 @@ export class BookingsService {
       });
       if (!booking) throw new NotFoundException('Booking not found');
       if (booking.status !== BookingStatus.HOLD) {
-        throw new BadRequestException('Booking must be in HOLD status to confirm');
+        throw new BadRequestException(
+          'Booking must be in HOLD status to confirm',
+        );
       }
       if (booking.idempotencyKey === dto.idempotencyKey && dto.idempotencyKey) {
         return booking;
@@ -283,7 +320,11 @@ export class BookingsService {
     }
   }
 
-  async cancel(id: string, _dto: CancelBookingDto, userId: string): Promise<Booking> {
+  async cancel(
+    id: string,
+    _dto: CancelBookingDto,
+    userId: string,
+  ): Promise<Booking> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -334,11 +375,21 @@ export class BookingsService {
   }
 
   async checkin(id: string, userId: string): Promise<Booking> {
-    return this.transitionStatus(id, BookingStatus.CHECKED_IN, userId, AuditAction.BOOKING_UPDATE);
+    return this.transitionStatus(
+      id,
+      BookingStatus.CHECKED_IN,
+      userId,
+      AuditAction.BOOKING_UPDATE,
+    );
   }
 
   async checkout(id: string, userId: string): Promise<Booking> {
-    return this.transitionStatus(id, BookingStatus.CHECKED_OUT, userId, AuditAction.BOOKING_UPDATE);
+    return this.transitionStatus(
+      id,
+      BookingStatus.CHECKED_OUT,
+      userId,
+      AuditAction.BOOKING_UPDATE,
+    );
   }
 
   private async transitionStatus(
@@ -353,7 +404,11 @@ export class BookingsService {
     const validTransitions: Record<BookingStatus, BookingStatus[]> = {
       [BookingStatus.PENDING]: [BookingStatus.HOLD],
       [BookingStatus.HOLD]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
-      [BookingStatus.CONFIRMED]: [BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NOSHOW],
+      [BookingStatus.CONFIRMED]: [
+        BookingStatus.CHECKED_IN,
+        BookingStatus.CANCELLED,
+        BookingStatus.NOSHOW,
+      ],
       [BookingStatus.CHECKED_IN]: [BookingStatus.CHECKED_OUT],
       [BookingStatus.CHECKED_OUT]: [],
       [BookingStatus.CANCELLED]: [],

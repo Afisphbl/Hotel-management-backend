@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { PlatformUser } from './platform-user.entity';
 
 export enum AuditAction {
@@ -27,7 +33,7 @@ export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => PlatformUser, user => user.auditLogs, { nullable: true })
+  @ManyToOne(() => PlatformUser, (user) => user.auditLogs, { nullable: true })
   user: PlatformUser;
 
   @Column({ type: 'enum', enum: AuditAction })

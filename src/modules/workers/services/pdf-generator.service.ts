@@ -34,7 +34,9 @@ export class PdfGeneratorService {
     const html = this.renderInvoiceHtml(invoice);
     const buffer = Buffer.from(html, 'utf-8');
 
-    this.logger.log(`PDF generated for invoice ${invoice.invoiceNumber || invoiceId}`);
+    this.logger.log(
+      `PDF generated for invoice ${invoice.invoiceNumber || invoiceId}`,
+    );
 
     return {
       filename: `invoice-${invoice.invoiceNumber || invoiceId}.html`,

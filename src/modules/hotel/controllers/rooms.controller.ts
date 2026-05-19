@@ -29,7 +29,12 @@ export class RoomsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: RoomStatus; floor?: string; roomTypeId?: string },
+    @Query()
+    query: PaginationDto & {
+      status?: RoomStatus;
+      floor?: string;
+      roomTypeId?: string;
+    },
   ) {
     const result = await this.roomsService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);
@@ -41,7 +46,11 @@ export class RoomsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const result = await this.roomsService.getAvailability(roomTypeId, startDate, endDate);
+    const result = await this.roomsService.getAvailability(
+      roomTypeId,
+      startDate,
+      endDate,
+    );
     return success(result);
   }
 
@@ -64,7 +73,10 @@ export class RoomsController {
   }
 
   @Patch(':id/status')
-  async updateStatus(@Param('id') id: string, @Body('status') status: RoomStatus) {
+  async updateStatus(
+    @Param('id') id: string,
+    @Body('status') status: RoomStatus,
+  ) {
     const room = await this.roomsService.updateStatus(id, status);
     return success(room);
   }

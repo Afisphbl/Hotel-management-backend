@@ -1,5 +1,17 @@
-import { IsOptional, IsString, IsEnum, IsUUID, IsNumber, IsEmail, Min } from 'class-validator';
-import { StaffRole, StaffStatus, EmploymentType } from '../../../database/entities/staff.entity';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsUUID,
+  IsNumber,
+  IsEmail,
+  Min,
+} from 'class-validator';
+import {
+  StaffRole,
+  StaffStatus,
+  EmploymentType,
+} from '../../../database/entities/staff.entity';
 import { PaginationDto } from './pagination.dto';
 
 export class CreateStaffDto {

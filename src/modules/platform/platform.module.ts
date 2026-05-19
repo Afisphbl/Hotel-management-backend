@@ -12,7 +12,9 @@ import { Subscription } from '../../database/entities/global/subscriptions.entit
 import { FeatureFlag } from '../../database/entities/global/feature-flag.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Hotel, User, Booking, Subscription, FeatureFlag])],
+  imports: [
+    TypeOrmModule.forFeature([Hotel, User, Booking, Subscription, FeatureFlag]),
+  ],
   controllers: [
     PlatformHotelsController,
     PlatformAnalyticsController,

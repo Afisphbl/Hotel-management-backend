@@ -41,10 +41,6 @@ import { AnalyticsService } from './services/analytics.service';
     PdfGeneratorService,
     AnalyticsService,
   ],
-  exports: [
-    NotificationService,
-    PdfGeneratorService,
-    AnalyticsService,
-  ],
+  exports: [NotificationService, PdfGeneratorService, AnalyticsService],
 })
 export class WorkersModule {}

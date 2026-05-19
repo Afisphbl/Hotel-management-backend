@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsUUID, Min, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsUUID,
+  Min,
+  IsDateString,
+} from 'class-validator';
 import { PaginationDto } from './pagination.dto';
 
 export enum LedgerAccountType {

@@ -2,7 +2,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { NotificationService } from '../services/notification.service';
-import { NotificationChannel, NotificationType } from '../../../database/entities/notification.entity';
+import {
+  NotificationChannel,
+  NotificationType,
+} from '../../../database/entities/notification.entity';
 
 export interface NotificationJobData {
   userId: string;

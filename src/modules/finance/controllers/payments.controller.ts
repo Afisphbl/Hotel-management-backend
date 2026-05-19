@@ -10,7 +10,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { PaymentsService } from '../services/payments.service';
-import { PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
+import {
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -6,8 +10,15 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '../../modules/redis/redis.service';
 import { PlatformUser, UserStatus } from '../../database/entities/global';
-import { Role, Permission, RolePermission } from '../../database/entities/global';
-import { JWTPayload, RefreshTokenPayload } from '../interfaces/jwt-payload.interface';
+import {
+  Role,
+  Permission,
+  RolePermission,
+} from '../../database/entities/global';
+import {
+  JWTPayload,
+  RefreshTokenPayload,
+} from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +36,10 @@ export class AuthService {
     private readonly redisService: RedisService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<PlatformUser | null> {
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<PlatformUser | null> {
     const user = await this.userRepository.findOne({
       where: { email, status: UserStatus.ACTIVE },
       relations: ['hotelAccesses'],
@@ -43,7 +57,10 @@ export class AuthService {
     return user;
   }
 
-  async generateTokens(user: PlatformUser, hotelId?: string): Promise<{
+  async generateTokens(
+    user: PlatformUser,
+    hotelId?: string,
+  ): Promise<{
     accessToken: string;
     refreshToken: string;
     expiresIn: number;
@@ -56,14 +73,18 @@ export class AuthService {
       scope: hotelId ? 'HOTEL' : 'PLATFORM',
       permissions,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.configService.get<number>('JWT_EXPIRES_IN', 3600),
+      exp:
+        Math.floor(Date.now() / 1000) +
+        this.configService.get<number>('JWT_EXPIRES_IN', 3600),
     };
 
     const refreshTokenPayload: RefreshTokenPayload = {
       sub: user.id,
       token_version: Date.now(),
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN', 86400 * 7),
+      exp:
+        Math.floor(Date.now() / 1000) +
+        this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN', 86400 * 7),
     };
 
     const accessToken = this.jwtService.sign(accessTokenPayload);
@@ -97,7 +118,7 @@ export class AuthService {
     try {
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.configService.get('JWT_REFRESH_SECRET'),
-      }) as RefreshTokenPayload;
+      });
 
       const user = await this.userRepository.findOne({
         where: { id: payload.sub, status: UserStatus.ACTIVE },
@@ -114,9 +135,12 @@ export class AuthService {
     }
   }
 
-  async getUserPermissions(user: PlatformUser, hotelId?: string): Promise<string[]> {
+  async getUserPermissions(
+    user: PlatformUser,
+    hotelId?: string,
+  ): Promise<string[]> {
     const cacheKey = `permissions:${user.id}:${hotelId || 'platform'}`;
-    
+
     // Try to get from cache first
     const cached = await this.redisService.get(cacheKey);
     if (cached) {
@@ -128,8 +152,8 @@ export class AuthService {
 
     if (hotelId) {
       // Hotel scope permissions
-      const hotelAccess = user.hotelAccesses?.find(access => 
-        access.hotelId === hotelId && access.status === 'ACTIVE'
+      const hotelAccess = user.hotelAccesses?.find(
+        (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
       if (hotelAccess?.permissions) {
@@ -140,7 +164,7 @@ export class AuthService {
           where: { role: { id: hotelAccess?.role?.id } },
           relations: ['permission'],
         });
-        permissions = rolePermissions.map(rp => rp.permission.code);
+        permissions = rolePermissions.map((rp) => rp.permission.code);
       }
     } else {
       // Platform scope permissions
@@ -148,7 +172,7 @@ export class AuthService {
         where: { role: { id: user.role?.id } },
         relations: ['permission'],
       });
-      permissions = rolePermissions.map(rp => rp.permission.code);
+      permissions = rolePermissions.map((rp) => rp.permission.code);
     }
 
     // Cache permissions
@@ -157,17 +181,28 @@ export class AuthService {
     return permissions;
   }
 
-  async cachePermissions(userId: string, hotelId: string | undefined, permissions: string[]): Promise<void> {
+  async cachePermissions(
+    userId: string,
+    hotelId: string | undefined,
+    permissions: string[],
+  ): Promise<void> {
     const cacheKey = `permissions:${userId}:${hotelId || 'platform'}`;
-    const cacheTTL = this.configService.get<number>('PERMISSIONS_CACHE_TTL', 3600);
-    
-    await this.redisService.set(cacheKey, JSON.stringify(permissions), cacheTTL);
+    const cacheTTL = this.configService.get<number>(
+      'PERMISSIONS_CACHE_TTL',
+      3600,
+    );
+
+    await this.redisService.set(
+      cacheKey,
+      JSON.stringify(permissions),
+      cacheTTL,
+    );
   }
 
   async clearUserPermissionsCache(userId: string): Promise<void> {
     const pattern = `permissions:${userId}:*`;
     const keys = await this.redisService.keys(pattern);
-    
+
     if (keys.length > 0) {
       await this.redisService.del(...keys);
     }
@@ -178,7 +213,10 @@ export class AuthService {
     return bcrypt.hash(password, saltRounds);
   }
 
-  async comparePasswords(password: string, hashedPassword: string): Promise<boolean> {
+  async comparePasswords(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 }

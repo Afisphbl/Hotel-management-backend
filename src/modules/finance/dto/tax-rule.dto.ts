@@ -1,5 +1,16 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean, Min, IsDateString } from 'class-validator';
-import { TaxType, TaxApplication } from '../../../database/entities/tax-rule.entity';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsBoolean,
+  Min,
+  IsDateString,
+} from 'class-validator';
+import {
+  TaxType,
+  TaxApplication,
+} from '../../../database/entities/tax-rule.entity';
 import { PaginationDto } from './pagination.dto';
 
 export class CreateTaxRuleDto {

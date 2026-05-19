@@ -11,7 +11,10 @@ export class RoomTypesService {
     private roomTypeRepository: Repository<RoomType>,
   ) {}
 
-  async findAll(options: { page?: number; limit?: number }): Promise<PaginatedResult<RoomType>> {
+  async findAll(options: {
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResult<RoomType>> {
     return paginate<RoomType>(this.roomTypeRepository, {
       page: options.page,
       limit: options.limit,

@@ -47,7 +47,10 @@ export class HousekeepingService {
     return this.taskRepository.save(this.taskRepository.create(data));
   }
 
-  async update(id: string, data: Partial<HousekeepingTask>): Promise<HousekeepingTask> {
+  async update(
+    id: string,
+    data: Partial<HousekeepingTask>,
+  ): Promise<HousekeepingTask> {
     const task = await this.findById(id);
     if (data.status === TaskStatus.COMPLETED) {
       data.completedAt = new Date();

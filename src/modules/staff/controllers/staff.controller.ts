@@ -12,14 +12,21 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { StaffService } from '../services/staff.service';
-import { StaffRole, StaffStatus } from '../../../database/entities/staff.entity';
+import {
+  StaffRole,
+  StaffStatus,
+} from '../../../database/entities/staff.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
-import { CreateStaffDto, UpdateStaffDto, QueryStaffDto } from '../dto/staff.dto';
+import {
+  CreateStaffDto,
+  UpdateStaffDto,
+  QueryStaffDto,
+} from '../dto/staff.dto';
 import { success, paginatedResponse } from '../../../common/pagination';
 
 @Controller('staff')
@@ -31,7 +38,12 @@ export class StaffController {
   @Get()
   async findAll(@Query() query: QueryStaffDto) {
     const result = await this.staffService.findAll(query);
-    return paginatedResponse(result.items, result.total, result.page, result.limit);
+    return paginatedResponse(
+      result.items,
+      result.total,
+      result.page,
+      result.limit,
+    );
   }
 
   @Get(':id')

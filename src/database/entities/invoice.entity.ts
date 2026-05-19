@@ -1,4 +1,12 @@
-import { Entity, Column, ManyToOne, JoinColumn, Index, BeforeUpdate, AfterLoad } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  Index,
+  BeforeUpdate,
+  AfterLoad,
+} from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Booking } from './booking.entity';
 
@@ -18,7 +26,10 @@ const IMMUTABLE_STATUSES: InvoiceStatus[] = [
 
 @Entity({ name: 'invoices' })
 @Index(['bookingId'])
-@Index(['invoiceNumber'], { unique: true, where: '"invoiceNumber" IS NOT NULL' })
+@Index(['invoiceNumber'], {
+  unique: true,
+  where: '"invoiceNumber" IS NOT NULL',
+})
 export class Invoice extends BaseEntity {
   @Column({ nullable: true })
   invoiceNumber: string;
@@ -46,7 +57,13 @@ export class Invoice extends BaseEntity {
   status: InvoiceStatus;
 
   @Column({ type: 'jsonb', nullable: true })
-  lineItems: { description: string; quantity: number; unitPrice: number; total: number; taxRate?: number }[];
+  lineItems: {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+    taxRate?: number;
+  }[];
 
   @Column({ type: 'timestamptz', nullable: true })
   dueDate: Date;
@@ -66,8 +83,13 @@ export class Invoice extends BaseEntity {
 
   @BeforeUpdate()
   checkImmutability() {
-    if (this._originalStatus && IMMUTABLE_STATUSES.includes(this._originalStatus)) {
-      throw new Error(`Invoice is ${this._originalStatus} and cannot be modified`);
+    if (
+      this._originalStatus &&
+      IMMUTABLE_STATUSES.includes(this._originalStatus)
+    ) {
+      throw new Error(
+        `Invoice is ${this._originalStatus} and cannot be modified`,
+      );
     }
   }
 }

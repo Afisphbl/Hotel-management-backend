@@ -10,7 +10,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { BookingsService, CreateBookingDto, ConfirmBookingDto, CancelBookingDto } from '../services/bookings.service';
+import {
+  BookingsService,
+  CreateBookingDto,
+  ConfirmBookingDto,
+  CancelBookingDto,
+} from '../services/bookings.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -20,7 +25,14 @@ import { UserScope } from '../../../database/entities/user.entity';
 import { BookingStatus } from '../../../database/entities/booking.entity';
 import { PaginationDto } from '../dto/pagination.dto';
 import { success, paginated } from '../common/response.interceptor';
-import { IsUUID, IsString, IsNotEmpty, IsOptional, IsArray, ArrayMinSize } from 'class-validator';
+import {
+  IsUUID,
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  ArrayMinSize,
+} from 'class-validator';
 
 class CreateBookingBodyDto {
   @IsUUID() guestId: string;
@@ -43,7 +55,13 @@ export class BookingsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: BookingStatus; guestId?: string; dateFrom?: string; dateTo?: string },
+    @Query()
+    query: PaginationDto & {
+      status?: BookingStatus;
+      guestId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
   ) {
     const result = await this.bookingsService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);
@@ -58,18 +76,33 @@ export class BookingsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateBookingBodyDto, @Request() req: any) {
-    const booking = await this.bookingsService.create({ ...dto, roomIds: dto.roomIds } as CreateBookingDto, req.user.userId);
+    const booking = await this.bookingsService.create(
+      { ...dto, roomIds: dto.roomIds },
+      req.user.userId,
+    );
     return success(booking);
   }
 
   @Post(':id/confirm')
-  async confirm(@Param('id') id: string, @Body() dto: ConfirmBookingBodyDto, @Request() req: any) {
-    const booking = await this.bookingsService.confirm(id, dto as ConfirmBookingDto, req.user.userId);
+  async confirm(
+    @Param('id') id: string,
+    @Body() dto: ConfirmBookingBodyDto,
+    @Request() req: any,
+  ) {
+    const booking = await this.bookingsService.confirm(
+      id,
+      dto,
+      req.user.userId,
+    );
     return success(booking);
   }
 
   @Post(':id/cancel')
-  async cancel(@Param('id') id: string, @Body() dto: CancelBookingDto, @Request() req: any) {
+  async cancel(
+    @Param('id') id: string,
+    @Body() dto: CancelBookingDto,
+    @Request() req: any,
+  ) {
     const booking = await this.bookingsService.cancel(id, dto, req.user.userId);
     return success(booking);
   }

@@ -10,7 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HousekeepingService } from '../services/housekeeping.service';
-import { TaskPriority, TaskStatus } from '../../../database/entities/housekeeping-task.entity';
+import {
+  TaskPriority,
+  TaskStatus,
+} from '../../../database/entities/housekeeping-task.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -28,7 +31,13 @@ export class HousekeepingController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: TaskStatus; assignedTo?: string; priority?: TaskPriority; roomId?: string },
+    @Query()
+    query: PaginationDto & {
+      status?: TaskStatus;
+      assignedTo?: string;
+      priority?: TaskPriority;
+      roomId?: string;
+    },
   ) {
     const result = await this.housekeepingService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);

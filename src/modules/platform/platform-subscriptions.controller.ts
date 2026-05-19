@@ -15,8 +15,18 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
-import { SubscriptionPlan, SubscriptionStatus } from '../../database/entities/global/subscriptions.entity';
-import { IsUUID, IsEnum, IsNumber, IsOptional, IsDateString, Min } from 'class-validator';
+import {
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from '../../database/entities/global/subscriptions.entity';
+import {
+  IsUUID,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsDateString,
+  Min,
+} from 'class-validator';
 
 class CreateSubscriptionDto {
   @IsUUID() hotelId: string;

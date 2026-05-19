@@ -63,7 +63,9 @@ export class PricingService {
     date: Date,
     _overrides?: any,
   ): Promise<number> {
-    const roomType = await this.roomTypeRepository.findOneBy({ id: roomTypeId });
+    const roomType = await this.roomTypeRepository.findOneBy({
+      id: roomTypeId,
+    });
     if (!roomType) return 0;
 
     const basePrice = Number(roomType.basePrice);
@@ -76,7 +78,10 @@ export class PricingService {
     const promotion = await this.findPromotion(roomTypeId, date);
     if (promotion) {
       if (promotion.discountType === 'percentage') {
-        return Math.round(basePrice * (1 - promotion.discountValue / 100) * 100) / 100;
+        return (
+          Math.round(basePrice * (1 - promotion.discountValue / 100) * 100) /
+          100
+        );
       }
       return Math.max(0, basePrice - promotion.discountValue);
     }
@@ -133,7 +138,10 @@ export class PricingService {
     return data as Promotion;
   }
 
-  async updatePromotion(id: string, data: Partial<Promotion>): Promise<Promotion | null> {
+  async updatePromotion(
+    id: string,
+    data: Partial<Promotion>,
+  ): Promise<Promotion | null> {
     return null;
   }
 

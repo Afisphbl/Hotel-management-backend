@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Staff } from '../../../database/entities/staff.entity';
-import { CreateStaffDto, UpdateStaffDto, QueryStaffDto } from '../dto/staff.dto';
+import {
+  CreateStaffDto,
+  UpdateStaffDto,
+  QueryStaffDto,
+} from '../dto/staff.dto';
 import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()

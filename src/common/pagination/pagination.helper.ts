@@ -1,4 +1,9 @@
-import { Repository, FindManyOptions, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
+import {
+  Repository,
+  FindManyOptions,
+  ObjectLiteral,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { PaginatedResult } from './pagination.interface';
 
 export async function paginate<T extends ObjectLiteral>(

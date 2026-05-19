@@ -72,7 +72,9 @@ export class AuthService {
       }
 
       // Resolve the actual role name
-      const role = await this.roleRepository.findOne({ where: { id: access.roleId } });
+      const role = await this.roleRepository.findOne({
+        where: { id: access.roleId },
+      });
       roleName = role?.name ?? 'USER';
 
       // Resolve permissions for the role

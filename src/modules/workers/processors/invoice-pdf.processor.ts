@@ -15,7 +15,9 @@ export class InvoicePdfProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<{ invoiceId: string; notifyUser?: boolean; userId?: string }>): Promise<any> {
+  async process(
+    job: Job<{ invoiceId: string; notifyUser?: boolean; userId?: string }>,
+  ): Promise<any> {
     const { invoiceId, notifyUser, userId } = job.data;
 
     this.logger.log(`Generating PDF for invoice ${invoiceId}`);

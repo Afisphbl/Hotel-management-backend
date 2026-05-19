@@ -1,7 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PlatformUser, Role, Permission, RolePermission, HotelUserAccess, UserStatus } from '../../database/entities/global';
+import {
+  PlatformUser,
+  Role,
+  Permission,
+  RolePermission,
+  HotelUserAccess,
+  UserStatus,
+} from '../../database/entities/global';
 import { RedisService } from '../../modules/redis/redis.service';
 
 @Injectable()
@@ -20,9 +31,13 @@ export class RbacService {
     private readonly redisService: RedisService,
   ) {}
 
-  async hasPermission(userId: string, permission: string, hotelId?: string): Promise<boolean> {
+  async hasPermission(
+    userId: string,
+    permission: string,
+    hotelId?: string,
+  ): Promise<boolean> {
     const cacheKey = `permission:${userId}:${permission}:${hotelId || 'platform'}`;
-    
+
     // Try cache first
     const cached = await this.redisService.get(cacheKey);
     if (cached !== null) {
@@ -42,8 +57,8 @@ export class RbacService {
 
     if (hotelId) {
       // Check hotel-specific permissions
-      const hotelAccess = user.hotelAccesses?.find(access => 
-        access.hotelId === hotelId && access.status === 'ACTIVE'
+      const hotelAccess = user.hotelAccesses?.find(
+        (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
       if (hotelAccess?.permissions?.includes(permission)) {
@@ -54,7 +69,9 @@ export class RbacService {
           where: { role: { id: hotelAccess?.role?.id } },
           relations: ['permission'],
         });
-        hasPermission = rolePermissions.some(rp => rp.permission.code === permission);
+        hasPermission = rolePermissions.some(
+          (rp) => rp.permission.code === permission,
+        );
       }
     } else {
       // Check platform permissions
@@ -62,7 +79,9 @@ export class RbacService {
         where: { role: { id: user.role?.id } },
         relations: ['permission'],
       });
-      hasPermission = rolePermissions.some(rp => rp.permission.code === permission);
+      hasPermission = rolePermissions.some(
+        (rp) => rp.permission.code === permission,
+      );
     }
 
     // Cache result
@@ -72,7 +91,11 @@ export class RbacService {
     return hasPermission;
   }
 
-  async grantRolePermission(roleId: string, permissionId: string, grantedBy: string): Promise<RolePermission> {
+  async grantRolePermission(
+    roleId: string,
+    permissionId: string,
+    grantedBy: string,
+  ): Promise<RolePermission> {
     // Check if already exists
     const existing = await this.rolePermissionRepository.findOne({
       where: { role: { id: roleId }, permission: { id: permissionId } },
@@ -92,7 +115,10 @@ export class RbacService {
     return this.rolePermissionRepository.save(rolePermission);
   }
 
-  async revokeRolePermission(roleId: string, permissionId: string): Promise<void> {
+  async revokeRolePermission(
+    roleId: string,
+    permissionId: string,
+  ): Promise<void> {
     await this.rolePermissionRepository.delete({
       role: { id: roleId },
       permission: { id: permissionId },
@@ -107,12 +133,16 @@ export class RbacService {
 
     user.role = { id: roleId } as Role;
     await this.userRepository.save(user);
-    
+
     // Clear user permissions cache
     await this.clearUserPermissionsCache(userId);
   }
 
-  async assignHotelPermissions(userId: string, hotelId: string, permissions: string[]): Promise<HotelUserAccess> {
+  async assignHotelPermissions(
+    userId: string,
+    hotelId: string,
+    permissions: string[],
+  ): Promise<HotelUserAccess> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -138,10 +168,7 @@ export class RbacService {
   }
 
   async clearUserPermissionsCache(userId: string): Promise<void> {
-    const patterns = [
-      `permissions:${userId}:*`,
-      `permission:${userId}:*`,
-    ];
+    const patterns = [`permissions:${userId}:*`, `permission:${userId}:*`];
 
     for (const pattern of patterns) {
       const keys = await this.redisService.keys(pattern);
@@ -157,12 +184,15 @@ export class RbacService {
       relations: ['permission'],
     });
 
-    return rolePermissions.map(rp => rp.permission);
+    return rolePermissions.map((rp) => rp.permission);
   }
 
-  async getUserPermissions(userId: string, hotelId?: string): Promise<string[]> {
+  async getUserPermissions(
+    userId: string,
+    hotelId?: string,
+  ): Promise<string[]> {
     const cacheKey = `permissions:${userId}:${hotelId || 'platform'}`;
-    
+
     const cached = await this.redisService.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
@@ -180,8 +210,8 @@ export class RbacService {
     let permissions: string[] = [];
 
     if (hotelId) {
-      const hotelAccess = user.hotelAccesses?.find(access => 
-        access.hotelId === hotelId && access.status === 'ACTIVE'
+      const hotelAccess = user.hotelAccesses?.find(
+        (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
       if (hotelAccess?.permissions) {
@@ -191,19 +221,23 @@ export class RbacService {
           where: { role: { id: hotelAccess?.role?.id } },
           relations: ['permission'],
         });
-        permissions = rolePermissions.map(rp => rp.permission.code);
+        permissions = rolePermissions.map((rp) => rp.permission.code);
       }
     } else {
       const rolePermissions = await this.rolePermissionRepository.find({
         where: { role: { id: user.role?.id } },
         relations: ['permission'],
       });
-      permissions = rolePermissions.map(rp => rp.permission.code);
+      permissions = rolePermissions.map((rp) => rp.permission.code);
     }
 
     // Cache result
     const cacheTTL = 3600; // 1 hour
-    await this.redisService.set(cacheKey, JSON.stringify(permissions), cacheTTL);
+    await this.redisService.set(
+      cacheKey,
+      JSON.stringify(permissions),
+      cacheTTL,
+    );
 
     return permissions;
   }

@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { RoomType } from '../../../database/entities/room-type.entity';
-import { RoomNight, RoomNightStatus } from '../../../database/entities/room-night.entity';
+import {
+  RoomNight,
+  RoomNightStatus,
+} from '../../../database/entities/room-night.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 
 @Injectable()
@@ -49,7 +52,9 @@ export class RoomsService {
 
   async create(data: Partial<Room>): Promise<Room> {
     if (data.roomTypeId) {
-      const type = await this.roomTypeRepository.findOneBy({ id: data.roomTypeId });
+      const type = await this.roomTypeRepository.findOneBy({
+        id: data.roomTypeId,
+      });
       if (!type) throw new NotFoundException('Room type not found');
     }
     return this.roomRepository.save(this.roomRepository.create(data));
@@ -77,15 +82,20 @@ export class RoomsService {
     startDate?: string,
     endDate?: string,
   ) {
-    const roomQb = this.roomRepository.createQueryBuilder('room')
+    const roomQb = this.roomRepository
+      .createQueryBuilder('room')
       .leftJoinAndSelect('room.roomType', 'roomType');
 
-    if (roomTypeId) roomQb.andWhere('room.roomTypeId = :roomTypeId', { roomTypeId });
+    if (roomTypeId)
+      roomQb.andWhere('room.roomTypeId = :roomTypeId', { roomTypeId });
 
     const rooms = await roomQb.getMany();
 
     if (!startDate || !endDate) {
-      return rooms.map((r) => ({ room: r, available: r.status === RoomStatus.AVAILABLE }));
+      return rooms.map((r) => ({
+        room: r,
+        available: r.status === RoomStatus.AVAILABLE,
+      }));
     }
 
     const dates = this.getDatesBetween(startDate, endDate);
@@ -94,14 +104,17 @@ export class RoomsService {
       .createQueryBuilder('rn')
       .where('rn.date IN (:...dates)', { dates })
       .andWhere('rn.status = :status', { status: RoomNightStatus.BOOKED })
-      .andWhere('rn.roomId IN (:...roomIds)', { roomIds: rooms.map((r) => r.id) })
+      .andWhere('rn.roomId IN (:...roomIds)', {
+        roomIds: rooms.map((r) => r.id),
+      })
       .getMany();
 
     const bookedRoomIds = new Set(bookedNights.map((n) => n.roomId));
 
     return rooms.map((room) => ({
       room,
-      available: room.status === RoomStatus.AVAILABLE && !bookedRoomIds.has(room.id),
+      available:
+        room.status === RoomStatus.AVAILABLE && !bookedRoomIds.has(room.id),
       dates,
     }));
   }

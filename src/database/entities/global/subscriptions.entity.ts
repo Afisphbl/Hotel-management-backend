@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { Hotel } from '../hotel.entity';
 
 export enum SubscriptionStatus {
@@ -34,7 +41,11 @@ export class Subscription {
   @Column({ type: 'timestamptz', nullable: true })
   trialEndDate: Date | null;
 
-  @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: SubscriptionStatus,
+    default: SubscriptionStatus.PENDING,
+  })
   status: SubscriptionStatus;
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })

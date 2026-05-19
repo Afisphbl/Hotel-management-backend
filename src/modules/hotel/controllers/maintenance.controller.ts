@@ -10,7 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MaintenanceService } from '../services/maintenance.service';
-import { TicketPriority, TicketStatus } from '../../../database/entities/maintenance-ticket.entity';
+import {
+  TicketPriority,
+  TicketStatus,
+} from '../../../database/entities/maintenance-ticket.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -28,7 +31,13 @@ export class MaintenanceController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { status?: TicketStatus; priority?: TicketPriority; roomId?: string; assignedTo?: string },
+    @Query()
+    query: PaginationDto & {
+      status?: TicketStatus;
+      priority?: TicketPriority;
+      roomId?: string;
+      assignedTo?: string;
+    },
   ) {
     const result = await this.maintenanceService.findAll(query);
     return paginated(result.items, result.total, result.page, result.limit);
@@ -63,7 +72,11 @@ export class MaintenanceController {
     @Param('id') id: string,
     @Body() data: { notes?: string; cost?: number },
   ) {
-    const ticket = await this.maintenanceService.resolve(id, data.notes, data.cost);
+    const ticket = await this.maintenanceService.resolve(
+      id,
+      data.notes,
+      data.cost,
+    );
     return success(ticket);
   }
 

@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Booking, BookingStatus } from '../../../database/entities/booking.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../../database/entities/booking.entity';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { Guest } from '../../../database/entities/guest.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 
 @Injectable()
 export class DashboardService {
@@ -21,7 +27,11 @@ export class DashboardService {
 
   async getDashboard() {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
     const [
@@ -75,7 +85,8 @@ export class DashboardService {
     ]);
 
     return {
-      occupancy: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
+      occupancy:
+        totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
       totalRooms,
       availableRooms,
       occupiedRooms,

@@ -7,7 +7,15 @@ import { Permission } from '../../database/entities/permission.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, HotelUserAccess, Role, Permission, RolePermission])],
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      HotelUserAccess,
+      Role,
+      Permission,
+      RolePermission,
+    ]),
+  ],
   exports: [TypeOrmModule],
 })
 export class UsersModule {}

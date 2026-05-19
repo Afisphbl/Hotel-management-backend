@@ -5,8 +5,14 @@ import {
   AnalyticsSnapshot,
   SnapshotType,
 } from '../../../database/entities/analytics-snapshot.entity';
-import { Booking, BookingStatus } from '../../../database/entities/booking.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../../database/entities/booking.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 
 @Injectable()
 export class AnalyticsService {
@@ -76,7 +82,7 @@ export class AnalyticsService {
     const byStatus: Record<string, number> = {};
     for (const status of Object.values(BookingStatus)) {
       byStatus[status] = await this.bookingRepository.count({
-        where: { status: status as any },
+        where: { status: status },
       });
     }
 
@@ -104,7 +110,10 @@ export class AnalyticsService {
     return saved;
   }
 
-  async findRecent(type: SnapshotType, limit = 30): Promise<AnalyticsSnapshot[]> {
+  async findRecent(
+    type: SnapshotType,
+    limit = 30,
+  ): Promise<AnalyticsSnapshot[]> {
     return this.snapshotRepository.find({
       where: { snapshotType: type },
       order: { periodStart: 'DESC' },

@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Shift, ShiftStatus } from '../../../database/entities/shift.entity';
-import { CreateShiftDto, UpdateShiftDto, QueryShiftDto } from '../dto/shift.dto';
+import {
+  CreateShiftDto,
+  UpdateShiftDto,
+  QueryShiftDto,
+} from '../dto/shift.dto';
 import { PaginatedResult, paginate } from '../../../common/pagination';
 
 @Injectable()
@@ -17,7 +21,10 @@ export class ShiftsService {
     if (query.staffId) where.staffId = query.staffId;
     if (query.status) where.status = query.status;
     if (query.dateFrom && query.dateTo) {
-      where.startTime = Between(new Date(query.dateFrom), new Date(query.dateTo));
+      where.startTime = Between(
+        new Date(query.dateFrom),
+        new Date(query.dateTo),
+      );
     }
 
     return paginate<Shift>(this.shiftRepository, {
@@ -35,13 +42,15 @@ export class ShiftsService {
   }
 
   async create(dto: CreateShiftDto): Promise<Shift> {
-    return this.shiftRepository.save(this.shiftRepository.create({
-      staffId: dto.staffId,
-      startTime: new Date(dto.startTime),
-      endTime: new Date(dto.endTime),
-      status: dto.status,
-      notes: dto.notes,
-    }));
+    return this.shiftRepository.save(
+      this.shiftRepository.create({
+        staffId: dto.staffId,
+        startTime: new Date(dto.startTime),
+        endTime: new Date(dto.endTime),
+        status: dto.status,
+        notes: dto.notes,
+      }),
+    );
   }
 
   async update(id: string, dto: UpdateShiftDto): Promise<Shift> {

@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 

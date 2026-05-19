@@ -14,10 +14,7 @@ export class TenantInterceptor implements NestInterceptor {
 
   constructor(private dataSource: DataSource) {}
 
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const tenantSchema = request['tenant_schema'];
 
@@ -30,7 +27,7 @@ export class TenantInterceptor implements NestInterceptor {
       finalize(() => {
         const qr = request['queryRunner'];
         if (qr) {
-          qr.release().catch(err =>
+          qr.release().catch((err) =>
             this.logger.error('Failed to release tenant queryRunner', err),
           );
         }

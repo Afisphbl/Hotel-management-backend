@@ -4,7 +4,10 @@ export interface SuccessResponse<T> {
   meta?: Record<string, unknown>;
 }
 
-export function success<T>(data: T, meta?: Record<string, unknown>): SuccessResponse<T> {
+export function success<T>(
+  data: T,
+  meta?: Record<string, unknown>,
+): SuccessResponse<T> {
   return { success: true, data, meta };
 }
 
