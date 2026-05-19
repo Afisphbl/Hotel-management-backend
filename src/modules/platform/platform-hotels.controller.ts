@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 
 @Controller('platform/hotels')
 @UseGuards(JwtAuthGuard, ScopeGuard)
@@ -30,8 +31,13 @@ export class PlatformHotelsController {
     return this.platformService.createHotel(data);
   }
 
+  @Get(':id')
+  async getHotel(@Param('id') id: string) {
+    return this.platformService.findHotelById(id);
+  }
+
   @Patch(':id')
-  async updateHotel(@Param('id') id: string, @Body() data: any) {
+  async updateHotel(@Param('id') id: string, @Body() data: Partial<Hotel>) {
     return this.platformService.updateHotel(id, data);
   }
 

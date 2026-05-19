@@ -352,6 +352,40 @@ async function bootstrap() {
 
         // Check or create hotel
         let hotel = await hotelRepo.findOne({ where: { name: hc.name } });
+        const location =
+          hc.slug === 'budapest'
+            ? 'Budapest, Hungary'
+            : hc.slug === 'seaside'
+              ? 'Miami, USA'
+              : hc.slug === 'mountain'
+                ? 'Aspen, USA'
+                : 'London, UK';
+        const region =
+          hc.slug === 'budapest'
+            ? 'europe-central'
+            : hc.slug === 'seaside'
+              ? 'us-east'
+              : hc.slug === 'mountain'
+                ? 'us-west'
+                : 'us-east';
+        const timezone =
+          hc.slug === 'budapest'
+            ? 'Europe/Budapest'
+            : hc.slug === 'seaside'
+              ? 'America/New_York'
+              : hc.slug === 'mountain'
+                ? 'America/Denver'
+                : 'Europe/London';
+        const currency =
+          hc.slug === 'budapest'
+            ? 'EUR'
+            : hc.slug === 'seaside'
+              ? 'USD'
+              : hc.slug === 'mountain'
+                ? 'USD'
+                : 'GBP';
+        const storageUsedMb = Math.floor(Math.random() * 5000) + 500;
+
         if (!hotel) {
           const tempId = crypto.randomUUID();
           hotel = await hotelRepo.save(
@@ -360,11 +394,23 @@ async function bootstrap() {
               name: hc.name,
               schemaName: formatSchemaName(tempId),
               status: HotelStatus.ACTIVE,
+              location,
+              region,
+              timezone,
+              currency,
+              storageUsedMb,
             }),
           );
           console.log(`  Created Hotel and metadata`);
         } else {
-          console.log(`  Hotel record already exists`);
+          // Enforce update
+          hotel.location = location;
+          hotel.region = region;
+          hotel.timezone = timezone;
+          hotel.currency = currency;
+          hotel.storageUsedMb = storageUsedMb;
+          await hotelRepo.save(hotel);
+          console.log(`  Hotel record already exists, updated layout columns`);
         }
 
         // Schema isolation creation

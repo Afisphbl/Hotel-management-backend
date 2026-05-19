@@ -15,4 +15,24 @@ export class PlatformAnalyticsController {
   async getGlobalAnalytics() {
     return this.platformService.getGlobalAnalytics();
   }
+
+  @Get('kpis')
+  async getPlatformKPIs() {
+    return this.platformService.getPlatformKPIs();
+  }
+
+  @Get('revenue-chart')
+  async getPlatformRevenueChart() {
+    return this.platformService.getPlatformRevenueChart();
+  }
+
+  @Get('hotels-by-tier')
+  async getPlatformHotelsByTier() {
+    return this.platformService.getPlatformHotelsByTier();
+  }
+
+  @Get('audit-logs')
+  async getPlatformAuditLogs() {
+    return this.platformService.getPlatformAuditLogs();
+  }
 }
