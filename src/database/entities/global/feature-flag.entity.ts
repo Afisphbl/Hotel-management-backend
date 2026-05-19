@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
-import { Hotel } from './hotel.entity';
+import { Hotel } from '../hotel.entity';
 
 export enum FeatureFlagStatus {
   ENABLED = 'ENABLED',
@@ -12,7 +12,7 @@ export class FeatureFlag {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Hotel, hotel => hotel.featureFlags, { nullable: true })
+  @ManyToOne(() => Hotel, { nullable: true })
   hotel: Hotel;
 
   @Column()

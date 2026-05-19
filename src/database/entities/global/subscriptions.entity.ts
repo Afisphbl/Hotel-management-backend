@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
-import { Hotel } from './hotel.entity';
+import { Hotel } from '../hotel.entity';
 
 export enum SubscriptionStatus {
   ACTIVE = 'ACTIVE',
@@ -19,7 +19,7 @@ export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Hotel, hotel => hotel.subscriptions)
+  @ManyToOne(() => Hotel)
   hotel: Hotel;
 
   @Column({ type: 'enum', enum: SubscriptionPlan })

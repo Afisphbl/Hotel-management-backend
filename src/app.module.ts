@@ -17,6 +17,7 @@ import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -58,6 +59,16 @@ import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
             type: 'exponential',
             delay: 1000,
           },
+        },
+      }),
+    }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: config.get('JWT_EXPIRATION'),
         },
       }),
     }),

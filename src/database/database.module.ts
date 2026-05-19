@@ -2,6 +2,7 @@ import { Module, Global, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService, ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { Client } from 'pg';
 import { getTenantSchema } from '../common/tenant/tenant-context';
 
 @Injectable()
@@ -9,8 +10,6 @@ class TenantSearchPathService implements OnModuleInit {
   constructor(private readonly dataSource: DataSource) {}
 
   async onModuleInit(): Promise<void> {
-    await this.dataSource.query('CREATE SCHEMA IF NOT EXISTS global');
-
     const flaggedDataSource = this.dataSource as DataSource & {
       __tenantSearchPathPatched?: boolean;
     };
@@ -49,31 +48,54 @@ class TenantSearchPathService implements OnModuleInit {
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.getOrThrow<string>('DB_HOST'),
-        port: configService.getOrThrow<number>('DB_PORT'),
-        username: configService.getOrThrow<string>('DB_USERNAME'),
-        password: configService.getOrThrow<string>('DB_PASSWORD'),
-        database: configService.getOrThrow<string>('DB_NAME'),
-        schema: 'global',
-        entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-        autoLoadEntities: true,
-        synchronize: configService.getOrThrow<boolean>('DB_SYNCHRONIZE'),
-        logging: configService.get<boolean>('DB_LOGGING', false),
-        ssl: configService.get<boolean>('DB_SSL')
-          ? { rejectUnauthorized: false }
-          : undefined,
-        retryAttempts: configService.get<number>('DB_RETRY_ATTEMPTS', 5),
-        retryDelay: configService.get<number>('DB_RETRY_DELAY', 2000),
-        maxQueryExecutionTime: configService.get<number>(
-          'DB_MAX_QUERY_EXECUTION_TIME',
-          5000,
-        ),
-        extra: {
-          max: configService.get<number>('DB_POOL_SIZE', 20),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const dbConfig = {
+          host: configService.getOrThrow<string>('DB_HOST'),
+          port: configService.getOrThrow<number>('DB_PORT'),
+          username: configService.getOrThrow<string>('DB_USERNAME'),
+          password: configService.getOrThrow<string>('DB_PASSWORD'),
+          database: configService.getOrThrow<string>('DB_NAME'),
+        };
+
+        if (configService.getOrThrow<boolean>('DB_SYNCHRONIZE')) {
+          const client = new Client({
+            host: dbConfig.host,
+            port: dbConfig.port,
+            user: dbConfig.username,
+            password: dbConfig.password,
+            database: dbConfig.database,
+          });
+          await client.connect();
+          await client.query('CREATE SCHEMA IF NOT EXISTS global');
+          await client.end();
+        }
+
+        return {
+          type: 'postgres',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.database,
+          schema: 'global',
+          entities: [__dirname + '/entities/*.entity{.ts,.js}'],
+          autoLoadEntities: true,
+          synchronize: configService.getOrThrow<boolean>('DB_SYNCHRONIZE'),
+          logging: configService.get<boolean>('DB_LOGGING', false),
+          ssl: configService.get<boolean>('DB_SSL')
+            ? { rejectUnauthorized: false }
+            : undefined,
+          retryAttempts: configService.get<number>('DB_RETRY_ATTEMPTS', 5),
+          retryDelay: configService.get<number>('DB_RETRY_DELAY', 2000),
+          maxQueryExecutionTime: configService.get<number>(
+            'DB_MAX_QUERY_EXECUTION_TIME',
+            5000,
+          ),
+          extra: {
+            max: configService.get<number>('DB_POOL_SIZE', 20),
+          },
+        };
+      },
     }),
   ],
   providers: [TenantSearchPathService],

@@ -21,7 +21,7 @@ export class RefreshToken extends BaseEntity {
   @Column({ unique: true })
   token: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar' })
   hotelId: string | null;
 
   @Column({ default: 'hmac-sha256' })

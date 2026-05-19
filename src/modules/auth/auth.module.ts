@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
+import { Role } from '../../database/entities/role.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
@@ -17,6 +18,7 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
   imports: [
     TypeOrmModule.forFeature([
       User,
+      Role,
       HotelUserAccess,
       RolePermission,
       Permission,
