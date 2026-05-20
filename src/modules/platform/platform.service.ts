@@ -2,6 +2,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  ConflictException,
+  HttpException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, In } from 'typeorm';
@@ -61,32 +63,8 @@ export class PlatformService {
           : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
 
       // 2. Resolve Primary Owner
-      let owner = 'John Doe';
-      let email = 'owner@example.com';
-      try {
-        const ownerAccess = (await this.dataSource.query(
-          `SELECT u.email, u."firstName", u."lastName"
-           FROM global.users u
-           INNER JOIN global.hotel_user_access hua ON hua."userId" = u.id
-           INNER JOIN global.roles r ON hua."roleId" = r.id
-           WHERE hua."hotelId" = $1 AND r.name = 'HOTEL_OWNER'
-           LIMIT 1`,
-          [hotel.id],
-        )) as Array<{
-          email: string;
-          firstName: string | null;
-          lastName: string | null;
-        }>;
-
-        if (ownerAccess && ownerAccess.length > 0) {
-          const first = ownerAccess[0].firstName || '';
-          const last = ownerAccess[0].lastName || '';
-          owner = `${first} ${last}`.trim() || ownerAccess[0].email;
-          email = ownerAccess[0].email;
-        }
-      } catch {
-        // Fallback if global tables aren't fully configured/seeded
-      }
+      const owner = hotel.ownerName || 'John Doe';
+      const email = hotel.ownerEmail || 'owner@example.com';
 
       enrichedHotels.push({
         id: hotel.id,
@@ -122,31 +100,16 @@ export class PlatformService {
         : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
 
     // 2. Resolve Primary Owner
-    let owner = 'John Doe';
-    let email = 'owner@example.com';
+    const owner = hotel.ownerName || 'John Doe';
+    const email = hotel.ownerEmail || 'owner@example.com';
     let phone = '+1 234 567 890';
     try {
-      const ownerAccess = (await this.dataSource.query(
-        `SELECT u.email, u.phone, u."firstName", u."lastName"
-         FROM global.users u
-         INNER JOIN global.hotel_user_access hua ON hua."userId" = u.id
-         INNER JOIN global.roles r ON hua."roleId" = r.id
-         WHERE hua."hotelId" = $1 AND r.name = 'HOTEL_OWNER'
-         LIMIT 1`,
-        [hotel.id],
-      )) as Array<{
-        email: string;
-        phone: string | null;
-        firstName: string | null;
-        lastName: string | null;
-      }>;
-
-      if (ownerAccess && ownerAccess.length > 0) {
-        const first = ownerAccess[0].firstName || '';
-        const last = ownerAccess[0].lastName || '';
-        owner = `${first} ${last}`.trim() || ownerAccess[0].email;
-        email = ownerAccess[0].email;
-        phone = ownerAccess[0].phone || phone;
+      const ownerUser = await this.dataSource.query(
+        `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
+        [email],
+      ) as Array<{ phone: string | null }>;
+      if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
+        phone = ownerUser[0].phone;
       }
     } catch {
       // Fallback
@@ -251,6 +214,8 @@ export class PlatformService {
       const hotel = this.hotelRepository.create({
         id: hotelId,
         name: data.name,
+        ownerName: data.ownerName || null,
+        ownerEmail: data.ownerEmail || null,
         subdomain: data.subdomain || subdomain,
         schemaName: schemaName,
         status: HotelStatus.ACTIVE,
@@ -266,6 +231,15 @@ export class PlatformService {
 
       // Create owner user if provided
       if (data.ownerEmail) {
+        const existingUser = await queryRunner.manager.findOne(User, {
+          where: { email: data.ownerEmail },
+        });
+        if (existingUser) {
+          throw new ConflictException(
+            `A user with email ${data.ownerEmail} already exists. Use a different email for the hotel owner.`,
+          );
+        }
+
         const hashedPassword = await bcrypt.hash(
           data.password || 'Temporary123!',
           10,
@@ -368,6 +342,9 @@ export class PlatformService {
       return savedHotel;
     } catch (err) {
       await queryRunner.rollbackTransaction();
+      if (err instanceof HttpException) {
+        throw err;
+      }
       throw new InternalServerErrorException(
         `Failed to create hotel: ${err.message}`,
       );
@@ -390,6 +367,8 @@ export class PlatformService {
       'currency',
       'storageUsedMb',
       'rooms',
+      'ownerName',
+      'ownerEmail',
     ];
     const sanitizedData: any = {};
     for (const key of hotelColumns) {

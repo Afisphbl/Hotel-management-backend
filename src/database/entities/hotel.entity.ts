@@ -37,6 +37,12 @@ export class Hotel extends BaseEntity {
   @Column({ nullable: true })
   currency: string;
 
+  @Column({ nullable: true })
+  ownerName: string;
+
+  @Column({ nullable: true })
+  ownerEmail: string;
+
   @Column({ type: 'integer', default: 0 })
   storageUsedMb: number;
 
