@@ -35,7 +35,11 @@ export class LocaleSetting extends BaseEntity {
   @Column({ type: 'enum', enum: DateFormat, default: DateFormat.DD_MM_YYYY })
   dateFormat: DateFormat;
 
-  @Column({ type: 'enum', enum: TimeFormat, default: TimeFormat.TWENTY_FOUR_HOUR })
+  @Column({
+    type: 'enum',
+    enum: TimeFormat,
+    default: TimeFormat.TWENTY_FOUR_HOUR,
+  })
   timeFormat: TimeFormat;
 
   @Column({ default: 'UTC' })
@@ -44,7 +48,11 @@ export class LocaleSetting extends BaseEntity {
   @Column({ default: 'GBP' })
   currency: string;
 
-  @Column({ type: 'enum', enum: FirstDayOfWeek, default: FirstDayOfWeek.MONDAY })
+  @Column({
+    type: 'enum',
+    enum: FirstDayOfWeek,
+    default: FirstDayOfWeek.MONDAY,
+  })
   firstDayOfWeek: FirstDayOfWeek;
 
   @Column({ type: 'jsonb', nullable: true })

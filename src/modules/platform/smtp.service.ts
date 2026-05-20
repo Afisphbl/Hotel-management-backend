@@ -1,6 +1,13 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
 
 export interface SmtpConfig {
   host: string;
@@ -46,14 +53,23 @@ export class SmtpService {
     if (!config) {
       throw new BadRequestException('SMTP not configured');
     }
-    return { success: true, message: 'SMTP configuration saved successfully. Install nodemailer to verify connectivity.' };
+    return {
+      success: true,
+      message:
+        'SMTP configuration saved successfully. Install nodemailer to verify connectivity.',
+    };
   }
 
-  async sendTestEmail(to: string): Promise<{ success: boolean; message: string }> {
+  async sendTestEmail(
+    to: string,
+  ): Promise<{ success: boolean; message: string }> {
     const config = await this.getConfig();
     if (!config) {
       throw new BadRequestException('SMTP not configured');
     }
-    return { success: true, message: `Test email queued for ${to}. Install nodemailer to send.` };
+    return {
+      success: true,
+      message: `Test email queued for ${to}. Install nodemailer to send.`,
+    };
   }
 }

@@ -20,8 +20,14 @@ import {
   FeatureFlagStatus,
   FeatureFlagRolloutStrategy,
 } from '../../database/entities/global/feature-flag.entity';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
-import { AnalyticsSnapshot, SnapshotType } from '../../database/entities/analytics-snapshot.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
+import {
+  AnalyticsSnapshot,
+  SnapshotType,
+} from '../../database/entities/analytics-snapshot.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -120,7 +126,7 @@ export class PlatformService {
         const ownerUser = await this.dataSource.query(
           `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
           [email],
-        ) as Array<{ phone: string | null }>;
+        );
         if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
           phone = ownerUser[0].phone;
         }
@@ -132,9 +138,9 @@ export class PlatformService {
     // 3. Query count of rooms inside tenant schema
     let totalRooms = hotel.rooms;
     try {
-      const dbRooms = (await this.dataSource.query(
+      const dbRooms = await this.dataSource.query(
         `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-      )) as Array<{ count: string }>;
+      );
       totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
       // Fallback
@@ -143,10 +149,10 @@ export class PlatformService {
     // 4. Query count of users linked to this hotel from global
     let activeUsers: number | null = null;
     try {
-      const dbUsers = (await this.dataSource.query(
+      const dbUsers = await this.dataSource.query(
         `SELECT COUNT(*) as count FROM global.hotel_user_access WHERE "hotelId" = $1`,
         [hotel.id],
-      )) as Array<{ count: string }>;
+      );
       const count = parseInt(dbUsers[0]?.count || '0', 10);
       activeUsers = count > 0 ? count : null;
     } catch {
@@ -652,16 +658,16 @@ export class PlatformService {
     let outstandingRevenue = 0;
 
     for (const hotel of hotels) {
-      const paidInvoices = (await this.dataSource.query(
+      const paidInvoices = await this.dataSource.query(
         `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
          FROM "${hotel.schemaName}"."invoices"
          WHERE status = 'paid'`,
-      )) as Array<{ revenue: string }>;
-      const openInvoices = (await this.dataSource.query(
+      );
+      const openInvoices = await this.dataSource.query(
         `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
          FROM "${hotel.schemaName}"."invoices"
          WHERE status IN ('issued', 'overdue', 'partially_paid')`,
-      )) as Array<{ revenue: string }>;
+      );
 
       const hotelRevenue = Number(paidInvoices[0]?.revenue ?? 0);
       const hotelOutstanding = Number(openInvoices[0]?.revenue ?? 0);
@@ -734,7 +740,8 @@ export class PlatformService {
 
   async createPlatformStaff(data: any) {
     const rawPassword =
-      data.password || (await this.passwordPolicyService.generateTemporaryPassword());
+      data.password ||
+      (await this.passwordPolicyService.generateTemporaryPassword());
     await this.passwordPolicyService.assertCompliant(rawPassword);
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const user = this.userRepository.create({
@@ -891,7 +898,8 @@ export class PlatformService {
     flag.status = data.status || FeatureFlagStatus.DISABLED;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
-    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.rolloutPercentage != null)
+      flag.rolloutPercentage = data.rolloutPercentage;
     if (data.targetingRules) flag.targetingRules = data.targetingRules;
     if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
     if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;
@@ -920,7 +928,8 @@ export class PlatformService {
     if (data.status) flag.status = data.status;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
-    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.rolloutPercentage != null)
+      flag.rolloutPercentage = data.rolloutPercentage;
     if (data.targetingRules) flag.targetingRules = data.targetingRules;
     if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
     if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;

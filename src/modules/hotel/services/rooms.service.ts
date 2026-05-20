@@ -57,7 +57,9 @@ export class RoomsService {
       });
       if (!type) throw new NotFoundException('Room type not found');
     }
-    const room = await this.roomRepository.save(this.roomRepository.create(data));
+    const room = await this.roomRepository.save(
+      this.roomRepository.create(data),
+    );
     return room;
   }
 

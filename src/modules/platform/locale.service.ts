@@ -21,7 +21,10 @@ export class LocaleService {
     return this.createDefault(hotelId);
   }
 
-  async upsert(hotelId: string, data: Partial<LocaleSetting>): Promise<LocaleSetting> {
+  async upsert(
+    hotelId: string,
+    data: Partial<LocaleSetting>,
+  ): Promise<LocaleSetting> {
     let locale = await this.localeRepository.findOne({ where: { hotelId } });
     if (locale) {
       Object.assign(locale, data);

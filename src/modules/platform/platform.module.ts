@@ -41,7 +41,13 @@ import { FeatureFlag } from '../../database/entities/global/feature-flag.entity'
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { AnalyticsSnapshot } from '../../database/entities/analytics-snapshot.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
-import { PlatformUser, Role, Permission, RolePermission, HotelUserAccess } from '../../database/entities/global';
+import {
+  PlatformUser,
+  Role,
+  Permission,
+  RolePermission,
+  HotelUserAccess,
+} from '../../database/entities/global';
 import { SupportAccess } from '../../database/entities/global/support-access.entity';
 import { TenantQuota } from '../../database/entities/global/tenant-quota.entity';
 import { OverageBilling } from '../../database/entities/global/overage-billing.entity';

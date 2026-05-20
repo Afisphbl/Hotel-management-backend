@@ -23,10 +23,16 @@ export class RateLimitMiddleware implements NestMiddleware {
 
     res.setHeader('X-RateLimit-Limit', result.limit.toString());
     res.setHeader('X-RateLimit-Remaining', result.remaining.toString());
-    res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetAt / 1000).toString());
+    res.setHeader(
+      'X-RateLimit-Reset',
+      Math.ceil(result.resetAt / 1000).toString(),
+    );
 
     if (!result.allowed) {
-      res.setHeader('Retry-After', Math.ceil(result.retryAfter / 1000).toString());
+      res.setHeader(
+        'Retry-After',
+        Math.ceil(result.retryAfter / 1000).toString(),
+      );
       throw new HttpException(
         {
           success: false,

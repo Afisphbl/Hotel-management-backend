@@ -17,7 +17,10 @@ export class SecurityHeadersMiddleware implements NestMiddleware {
       'max-age=31536000; includeSubDomains',
     );
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=()',
+    );
 
     (req as Request & { requestId?: string }).requestId = requestId;
     next();
