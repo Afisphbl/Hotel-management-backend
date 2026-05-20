@@ -60,6 +60,12 @@ export class Subscription {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any>;
 
+  @Column({ type: 'jsonb', nullable: true })
+  overagePricing: Record<string, any>;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
+  overageBilled: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

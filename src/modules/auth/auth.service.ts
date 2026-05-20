@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, LessThan } from 'typeorm';
@@ -17,6 +17,8 @@ import {
   AuditResource,
 } from '../../database/entities/audit-log.entity';
 import { SupportAccess, SupportAccessStatus } from '../../database/entities/global/support-access.entity';
+import { UserManagementService } from '../platform/user-management.service';
+import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
@@ -25,6 +27,8 @@ import * as qrcode from 'qrcode';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -44,6 +48,7 @@ export class AuthService {
     private supportAccessRepository: Repository<SupportAccess>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private userManagementService: UserManagementService,
   ) {}
 
   async findUserById(id: string): Promise<User | null> {
@@ -51,14 +56,34 @@ export class AuthService {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName', 'twoFactorEnabled'],
-    });
+    const [user, platformUser] = await Promise.all([
+      this.userRepository.findOne({
+        where: { email },
+        select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName', 'twoFactorEnabled'],
+      }),
+      this.userManagementService.findByEmail(email),
+    ]);
+
+    if (platformUser) {
+      const lockStatus = await this.userManagementService.checkAccountLockout(email);
+      if (lockStatus.locked) {
+        this.logger.warn(`Login attempt on locked account: ${email}`);
+        throw new UnauthorizedException(
+          `Account is locked until ${lockStatus.lockedUntil?.toISOString() ?? 'further notice'}`,
+        );
+      }
+    }
 
     if (user && (await bcrypt.compare(pass, user.password))) {
+      if (platformUser) {
+        await this.userManagementService.resetLockout(platformUser.id);
+      }
       const { password, ...result } = user;
       return result;
+    }
+
+    if (platformUser) {
+      await this.userManagementService.recordFailedLogin(platformUser.id);
     }
     return null;
   }

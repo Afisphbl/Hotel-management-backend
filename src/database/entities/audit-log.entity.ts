@@ -17,6 +17,15 @@ export enum AuditAction {
   PAYMENT_REFUND = 'payment_refund',
   PERMISSION_GRANT = 'permission_grant',
   PERMISSION_REVOKE = 'permission_revoke',
+  IMPERSONATION_START = 'impersonation:start',
+  IMPERSONATION_STOP = 'impersonation:stop',
+  EMERGENCY_REQUEST = 'emergency:request',
+  EMERGENCY_APPROVE = 'emergency:approve',
+  EMERGENCY_ACTIVATE = 'emergency:activate',
+  EMERGENCY_REVOKE = 'emergency:revoke',
+  DELEGATION_CREATE = 'delegation:create',
+  DELEGATION_REVOKE = 'delegation:revoke',
+  SUPPORT_ACCESS_GRANT = 'support:access:grant',
 }
 
 export enum AuditResource {
@@ -30,6 +39,10 @@ export enum AuditResource {
   PERMISSION = 'permission',
   ROLE = 'role',
   REFRESH_TOKEN = 'refresh_token',
+  CROSS_TENANT_ACCESS = 'cross-tenant-access',
+  SUBSCRIPTION = 'subscription',
+  SYSTEM = 'system',
+  QUOTA = 'quota',
 }
 
 @Entity({ name: 'audit_logs', schema: 'global' })

@@ -18,6 +18,7 @@ import {
 import {
   FeatureFlag,
   FeatureFlagStatus,
+  FeatureFlagRolloutStrategy,
 } from '../../database/entities/global/feature-flag.entity';
 import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
 import { AnalyticsSnapshot, SnapshotType } from '../../database/entities/analytics-snapshot.entity';
@@ -875,6 +876,13 @@ export class PlatformService {
     hotelId?: string;
     status?: FeatureFlagStatus;
     conditions?: Record<string, any>;
+    rolloutStrategy?: FeatureFlagRolloutStrategy;
+    rolloutPercentage?: number;
+    targetingRules?: Array<any>;
+    allowedUserIds?: string[];
+    allowedRoleIds?: string[];
+    excludedUserIds?: string[];
+    variants?: Array<any>;
   }) {
     const flag = this.featureFlagRepository.create();
     flag.name = data.name;
@@ -882,6 +890,13 @@ export class PlatformService {
     if (data.hotelId) flag.hotel = { id: data.hotelId } as any;
     flag.status = data.status || FeatureFlagStatus.DISABLED;
     if (data.conditions) flag.conditions = data.conditions;
+    if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
+    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.targetingRules) flag.targetingRules = data.targetingRules;
+    if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
+    if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;
+    if (data.excludedUserIds) flag.excludedUserIds = data.excludedUserIds;
+    if (data.variants) flag.variants = data.variants;
     return this.featureFlagRepository.save(flag);
   }
 
@@ -891,12 +906,26 @@ export class PlatformService {
       description: string;
       status: FeatureFlagStatus;
       conditions: Record<string, any>;
+      rolloutStrategy: FeatureFlagRolloutStrategy;
+      rolloutPercentage: number;
+      targetingRules: Array<any>;
+      allowedUserIds: string[];
+      allowedRoleIds: string[];
+      excludedUserIds: string[];
+      variants: Array<any>;
     }>,
   ) {
     const flag = await this.findFeatureFlagById(id);
     if (data.description !== undefined) flag.description = data.description;
     if (data.status) flag.status = data.status;
     if (data.conditions) flag.conditions = data.conditions;
+    if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
+    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.targetingRules) flag.targetingRules = data.targetingRules;
+    if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
+    if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;
+    if (data.excludedUserIds) flag.excludedUserIds = data.excludedUserIds;
+    if (data.variants) flag.variants = data.variants;
     return this.featureFlagRepository.save(flag);
   }
 

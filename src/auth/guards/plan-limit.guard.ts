@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
@@ -28,12 +29,18 @@ export class PlanLimitGuard implements CanActivate {
     }
 
     if (resource === 'rooms') {
-      await this.tenantQuotaService.assertRoomCapacity(hotelId);
+      const result = await this.tenantQuotaService.assertRoomCapacity(hotelId);
+      if (result.overage) {
+        request.overageCost = result.overageCost;
+      }
       return true;
     }
 
     if (resource === 'users') {
-      await this.tenantQuotaService.assertUserCapacity(hotelId);
+      const result = await this.tenantQuotaService.assertUserCapacity(hotelId);
+      if (result.overage) {
+        request.overageCost = result.overageCost;
+      }
       return true;
     }
 
@@ -46,7 +53,10 @@ export class PlanLimitGuard implements CanActivate {
         throw new BadRequestException('sizeMb is required for storage operations');
       }
 
-      await this.tenantQuotaService.assertStorageCapacity(hotelId, sizeMb);
+      const result = await this.tenantQuotaService.assertStorageCapacity(hotelId, sizeMb);
+      if (result.overage) {
+        request.overageCost = result.overageCost;
+      }
       return true;
     }
 

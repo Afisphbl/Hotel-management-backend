@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
+import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
 
 export interface PaymentGatewayConfig {
   provider: string;
@@ -9,6 +9,7 @@ export interface PaymentGatewayConfig {
   publicKey?: string;
   secretKey?: string;
   webhookSecret?: string;
+  additionalSettings?: Record<string, any>;
 }
 
 @Injectable()
@@ -19,8 +20,27 @@ export class PaymentGatewayService {
     const setting = await this.dataSource.getRepository(GlobalSetting).findOne({
       where: { key: 'payment_gateway:config' },
     });
-
     return (setting?.value as PaymentGatewayConfig | null) ?? null;
+  }
+
+  async updateConfig(config: PaymentGatewayConfig): Promise<PaymentGatewayConfig> {
+    if (!config.provider) {
+      throw new BadRequestException('Payment gateway provider is required');
+    }
+    const repository = this.dataSource.getRepository(GlobalSetting);
+    let setting = await repository.findOne({ where: { key: 'payment_gateway:config' } });
+    if (setting) {
+      setting.value = config;
+    } else {
+      setting = repository.create({
+        key: 'payment_gateway:config',
+        value: config,
+        category: SettingCategory.PAYMENT_GATEWAY,
+        description: 'Payment gateway configuration',
+      });
+    }
+    await repository.save(setting);
+    return config;
   }
 
   async buildGatewayResponse(input: {

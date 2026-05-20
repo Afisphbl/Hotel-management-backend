@@ -9,6 +9,10 @@ export enum SnapshotType {
   MAINTENANCE_METRICS = 'maintenance_metrics',
   PLATFORM_KPI = 'platform_kpi',
   PLATFORM_REVENUE = 'platform_revenue',
+  MRR_BREAKDOWN = 'mrr_breakdown',
+  CHURN_METRICS = 'churn_metrics',
+  FINANCIAL_REPORT = 'financial_report',
+  UPTIME_SUMMARY = 'uptime_summary',
 }
 
 @Entity({ name: 'analytics_snapshots' })

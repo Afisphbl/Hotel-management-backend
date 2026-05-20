@@ -14,8 +14,11 @@ import { Permission } from '../../database/entities/permission.entity';
 import { RefreshToken } from '../../database/entities/refresh-token.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
 import { SupportAccess } from '../../database/entities/global/support-access.entity';
+import { PlatformUser, Role as GlobalRole } from '../../database/entities/global';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
+import { UserManagementService } from '../platform/user-management.service';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
@@ -28,6 +31,8 @@ import { TenantQuotaService } from '../../common/services/tenant-quota.service';
       RefreshToken,
       AuditLog,
       SupportAccess,
+      PlatformUser,
+      GlobalRole,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -35,13 +40,13 @@ import { TenantQuotaService } from '../../common/services/tenant-quota.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: {
+        sortOptions: {
           expiresIn: config.get('JWT_EXPIRATION'),
         },
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, PasswordPolicyService, TenantQuotaService],
+  providers: [AuthService, JwtStrategy, PasswordPolicyService, TenantQuotaService, UserManagementService, RedisService],
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

@@ -6,22 +6,30 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { PlatformService } from './platform.service';
+import { FeatureFlagEvaluationService, EvaluationContext } from './feature-flag-evaluation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
-import { FeatureFlagStatus } from '../../database/entities/global/feature-flag.entity';
+import {
+  FeatureFlagStatus,
+  FeatureFlagRolloutStrategy,
+} from '../../database/entities/global/feature-flag.entity';
 import {
   IsString,
   IsEnum,
   IsOptional,
   IsUUID,
   IsBoolean,
+  IsNumber,
+  Min,
+  Max,
 } from 'class-validator';
 
 class CreateFeatureFlagDto {
@@ -30,19 +38,36 @@ class CreateFeatureFlagDto {
   @IsOptional() @IsUUID() hotelId?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
   @IsOptional() conditions?: Record<string, any>;
+  @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
+  @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
+  @IsOptional() targetingRules?: Array<any>;
+  @IsOptional() allowedUserIds?: string[];
+  @IsOptional() allowedRoleIds?: string[];
+  @IsOptional() excludedUserIds?: string[];
+  @IsOptional() variants?: Array<any>;
 }
 
 class UpdateFeatureFlagDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
   @IsOptional() conditions?: Record<string, any>;
+  @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
+  @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
+  @IsOptional() targetingRules?: Array<any>;
+  @IsOptional() allowedUserIds?: string[];
+  @IsOptional() allowedRoleIds?: string[];
+  @IsOptional() excludedUserIds?: string[];
+  @IsOptional() variants?: Array<any>;
 }
 
 @Controller('platform/feature-flags')
 @UseGuards(JwtAuthGuard, ScopeGuard)
 @Scopes(UserScope.PLATFORM)
 export class PlatformFeatureFlagsController {
-  constructor(private platformService: PlatformService) {}
+  constructor(
+    private platformService: PlatformService,
+    private flagEvaluationService: FeatureFlagEvaluationService,
+  ) {}
 
   @Get()
   async findAll() {
@@ -73,5 +98,20 @@ export class PlatformFeatureFlagsController {
   @Post(':id/toggle')
   async toggle(@Param('id') id: string) {
     return this.platformService.toggleFeatureFlag(id);
+  }
+
+  @Post('evaluate')
+  @HttpCode(HttpStatus.OK)
+  async evaluate(@Body() body: { flagName: string; context: EvaluationContext }) {
+    return {
+      flagName: body.flagName,
+      enabled: await this.flagEvaluationService.isEnabled(body.flagName, body.context),
+    };
+  }
+
+  @Post('evaluate-variant')
+  @HttpCode(HttpStatus.OK)
+  async evaluateVariant(@Body() body: { flagName: string; context: EvaluationContext }) {
+    return this.flagEvaluationService.getVariant(body.flagName, body.context);
   }
 }

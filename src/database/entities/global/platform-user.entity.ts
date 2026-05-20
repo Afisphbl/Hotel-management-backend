@@ -79,6 +79,51 @@ export class PlatformUser {
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
 
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedUntil: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastFailedLoginAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  lastFailedLoginIp: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  isLocked: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lockedAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  lockedBy: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  lockReason: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastPasswordChangeAt: Date | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  passwordHistory: string[];
+
+  @Column({ type: 'boolean', default: false })
+  mustChangePassword: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  activatedAt: Date | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  deactivatedAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  deactivatedBy: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  deactivationReason: string | null;
+
   @ManyToOne(() => Role)
   role: Role;
 

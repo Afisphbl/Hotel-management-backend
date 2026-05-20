@@ -1,5 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { PlatformService } from './platform.service';
+import { RevenueAnalyticsService } from './revenue-analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
@@ -9,7 +10,10 @@ import { UserScope } from '../../database/entities/user.entity';
 @UseGuards(JwtAuthGuard, ScopeGuard)
 @Scopes(UserScope.PLATFORM)
 export class PlatformAnalyticsController {
-  constructor(private platformService: PlatformService) {}
+  constructor(
+    private platformService: PlatformService,
+    private revenueAnalyticsService: RevenueAnalyticsService,
+  ) {}
 
   @Get('global')
   async getGlobalAnalytics() {
@@ -44,5 +48,29 @@ export class PlatformAnalyticsController {
   @Get('audit-logs')
   async getPlatformAuditLogs() {
     return this.platformService.getPlatformAuditLogs();
+  }
+
+  @Get('mrr')
+  async getMRRBreakdown() {
+    return this.revenueAnalyticsService.getMRRBreakdown();
+  }
+
+  @Get('churn')
+  async getChurnMetrics() {
+    return this.revenueAnalyticsService.getChurnMetrics();
+  }
+
+  @Get('financial-report')
+  async getFinancialReport(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.revenueAnalyticsService.getDetailedFinancialReport(startDate, endDate);
+  }
+
+  @Get('projections')
+  async getRevenueProjections(@Query('months') months?: string) {
+    const m = months ? parseInt(months, 10) : 3;
+    return this.revenueAnalyticsService.getRevenueProjection(m);
   }
 }
