@@ -16,6 +16,7 @@ import {
   AuditAction,
   AuditResource,
 } from '../../database/entities/audit-log.entity';
+import { SupportAccess, SupportAccessStatus } from '../../database/entities/global/support-access.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
@@ -39,6 +40,8 @@ export class AuthService {
     private refreshTokenRepository: Repository<RefreshToken>,
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
+    @InjectRepository(SupportAccess)
+    private supportAccessRepository: Repository<SupportAccess>,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -118,17 +121,42 @@ export class AuthService {
   async login(
     user: any,
     hotelId?: string | null,
-    metadata?: { userAgent?: string; ipAddress?: string; device?: string },
+    metadata?: {
+      userAgent?: string;
+      ipAddress?: string;
+      device?: string;
+      supportReason?: string;
+    },
     isImpersonating = false,
   ) {
     let permissions: string[] = [];
     let roleName = 'USER';
+    let supportAccessId: string | null = null;
 
     if (hotelId) {
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
       if (user.scope === UserScope.PLATFORM && isImpersonating) {
         roleName = 'SUPPORT_ADMIN';
-        permissions = ['*']; // Full access during impersonation
+        permissions = [
+          'support:access',
+          'bookings:read',
+          'guests:read',
+          'rooms:read',
+          'maintenance:read',
+          'invoices:read',
+          'payments:read',
+        ];
+        const supportAccess = await this.supportAccessRepository.save(
+          this.supportAccessRepository.create({
+            platformUserId: user.id,
+            hotelId,
+            reason: metadata?.supportReason || 'Emergency support access',
+            status: SupportAccessStatus.ACTIVE,
+            expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+            metadata,
+          }),
+        );
+        supportAccessId = supportAccess.id;
       } else {
         const access = await this.accessRepository.findOne({
           where: { userId: user.id, hotelId },
@@ -175,10 +203,12 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       hotel_id: hotelId || null,
-      scope: user.scope,
+      scope: isImpersonating ? UserScope.HOTEL : user.scope,
+      actor_scope: user.scope,
       permissions,
       role: roleName,
       is_impersonating: isImpersonating,
+      support_access_id: supportAccessId,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -334,6 +364,20 @@ export class AuthService {
     }
 
     return { cleaned: expiredTokens.length };
+  }
+
+  async revokeSupportAccess(supportAccessId: string): Promise<void> {
+    const record = await this.supportAccessRepository.findOne({
+      where: { id: supportAccessId },
+    });
+
+    if (!record) {
+      return;
+    }
+
+    record.status = SupportAccessStatus.REVOKED;
+    record.revokedAt = new Date();
+    await this.supportAccessRepository.save(record);
   }
 
   private async createAuditLog(data: {

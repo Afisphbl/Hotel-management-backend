@@ -9,12 +9,14 @@ import { GlobalSetting } from '../../database/entities/global/global-setting.ent
 import { Hotel } from '../../database/entities/hotel.entity';
 import { UserScope } from '../../database/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MaintenanceMiddleware implements NestMiddleware {
   constructor(
     private dataSource: DataSource,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
@@ -23,7 +25,9 @@ export class MaintenanceMiddleware implements NestMiddleware {
     if (authHeader) {
       try {
         const token = authHeader.split(' ')[1];
-        const payload = this.jwtService.decode(token) as any;
+        const payload = this.jwtService.verify(token, {
+          secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        }) as any;
         if (payload?.scope === UserScope.PLATFORM) {
           return next();
         }

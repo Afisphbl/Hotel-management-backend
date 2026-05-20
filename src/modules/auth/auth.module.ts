@@ -13,6 +13,9 @@ import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
 import { RefreshToken } from '../../database/entities/refresh-token.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
+import { SupportAccess } from '../../database/entities/global/support-access.entity';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
+import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 
 @Module({
   imports: [
@@ -24,6 +27,7 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
       Permission,
       RefreshToken,
       AuditLog,
+      SupportAccess,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -37,7 +41,7 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PasswordPolicyService, TenantQuotaService],
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

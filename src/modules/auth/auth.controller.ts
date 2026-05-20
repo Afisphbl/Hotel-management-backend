@@ -28,6 +28,10 @@ class ImpersonateDto {
   @IsNotEmpty()
   @IsUUID()
   hotelId: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }
 
 class Verify2faDto {
@@ -128,6 +132,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,
       device: 'impersonation-session',
+      supportReason: dto.reason,
     };
 
     // Create a login session for the target hotel with impersonation flag
@@ -152,9 +157,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Body() refreshTokenDto: RefreshTokenDto, @Request() req: any) {
     const userId = req.user.userId;
-    return this.authService.revokeRefreshToken(
+    const result = await this.authService.revokeRefreshToken(
       refreshTokenDto.refreshToken,
       userId,
     );
+    if (req.user.supportAccessId) {
+      await this.authService.revokeSupportAccess(req.user.supportAccessId);
+    }
+    return result;
   }
 }

@@ -26,6 +26,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Role } from '../../database/entities/role.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 
 @Injectable()
 export class PlatformService {
@@ -47,6 +48,7 @@ export class PlatformService {
     private snapshotRepository: Repository<AnalyticsSnapshot>,
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
+    private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
   // --- Hotel Management ---
@@ -213,6 +215,7 @@ export class PlatformService {
     try {
       const hotelId = crypto.randomUUID();
       const schemaName = `hotel_${hotelId.replace(/-/g, '_')}`;
+      let temporaryPassword: string | undefined;
 
       // Generate appropriate subdomain if not provided
       const subdomain = data.code
@@ -249,10 +252,14 @@ export class PlatformService {
           );
         }
 
-        const hashedPassword = await bcrypt.hash(
-          data.password || 'Temporary123!',
-          10,
-        );
+        const rawPassword =
+          data.password ||
+          (await this.passwordPolicyService.generateTemporaryPassword());
+        if (!data.password) {
+          temporaryPassword = rawPassword;
+        }
+        await this.passwordPolicyService.assertCompliant(rawPassword);
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const nameParts = (data.ownerName || 'Hotel Owner').split(' ');
         const firstName = nameParts[0] || 'Hotel';
         const lastName = nameParts.slice(1).join(' ') || 'Owner';
@@ -348,7 +355,10 @@ export class PlatformService {
       // ... run migrations ...
 
       await queryRunner.commitTransaction();
-      return savedHotel;
+      return {
+        ...savedHotel,
+        temporaryPassword,
+      };
     } catch (err) {
       await queryRunner.rollbackTransaction();
       const message = err instanceof Error ? err.message : String(err);
@@ -624,6 +634,91 @@ export class PlatformService {
     });
   }
 
+  async getRevenueSummary() {
+    const hotels = await this.hotelRepository.find({
+      order: { createdAt: 'DESC' },
+    });
+    const subscriptions = await this.subscriptionRepository.find({
+      where: { status: SubscriptionStatus.ACTIVE },
+      relations: ['hotel'],
+    });
+
+    const revenueByHotel: Array<Record<string, any>> = [];
+    let collectedRevenue = 0;
+    let outstandingRevenue = 0;
+
+    for (const hotel of hotels) {
+      const paidInvoices = (await this.dataSource.query(
+        `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
+         FROM "${hotel.schemaName}"."invoices"
+         WHERE status = 'paid'`,
+      )) as Array<{ revenue: string }>;
+      const openInvoices = (await this.dataSource.query(
+        `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
+         FROM "${hotel.schemaName}"."invoices"
+         WHERE status IN ('issued', 'overdue', 'partially_paid')`,
+      )) as Array<{ revenue: string }>;
+
+      const hotelRevenue = Number(paidInvoices[0]?.revenue ?? 0);
+      const hotelOutstanding = Number(openInvoices[0]?.revenue ?? 0);
+      const monthlySubscriptionRevenue = Number(
+        subscriptions.find((sub) => sub.hotel?.id === hotel.id)?.price ?? 0,
+      );
+
+      collectedRevenue += hotelRevenue;
+      outstandingRevenue += hotelOutstanding;
+
+      revenueByHotel.push({
+        hotelId: hotel.id,
+        hotelName: hotel.name,
+        monthlySubscriptionRevenue,
+        collectedRevenue: hotelRevenue,
+        outstandingRevenue: hotelOutstanding,
+      });
+    }
+
+    const mrr = subscriptions.reduce(
+      (sum, subscription) => sum + Number(subscription.price ?? 0),
+      0,
+    );
+
+    return {
+      totalHotels: hotels.length,
+      activeSubscriptions: subscriptions.length,
+      mrr,
+      arr: mrr * 12,
+      collectedRevenue,
+      outstandingRevenue,
+      averageRevenuePerHotel:
+        hotels.length > 0 ? collectedRevenue / hotels.length : 0,
+      revenueByHotel,
+    };
+  }
+
+  async getBillingReport() {
+    const [revenueSummary, hotelsByTier, settings] = await Promise.all([
+      this.getRevenueSummary(),
+      this.getPlatformHotelsByTier(),
+      this.settingRepository.find({
+        where: [
+          { key: 'payment_gateway:config' },
+          { key: 'system:maintenance_mode' },
+        ],
+      }),
+    ]);
+
+    return {
+      revenueSummary,
+      hotelsByTier,
+      paymentGatewayConfigured: settings.some(
+        (setting) => setting.key === 'payment_gateway:config',
+      ),
+      maintenanceModeEnabled:
+        settings.find((setting) => setting.key === 'system:maintenance_mode')
+          ?.value === true,
+    };
+  }
+
   // --- Staff Management (Platform Scope) ---
 
   async findAllPlatformStaff() {
@@ -634,7 +729,10 @@ export class PlatformService {
   }
 
   async createPlatformStaff(data: any) {
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const rawPassword =
+      data.password || (await this.passwordPolicyService.generateTemporaryPassword());
+    await this.passwordPolicyService.assertCompliant(rawPassword);
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const user = this.userRepository.create({
       ...data,
       password: hashedPassword,
@@ -645,13 +743,49 @@ export class PlatformService {
     const saved = await this.userRepository.save(user);
     const userEntity = Array.isArray(saved) ? saved[0] : saved;
     const { password, ...result } = userEntity;
-    return result;
+    return {
+      ...result,
+      temporaryPassword: data.password ? undefined : rawPassword,
+    };
   }
 
   // --- Subscription Management ---
 
   async findAllSubscriptions() {
     return this.subscriptionRepository.find({ relations: ['hotel'] });
+  }
+
+  async getSubscriptionPlans() {
+    return [
+      {
+        code: SubscriptionPlan.BASIC,
+        name: 'Basic',
+        monthlyPrice: 99,
+        limits: { rooms: 50, users: 10, storageMb: 1024 },
+        features: ['housekeeping', 'maintenance', 'analytics'],
+      },
+      {
+        code: SubscriptionPlan.PROFESSIONAL,
+        name: 'Professional',
+        monthlyPrice: 299,
+        limits: { rooms: 200, users: 50, storageMb: 5120 },
+        features: ['housekeeping', 'maintenance', 'analytics', 'automation'],
+      },
+      {
+        code: SubscriptionPlan.ENTERPRISE,
+        name: 'Enterprise',
+        monthlyPrice: 999,
+        limits: { rooms: 9999, users: 500, storageMb: 51200 },
+        features: [
+          'housekeeping',
+          'maintenance',
+          'analytics',
+          'automation',
+          'sso',
+          'custom-support',
+        ],
+      },
+    ];
   }
 
   async findSubscriptionById(id: string) {
@@ -745,7 +879,6 @@ export class PlatformService {
     if (data.hotelId) flag.hotel = { id: data.hotelId } as any;
     flag.status = data.status || FeatureFlagStatus.DISABLED;
     if (data.conditions) flag.conditions = data.conditions;
-    return this.featureFlagRepository.save(flag);
     return this.featureFlagRepository.save(flag);
   }
 

@@ -17,6 +17,7 @@ import { RefundsService } from './services/refunds.service';
 import { InvoicesService } from './services/invoices.service';
 import { LedgerService } from './services/ledger.service';
 import { TaxRulesService } from './services/tax-rules.service';
+import { PaymentGatewayService } from '../../common/services/payment-gateway.service';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { TaxRulesService } from './services/tax-rules.service';
     InvoicesService,
     LedgerService,
     TaxRulesService,
+    PaymentGatewayService,
   ],
   exports: [
     PaymentsService,
@@ -50,6 +52,7 @@ import { TaxRulesService } from './services/tax-rules.service';
     InvoicesService,
     LedgerService,
     TaxRulesService,
+    PaymentGatewayService,
   ],
 })
 export class FinanceModule {}

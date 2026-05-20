@@ -4,6 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
 
 @Injectable()
 export class GdprService {
@@ -120,5 +121,46 @@ export class GdprService {
     }
 
     return { success: true, userId };
+  }
+
+  async getRetentionPolicy() {
+    const setting = await this.dataSource.getRepository(GlobalSetting).findOne({
+      where: { key: 'compliance:data_retention_policy' },
+    });
+
+    return (
+      setting?.value ?? {
+        guestDataDays: 3650,
+        auditLogDays: 2555,
+        deletedRecordDays: 30,
+      }
+    );
+  }
+
+  async updateRetentionPolicy(policy: Record<string, any>) {
+    const repository = this.dataSource.getRepository(GlobalSetting);
+    const current = await this.getRetentionPolicy();
+    const merged = {
+      ...current,
+      ...policy,
+    };
+
+    let setting = await repository.findOne({
+      where: { key: 'compliance:data_retention_policy' },
+    });
+
+    if (setting) {
+      setting.value = merged;
+      setting.category = SettingCategory.COMPLIANCE;
+    } else {
+      setting = repository.create({
+        key: 'compliance:data_retention_policy',
+        value: merged,
+        category: SettingCategory.COMPLIANCE,
+        description: 'GDPR and data retention policy',
+      });
+    }
+
+    return repository.save(setting);
   }
 }

@@ -22,6 +22,8 @@ import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
 import { success, paginated } from '../common/response.interceptor';
+import { PlanLimitGuard } from '../../../auth/guards/plan-limit.guard';
+import { PlanLimit } from '../../../common/decorators/plan-limit.decorator';
 
 @Controller('hotel/staff')
 @UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
@@ -49,6 +51,8 @@ export class StaffController {
   }
 
   @Post()
+  @UseGuards(PlanLimitGuard)
+  @PlanLimit('users')
   async create(@Body() data: any) {
     const staff = await this.staffService.create(data);
     return success(staff);

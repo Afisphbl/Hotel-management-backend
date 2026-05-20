@@ -5,8 +5,11 @@ import { PlatformAnalyticsController } from './platform-analytics.controller';
 import { PlatformSubscriptionsController } from './platform-subscriptions.controller';
 import { PlatformFeatureFlagsController } from './platform-feature-flags.controller';
 import { PlatformSettingsController } from './platform-settings.controller';
+import { PlatformMonitoringController } from './platform-monitoring.controller';
+import { PlatformComplianceController } from './platform-compliance.controller';
 import { PlatformService } from './platform.service';
 import { GdprService } from './gdpr.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { Hotel } from '../../database/entities/hotel.entity';
 import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
@@ -35,7 +38,9 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
     PlatformSubscriptionsController,
     PlatformFeatureFlagsController,
     PlatformSettingsController,
+    PlatformMonitoringController,
+    PlatformComplianceController,
   ],
-  providers: [PlatformService, GdprService],
+  providers: [PlatformService, GdprService, PasswordPolicyService],
 })
 export class PlatformModule {}

@@ -31,6 +31,8 @@ import { InvoicesController } from './controllers/invoices.controller';
 import { PaymentsController } from './controllers/payments.controller';
 import { DashboardController } from './controllers/dashboard.controller';
 import { PricingController } from './controllers/pricing.controller';
+import { PlanLimitGuard } from '../../auth/guards/plan-limit.guard';
+import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 
 import { RoomsService } from './services/rooms.service';
 import { RoomTypesService } from './services/room-types.service';
@@ -103,7 +105,7 @@ const services = [
     }),
   ],
   controllers,
-  providers: services,
+  providers: [...services, PlanLimitGuard, TenantQuotaService],
   exports: [BookingsService, PricingService],
 })
 export class HotelModule {}

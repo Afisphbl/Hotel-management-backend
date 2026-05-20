@@ -16,6 +16,7 @@ import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { PlanLimitGuard } from '../../../auth/guards/plan-limit.guard';
+import { PlanLimit } from '../../../common/decorators/plan-limit.decorator';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { RoomStatus } from '../../../database/entities/room.entity';
@@ -63,6 +64,7 @@ export class RoomsController {
 
   @Post()
   @UseGuards(PlanLimitGuard)
+  @PlanLimit('rooms')
   async create(@Body() data: any) {
     const room = await this.roomsService.create(data);
     return success(room);

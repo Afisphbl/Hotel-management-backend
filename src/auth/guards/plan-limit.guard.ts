@@ -2,71 +2,54 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import { Hotel } from '../../database/entities/hotel.entity';
-import {
-  Subscription,
-  SubscriptionPlan,
-  SubscriptionStatus,
-} from '../../database/entities/global/subscriptions.entity';
+import { Reflector } from '@nestjs/core';
+import { TenantQuotaService } from '../../common/services/tenant-quota.service';
+import { PLAN_LIMIT_KEY, PlanLimitResource } from '../../common/decorators/plan-limit.decorator';
 
 @Injectable()
 export class PlanLimitGuard implements CanActivate {
-  constructor(private dataSource: DataSource) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly tenantQuotaService: TenantQuotaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const hotelId = request.user?.hotel_id;
-
-    if (!hotelId) {
-      return true; // No hotel context, skip (or handle as error if required)
-    }
-
-    const hotel = await this.dataSource.getRepository(Hotel).findOne({
-      where: { id: hotelId },
-    });
-
-    if (!hotel) {
-      throw new ForbiddenException('Hotel not found');
-    }
-
-    // Get active subscription
-    const subscription = await this.dataSource
-      .getRepository(Subscription)
-      .findOne({
-        where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
-      });
-
-    const plan = subscription?.plan || SubscriptionPlan.BASIC;
-    const roomLimit = this.getRoomLimit(plan);
-
-    // Count existing rooms in tenant schema
-    const roomCountResult = await this.dataSource.query(
-      `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+    const resource = this.reflector.getAllAndOverride<PlanLimitResource>(
+      PLAN_LIMIT_KEY,
+      [context.getHandler(), context.getClass()],
     );
-    const roomCount = parseInt(roomCountResult[0]?.count || '0', 10);
 
-    if (roomCount >= roomLimit) {
-      throw new ForbiddenException(
-        `Plan limit reached. Your current plan (${plan}) allows only ${roomLimit} rooms.`,
-      );
+    if (!resource || !hotelId) {
+      return true;
+    }
+
+    if (resource === 'rooms') {
+      await this.tenantQuotaService.assertRoomCapacity(hotelId);
+      return true;
+    }
+
+    if (resource === 'users') {
+      await this.tenantQuotaService.assertUserCapacity(hotelId);
+      return true;
+    }
+
+    if (resource === 'storage') {
+      const rawSizeMb =
+        request.body?.sizeMb ?? request.body?.storageSizeMb ?? request.query?.sizeMb;
+      const sizeMb = Number(rawSizeMb);
+
+      if (!Number.isFinite(sizeMb) || sizeMb <= 0) {
+        throw new BadRequestException('sizeMb is required for storage operations');
+      }
+
+      await this.tenantQuotaService.assertStorageCapacity(hotelId, sizeMb);
+      return true;
     }
 
     return true;
-  }
-
-  private getRoomLimit(plan: SubscriptionPlan): number {
-    switch (plan) {
-      case SubscriptionPlan.BASIC:
-        return 50;
-      case SubscriptionPlan.PROFESSIONAL:
-        return 200;
-      case SubscriptionPlan.ENTERPRISE:
-        return 9999;
-      default:
-        return 50;
-    }
   }
 }

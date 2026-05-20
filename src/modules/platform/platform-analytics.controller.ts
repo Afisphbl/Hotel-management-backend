@@ -31,6 +31,16 @@ export class PlatformAnalyticsController {
     return this.platformService.getPlatformHotelsByTier();
   }
 
+  @Get('revenue-summary')
+  async getRevenueSummary() {
+    return this.platformService.getRevenueSummary();
+  }
+
+  @Get('billing-report')
+  async getBillingReport() {
+    return this.platformService.getBillingReport();
+  }
+
   @Get('audit-logs')
   async getPlatformAuditLogs() {
     return this.platformService.getPlatformAuditLogs();

@@ -8,3 +8,4 @@ export * from './hotel.entity';
 export * from './subscriptions.entity';
 export * from './feature-flag.entity';
 export * from './global-setting.entity';
+export * from './support-access.entity';

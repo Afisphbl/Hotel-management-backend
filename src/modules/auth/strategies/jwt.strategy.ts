@@ -25,7 +25,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       hotel_id: payload.hotel_id,
       role: payload.role,
       scope: payload.scope,
+      actorScope: payload.actor_scope,
       permissions: payload.permissions,
+      supportAccessId: payload.support_access_id,
+      isImpersonating: payload.is_impersonating,
     };
   }
 }

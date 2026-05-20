@@ -19,6 +19,7 @@ import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { CreatePaymentDto, QueryPaymentDto } from '../dto/payment.dto';
 import { paginate, PaginatedResult } from '../common/pagination';
+import { PaymentGatewayService } from '../../../common/services/payment-gateway.service';
 
 @Injectable()
 export class PaymentsService {
@@ -33,6 +34,7 @@ export class PaymentsService {
     private outboxRepository: Repository<OutboxEvent>,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
+    private readonly paymentGatewayService: PaymentGatewayService,
   ) {}
 
   async findAll(query: QueryPaymentDto): Promise<PaginatedResult<Payment>> {
@@ -116,7 +118,15 @@ export class PaymentsService {
         method: dto.method,
         status: PaymentStatus.COMPLETED,
         transactionId: dto.transactionId,
-        gatewayResponse: dto.gatewayResponse,
+        gatewayResponse:
+          dto.gatewayResponse ??
+          (await this.paymentGatewayService.buildGatewayResponse({
+            paymentId: dto.idempotencyKey,
+            amount: dto.amount,
+            currency: dto.currency || 'USD',
+            method: dto.method,
+            transactionId: dto.transactionId,
+          })),
         idempotencyKey: dto.idempotencyKey,
         description: dto.description,
         paidAt: new Date(),
