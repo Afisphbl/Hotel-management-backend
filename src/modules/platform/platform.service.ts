@@ -175,6 +175,17 @@ export class PlatformService {
       // Fallback
     }
 
+    // 5. Query Feature Flags
+    let featureFlags: Array<{ name: string; status: FeatureFlagStatus }> = [];
+    try {
+      const dbFlags = await this.featureFlagRepository.find({
+        where: { hotel: { id } },
+      });
+      featureFlags = dbFlags.map((f) => ({ name: f.name, status: f.status }));
+    } catch {
+      // Fallback
+    }
+
     return {
       id: hotel.id,
       name: hotel.name,
@@ -199,6 +210,26 @@ export class PlatformService {
       environment: 'production',
       timezone: hotel.timezone || 'UTC',
       currency: hotel.currency || 'GBP',
+      branding: activeSub?.features?.branding || {
+        primaryColor: '#0F1B2D',
+        accentColor: '#C9973A',
+        logo: '',
+        favicon: '/favicon.ico',
+        loginMessage: `Welcome to ${hotel.name} PMS`,
+      },
+      enabledFeatures: activeSub?.features?.enabledFeatures || [
+        'housekeeping',
+        'maintenance',
+        'analytics',
+      ],
+      featureFlags:
+        featureFlags.length > 0
+          ? featureFlags
+          : [
+              { name: 'housekeeping', status: 'ENABLED' },
+              { name: 'maintenance', status: 'ENABLED' },
+              { name: 'analytics', status: 'ENABLED' },
+            ],
     };
   }
 
@@ -346,19 +377,100 @@ export class PlatformService {
   }
 
   async updateHotel(id: string, data: Partial<Hotel>) {
-    await this.hotelRepository.update(id, data);
+    const { id: _, ...validFields } = data as any;
+
+    // Pick only valid Hotel columns to prevent TypeORM database schema failure
+    const hotelColumns = [
+      'name',
+      'status',
+      'subdomain',
+      'location',
+      'region',
+      'timezone',
+      'currency',
+      'storageUsedMb',
+      'rooms',
+    ];
+    const sanitizedData: any = {};
+    for (const key of hotelColumns) {
+      if (validFields[key] !== undefined) {
+        sanitizedData[key] = validFields[key];
+      }
+    }
+
+    // Normalise status to lowercase to match HotelStatus enum values ('active' | 'suspended')
+    if (sanitizedData.status) {
+      sanitizedData.status = sanitizedData.status.toLowerCase() as HotelStatus;
+    }
+
+    await this.hotelRepository.update(id, sanitizedData);
     return this.findHotelById(id);
   }
 
-  async deleteHotel(id: string) {
-    const hotel = await this.findHotelById(id);
-    if (hotel) {
-      // Note: We usually don't delete schemas for audit reasons,
-      // but we could drop it if needed.
-      await this.hotelRepository.delete(id);
-      return { success: true };
+  async updateBranding(hotelId: string, brandingData: any) {
+    const activeSub = await this.subscriptionRepository.findOne({
+      where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
+    if (activeSub) {
+      const currentFeatures = activeSub.features || {};
+      activeSub.features = {
+        ...currentFeatures,
+        branding: {
+          ...(currentFeatures.branding || {}),
+          ...brandingData,
+        },
+      };
+      await this.subscriptionRepository.save(activeSub);
     }
-    return { success: false };
+    return this.findHotelById(hotelId);
+  }
+
+  async deleteHotel(id: string) {
+    const hotel = await this.hotelRepository.findOne({ where: { id } });
+    if (!hotel) {
+      throw new NotFoundException('Hotel not found');
+    }
+
+    // Delete related records to avoid FK constraint violations
+    try {
+      await this.dataSource.query(
+        `DELETE FROM global.feature_flags WHERE "hotelId" = $1`,
+        [id],
+      );
+    } catch {
+      /* table may not exist yet */
+    }
+
+    try {
+      await this.dataSource.query(
+        `DELETE FROM global.subscriptions WHERE "hotelId" = $1`,
+        [id],
+      );
+    } catch {
+      /* table may not exist yet */
+    }
+
+    try {
+      await this.dataSource.query(
+        `DELETE FROM global.hotel_user_access WHERE "hotelId" = $1`,
+        [id],
+      );
+    } catch {
+      /* table may not exist yet */
+    }
+
+    // Drop tenant-specific schema cleanly
+    try {
+      await this.dataSource.query(
+        `DROP SCHEMA IF EXISTS "${hotel.schemaName}" CASCADE`,
+      );
+    } catch {
+      /* schema may not exist */
+    }
+
+    await this.hotelRepository.delete(id);
+    return { success: true, id };
   }
 
   // --- Analytics ---

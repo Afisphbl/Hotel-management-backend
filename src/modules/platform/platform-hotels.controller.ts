@@ -41,6 +41,11 @@ export class PlatformHotelsController {
     return this.platformService.updateHotel(id, data);
   }
 
+  @Patch(':id/branding')
+  async updateBranding(@Param('id') id: string, @Body() data: any) {
+    return this.platformService.updateBranding(id, data);
+  }
+
   @Delete(':id')
   async deleteHotel(@Param('id') id: string) {
     return this.platformService.deleteHotel(id);
