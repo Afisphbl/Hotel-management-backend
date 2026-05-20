@@ -10,10 +10,18 @@ import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
 import { Subscription } from '../../database/entities/global/subscriptions.entity';
 import { FeatureFlag } from '../../database/entities/global/feature-flag.entity';
+import { AuditLog } from '../../database/entities/audit-log.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Hotel, User, Booking, Subscription, FeatureFlag]),
+    TypeOrmModule.forFeature([
+      Hotel,
+      User,
+      Booking,
+      Subscription,
+      FeatureFlag,
+      AuditLog,
+    ]),
   ],
   controllers: [
     PlatformHotelsController,

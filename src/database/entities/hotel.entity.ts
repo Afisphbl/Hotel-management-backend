@@ -24,4 +24,22 @@ export class Hotel extends BaseEntity {
 
   @Column({ nullable: true })
   subdomain: string;
+
+  @Column({ nullable: true })
+  location: string;
+
+  @Column({ nullable: true })
+  region: string;
+
+  @Column({ nullable: true })
+  timezone: string;
+
+  @Column({ nullable: true })
+  currency: string;
+
+  @Column({ type: 'integer', default: 0 })
+  storageUsedMb: number;
+
+  @Column({ type: 'integer', default: 120 })
+  rooms: number;
 }
