@@ -100,19 +100,21 @@ export class PlatformService {
         : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
 
     // 2. Resolve Primary Owner
-    const owner = hotel.ownerName || 'John Doe';
-    const email = hotel.ownerEmail || 'owner@example.com';
-    let phone = '+1 234 567 890';
-    try {
-      const ownerUser = await this.dataSource.query(
-        `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
-        [email],
-      ) as Array<{ phone: string | null }>;
-      if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
-        phone = ownerUser[0].phone;
+    const owner = hotel.ownerName || null;
+    const email = hotel.ownerEmail || null;
+    let phone = null;
+    if (email) {
+      try {
+        const ownerUser = await this.dataSource.query(
+          `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
+          [email],
+        ) as Array<{ phone: string | null }>;
+        if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
+          phone = ownerUser[0].phone;
+        }
+      } catch {
+        // Fallback
       }
-    } catch {
-      // Fallback
     }
 
     // 3. Query count of rooms inside tenant schema
@@ -127,13 +129,14 @@ export class PlatformService {
     }
 
     // 4. Query count of users linked to this hotel from global
-    let activeUsers = 12;
+    let activeUsers = null;
     try {
       const dbUsers = (await this.dataSource.query(
         `SELECT COUNT(*) as count FROM global.hotel_user_access WHERE "hotelId" = $1`,
         [hotel.id],
       )) as Array<{ count: string }>;
-      activeUsers = parseInt(dbUsers[0]?.count || '12', 10);
+      const count = parseInt(dbUsers[0]?.count || '0', 10);
+      activeUsers = count > 0 ? count : null;
     } catch {
       // Fallback
     }
@@ -160,19 +163,19 @@ export class PlatformService {
       email,
       phone,
       plan,
-      location: hotel.location || 'London, UK',
+      location: hotel.location || null,
       totalRooms,
-      currentOccupancy: '78%',
+      currentOccupancy: null,
       monthlyRevenue: activeSub ? Number(activeSub.price) : 0,
       activeUsers,
       storageUsed: hotel.storageUsedMb
         ? `${(hotel.storageUsedMb / 1024).toFixed(1)} GB`
-        : '1.2 GB',
-      lastBackup: new Date().toISOString(),
-      region: hotel.region || 'europe-west',
+        : null,
+      lastBackup: null,
+      region: hotel.region || null,
       environment: 'production',
-      timezone: hotel.timezone || 'UTC',
-      currency: hotel.currency || 'GBP',
+      timezone: hotel.timezone || null,
+      currency: hotel.currency || null,
       branding: activeSub?.features?.branding || {
         primaryColor: '#0F1B2D',
         accentColor: '#C9973A',
