@@ -18,6 +18,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { StorageModule } from './modules/storage/storage.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
 import { MaintenanceMiddleware } from './common/middleware/maintenance.middleware';
+import { SecurityHeadersMiddleware } from './common/middleware/security-headers.middleware';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 
 @Module({
@@ -86,10 +87,14 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     PlatformModule,
     WorkersModule,
   ],
-  providers: [RateLimitMiddleware, MaintenanceMiddleware],
+  providers: [RateLimitMiddleware, MaintenanceMiddleware, SecurityHeadersMiddleware],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(SecurityHeadersMiddleware)
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
+
     consumer
       .apply(MaintenanceMiddleware)
       .forRoutes({ path: 'api/*', method: RequestMethod.ALL });

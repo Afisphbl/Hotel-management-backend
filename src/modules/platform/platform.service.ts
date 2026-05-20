@@ -27,6 +27,8 @@ import * as crypto from 'crypto';
 import { Role } from '../../database/entities/role.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
+import { TenantQuotaService } from '../../common/services/tenant-quota.service';
+import { CreateHotelDto } from './dto/create-hotel.dto';
 
 @Injectable()
 export class PlatformService {
@@ -49,6 +51,7 @@ export class PlatformService {
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
     private readonly passwordPolicyService: PasswordPolicyService,
+    private readonly tenantQuotaService: TenantQuotaService,
   ) {}
 
   // --- Hotel Management ---
@@ -207,7 +210,7 @@ export class PlatformService {
     };
   }
 
-  async createHotel(data: any) {
+  async createHotel(data: CreateHotelDto) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -223,8 +226,7 @@ export class PlatformService {
         : data.name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
       // 1. Create Hotel Record in Global Schema
-      const hotel = this.hotelRepository.create({
-        id: hotelId,
+      const hotel = Object.assign(new Hotel(), {
         name: data.name,
         ownerName: data.ownerName || null,
         ownerEmail: data.ownerEmail || null,
@@ -238,8 +240,9 @@ export class PlatformService {
         currency: data.country === 'United Kingdom' ? 'GBP' : 'USD',
         rooms: data.rooms || 120,
       });
+      hotel.id = hotelId;
 
-      const savedHotel = await queryRunner.manager.save(hotel);
+      const savedHotel = await queryRunner.manager.save(Hotel, hotel);
 
       // Create owner user if provided
       if (data.ownerEmail) {
@@ -274,15 +277,16 @@ export class PlatformService {
         });
         const savedUser = await queryRunner.manager.save(user);
 
-        // Find or create HOTEL_OWNER role
+        // Find or create HOTEL_ADMIN role
         let role = await queryRunner.manager.findOne(Role, {
-          where: { name: 'HOTEL_OWNER' },
+          where: { name: 'HOTEL_ADMIN' },
         });
         if (!role) {
           role = queryRunner.manager.create(Role, {
-            name: 'HOTEL_OWNER',
+            name: 'HOTEL_ADMIN',
             description: 'Full access to all hotel operations',
             isSystemRole: true,
+            hierarchyLevel: 80,
           });
           role = await queryRunner.manager.save(role);
         }
@@ -297,15 +301,13 @@ export class PlatformService {
       }
 
       // Create active subscription
-      const rawPlan = data.plan || 'Pro';
+      const rawPlan = String(data.plan || 'PROFESSIONAL').toUpperCase();
       const plan =
-        rawPlan === 'Pro'
-          ? SubscriptionPlan.PROFESSIONAL
-          : rawPlan === 'Basic'
-            ? SubscriptionPlan.BASIC
-            : rawPlan === 'Enterprise'
-              ? SubscriptionPlan.ENTERPRISE
-              : SubscriptionPlan.PROFESSIONAL;
+        rawPlan === SubscriptionPlan.BASIC
+          ? SubscriptionPlan.BASIC
+          : rawPlan === SubscriptionPlan.ENTERPRISE
+            ? SubscriptionPlan.ENTERPRISE
+            : SubscriptionPlan.PROFESSIONAL;
 
       const subPrice =
         plan === SubscriptionPlan.BASIC
@@ -355,6 +357,7 @@ export class PlatformService {
       // ... run migrations ...
 
       await queryRunner.commitTransaction();
+      await this.tenantQuotaService.syncQuotaSnapshot(savedHotel.id);
       return {
         ...savedHotel,
         temporaryPassword,

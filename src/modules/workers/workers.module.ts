@@ -6,6 +6,7 @@ import { Notification } from '../../database/entities/notification.entity';
 import { AnalyticsSnapshot } from '../../database/entities/analytics-snapshot.entity';
 import { Invoice } from '../../database/entities/invoice.entity';
 import { Booking } from '../../database/entities/booking.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 
 import { OutboxRelayProcessor } from './processors/outbox-relay.processor';
 import { InvoicePdfProcessor } from './processors/invoice-pdf.processor';
@@ -24,6 +25,7 @@ import { AnalyticsService } from './services/analytics.service';
       AnalyticsSnapshot,
       Invoice,
       Booking,
+      Hotel,
     ]),
     BullModule.registerQueue(
       { name: 'outbox-relay' },

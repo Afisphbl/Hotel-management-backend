@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { StaffService } from '../services/staff.service';
 import {
@@ -24,12 +25,16 @@ import { PaginationDto } from '../dto/pagination.dto';
 import { success, paginated } from '../common/response.interceptor';
 import { PlanLimitGuard } from '../../../auth/guards/plan-limit.guard';
 import { PlanLimit } from '../../../common/decorators/plan-limit.decorator';
+import { TenantQuotaService } from '../../../common/services/tenant-quota.service';
 
 @Controller('hotel/staff')
 @UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class StaffController {
-  constructor(private staffService: StaffService) {}
+  constructor(
+    private staffService: StaffService,
+    private readonly tenantQuotaService: TenantQuotaService,
+  ) {}
 
   @Get()
   async findAll(
@@ -53,8 +58,9 @@ export class StaffController {
   @Post()
   @UseGuards(PlanLimitGuard)
   @PlanLimit('users')
-  async create(@Body() data: any) {
+  async create(@Body() data: any, @Request() req: any) {
     const staff = await this.staffService.create(data);
+    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
     return success(staff);
   }
 
@@ -65,8 +71,9 @@ export class StaffController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req: any) {
     await this.staffService.remove(id);
+    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
     return success({ deleted: true });
   }
 }

@@ -9,3 +9,4 @@ export * from './subscriptions.entity';
 export * from './feature-flag.entity';
 export * from './global-setting.entity';
 export * from './support-access.entity';
+export * from './tenant-quota.entity';

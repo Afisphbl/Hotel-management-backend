@@ -12,6 +12,10 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
+    if (user.permissions?.includes('*')) {
+      return true;
+    }
+
     // Check PII permission first
     const piiPermission = this.reflector.getAllAndOverride<string>(
       PII_PERMISSION_KEY,
@@ -20,7 +24,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (piiPermission) {
       // if (!user.permissions?.includes(piiPermission)) {
-      if (!user.permissions?.includes(piiPermission)) {
+      if (!user.permissions?.includes(piiPermission) && !user.permissions?.includes('*')) {
         return false;
       }
     }
@@ -38,7 +42,7 @@ export class PermissionsGuard implements CanActivate {
     // permissions are embedded in JWT and potentially cached in Redis
     // The JwtStrategy should populate req.user.permissions
     return requiredPermissions.every((permission) =>
-      user.permissions?.includes(permission),
+      user.permissions?.includes(permission) || user.permissions?.includes('*'),
     );
   }
 }

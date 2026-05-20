@@ -22,12 +22,16 @@ import { UserScope } from '../../../database/entities/user.entity';
 import { RoomStatus } from '../../../database/entities/room.entity';
 import { PaginationDto } from '../dto/pagination.dto';
 import { success, paginated } from '../common/response.interceptor';
+import { TenantQuotaService } from '../../../common/services/tenant-quota.service';
 
 @Controller('hotel/rooms')
 @UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class RoomsController {
-  constructor(private roomsService: RoomsService) {}
+  constructor(
+    private roomsService: RoomsService,
+    private readonly tenantQuotaService: TenantQuotaService,
+  ) {}
 
   @Get()
   async findAll(
@@ -65,8 +69,9 @@ export class RoomsController {
   @Post()
   @UseGuards(PlanLimitGuard)
   @PlanLimit('rooms')
-  async create(@Body() data: any) {
+  async create(@Body() data: any, @Request() req: any) {
     const room = await this.roomsService.create(data);
+    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
     return success(room);
   }
 
@@ -86,8 +91,9 @@ export class RoomsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Request() req: any) {
     await this.roomsService.remove(id);
+    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
     return success({ deleted: true });
   }
 }

@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
+import { TenantQuota } from '../../database/entities/global/tenant-quota.entity';
 import {
   Subscription,
   SubscriptionPlan,
@@ -32,6 +33,7 @@ export class TenantQuotaService {
   }> {
     const hotelRepository = this.dataSource.getRepository(Hotel);
     const subscriptionRepository = this.dataSource.getRepository(Subscription);
+    const quotaRepository = this.dataSource.getRepository(TenantQuota);
 
     const hotel = await hotelRepository.findOne({ where: { id: hotelId } });
     if (!hotel) {
@@ -49,6 +51,8 @@ export class TenantQuotaService {
 
     const limits = this.resolveLimits(subscription);
     const usage = await this.getUsage(hotel);
+
+    await this.saveSnapshot(quotaRepository, hotelId, limits, usage);
 
     return { hotel, subscription, limits, usage };
   }
@@ -97,13 +101,52 @@ export class TenantQuotaService {
     await this.assertStorageCapacity(hotelId, additionalMb);
 
     const hotelRepository = this.dataSource.getRepository(Hotel);
+    const quotaRepository = this.dataSource.getRepository(TenantQuota);
     const hotel = await hotelRepository.findOne({ where: { id: hotelId } });
     if (!hotel) {
       throw new ForbiddenException('Hotel not found');
     }
 
     hotel.storageUsedMb = (hotel.storageUsedMb || 0) + additionalMb;
-    return hotelRepository.save(hotel);
+    const savedHotel = await hotelRepository.save(hotel);
+    await this.syncStorageUsage(quotaRepository, savedHotel);
+    return savedHotel;
+  }
+
+  async syncQuotaSnapshot(hotelId: string): Promise<TenantQuota> {
+    const hotelRepository = this.dataSource.getRepository(Hotel);
+    const quotaRepository = this.dataSource.getRepository(TenantQuota);
+    const subscriptionRepository = this.dataSource.getRepository(Subscription);
+
+    const hotel = await hotelRepository.findOne({ where: { id: hotelId } });
+    if (!hotel) {
+      throw new ForbiddenException('Hotel not found');
+    }
+
+    const subscription = await subscriptionRepository.findOne({
+      where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
+
+    const limits = this.resolveLimits(subscription);
+    const usage = await this.getUsage(hotel);
+    return this.saveSnapshot(quotaRepository, hotelId, limits, usage);
+  }
+
+  async incrementRoomUsage(hotelId: string): Promise<TenantQuota> {
+    return this.syncQuotaSnapshot(hotelId);
+  }
+
+  async decrementRoomUsage(hotelId: string): Promise<TenantQuota> {
+    return this.syncQuotaSnapshot(hotelId);
+  }
+
+  async incrementUserUsage(hotelId: string): Promise<TenantQuota> {
+    return this.syncQuotaSnapshot(hotelId);
+  }
+
+  async decrementUserUsage(hotelId: string): Promise<TenantQuota> {
+    return this.syncQuotaSnapshot(hotelId);
   }
 
   private resolveLimits(subscription: Subscription | null): TenantQuotaLimits {
@@ -134,21 +177,83 @@ export class TenantQuotaService {
   }
 
   private async getUsage(hotel: Hotel): Promise<TenantQuotaUsage> {
-    const roomCountResult = await this.dataSource.query(
-      `SELECT COUNT(*)::int AS count FROM "${hotel.schemaName}"."rooms"`,
-    );
-    const accessCount = await this.dataSource
-      .getRepository(HotelUserAccess)
-      .count({ where: { hotelId: hotel.id } });
-    const staffCountResult = await this.dataSource.query(
-      `SELECT COUNT(*)::int AS count FROM "${hotel.schemaName}"."staff"`,
-    );
+    const schemaName = this.assertSafeSchemaName(hotel.schemaName);
+    let roomCount = 0;
+    let accessCount = 0;
+    let staffCount = 0;
+
+    try {
+      const roomCountResult = await this.dataSource.query(
+        `SELECT COUNT(*)::int AS count FROM "${schemaName}"."rooms"`,
+      );
+      roomCount = Number(roomCountResult?.[0]?.count ?? 0);
+    } catch {
+      roomCount = 0;
+    }
+
+    try {
+      accessCount = await this.dataSource
+        .getRepository(HotelUserAccess)
+        .count({ where: { hotelId: hotel.id } });
+    } catch {
+      accessCount = 0;
+    }
+
+    try {
+      const staffCountResult = await this.dataSource.query(
+        `SELECT COUNT(*)::int AS count FROM "${schemaName}"."staff"`,
+      );
+      staffCount = Number(staffCountResult?.[0]?.count ?? 0);
+    } catch {
+      staffCount = 0;
+    }
 
     return {
-      rooms: Number(roomCountResult?.[0]?.count ?? 0),
-      users:
-        Number(accessCount ?? 0) + Number(staffCountResult?.[0]?.count ?? 0),
+      rooms: roomCount,
+      users: Number(accessCount ?? 0) + Number(staffCount ?? 0),
       storageMb: Number(hotel.storageUsedMb ?? 0),
     };
+  }
+
+  private async saveSnapshot(
+    quotaRepository: Repository<TenantQuota>,
+    hotelId: string,
+    limits: TenantQuotaLimits,
+    usage: TenantQuotaUsage,
+  ): Promise<TenantQuota> {
+    let quota = await quotaRepository.findOne({ where: { hotelId } });
+    if (!quota) {
+      quota = quotaRepository.create({ hotelId });
+    }
+
+    quota.maxUsers = limits.users;
+    quota.maxRooms = limits.rooms;
+    quota.maxStorageMb = limits.storageMb;
+    quota.currentUsers = usage.users;
+    quota.currentRooms = usage.rooms;
+    quota.currentStorageMb = usage.storageMb;
+
+    return quotaRepository.save(quota);
+  }
+
+  private async syncStorageUsage(
+    quotaRepository: Repository<TenantQuota>,
+    hotel: Hotel,
+  ): Promise<void> {
+    const quota = await quotaRepository.findOne({ where: { hotelId: hotel.id } });
+    if (!quota) {
+      return;
+    }
+
+    quota.currentStorageMb = Number(hotel.storageUsedMb ?? 0);
+    await quotaRepository.save(quota);
+  }
+
+  private assertSafeSchemaName(schemaName: string): string {
+    if (!/^[a-zA-Z0-9_]+$/.test(schemaName)) {
+      throw new ForbiddenException('Invalid tenant schema');
+    }
+
+    return schemaName;
   }
 }

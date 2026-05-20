@@ -10,6 +10,7 @@ import { PlatformComplianceController } from './platform-compliance.controller';
 import { PlatformService } from './platform.service';
 import { GdprService } from './gdpr.service';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
+import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { Hotel } from '../../database/entities/hotel.entity';
 import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
@@ -41,6 +42,6 @@ import { AuditLog } from '../../database/entities/audit-log.entity';
     PlatformMonitoringController,
     PlatformComplianceController,
   ],
-  providers: [PlatformService, GdprService, PasswordPolicyService],
+  providers: [PlatformService, GdprService, PasswordPolicyService, TenantQuotaService],
 })
 export class PlatformModule {}

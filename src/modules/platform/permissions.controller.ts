@@ -46,6 +46,17 @@ export class PermissionsController {
     return this.permissionsService.createPredefinedPermissions();
   }
 
+  @Get('predefined-roles')
+  async getPredefinedRoles() {
+    return this.permissionsService.getPredefinedRoles();
+  }
+
+  @Post('bootstrap')
+  @HttpCode(HttpStatus.CREATED)
+  async bootstrapAccessControl() {
+    return this.permissionsService.bootstrapPredefinedAccessControl();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.permissionsService.findOne(id);

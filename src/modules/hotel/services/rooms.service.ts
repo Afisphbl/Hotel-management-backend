@@ -57,7 +57,8 @@ export class RoomsService {
       });
       if (!type) throw new NotFoundException('Room type not found');
     }
-    return this.roomRepository.save(this.roomRepository.create(data));
+    const room = await this.roomRepository.save(this.roomRepository.create(data));
+    return room;
   }
 
   async update(id: string, data: Partial<Room>): Promise<Room> {

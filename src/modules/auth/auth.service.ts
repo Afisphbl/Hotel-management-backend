@@ -132,20 +132,17 @@ export class AuthService {
     let permissions: string[] = [];
     let roleName = 'USER';
     let supportAccessId: string | null = null;
+    const userWithRole = await this.userRepository.findOne({
+      where: { id: user.id },
+      relations: ['role'],
+    });
+    const resolvedRoleId = userWithRole?.role?.id ?? user.role?.id;
 
     if (hotelId) {
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
       if (user.scope === UserScope.PLATFORM && isImpersonating) {
         roleName = 'SUPPORT_ADMIN';
-        permissions = [
-          'support:access',
-          'bookings:read',
-          'guests:read',
-          'rooms:read',
-          'maintenance:read',
-          'invoices:read',
-          'payments:read',
-        ];
+        permissions = await this.getHierarchicalPermissions(resolvedRoleId);
         const supportAccess = await this.supportAccessRepository.save(
           this.supportAccessRepository.create({
             platformUserId: user.id,
@@ -171,32 +168,12 @@ export class AuthService {
           where: { id: access.roleId },
         });
         roleName = role?.name ?? 'USER';
-
-        // Resolve permissions for the role
-        const rolePermissions = await this.rolePermissionRepository.find({
-          where: { roleId: access.roleId },
-        });
-
-        const permissionIds = rolePermissions.map((rp) => rp.permissionId);
-        if (permissionIds.length > 0) {
-          const perms = await this.permissionRepository.find({
-            where: { id: In(permissionIds) },
-          });
-          permissions = perms.map((p) => p.slug);
-        }
+        permissions = await this.getHierarchicalPermissions(access.roleId);
       }
     } else {
       // PLATFORM SCOPE: Resolve role from database
-      const userWithRole = await this.userRepository.findOne({
-        where: { id: user.id },
-        relations: ['role'],
-      });
-      
       roleName = userWithRole?.role?.name ?? (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
-      
-      if (roleName === 'SUPER_ADMIN') {
-        permissions = ['*'];
-      }
+      permissions = await this.getHierarchicalPermissions(resolvedRoleId);
     }
 
     const payload = {
@@ -378,6 +355,42 @@ export class AuthService {
     record.status = SupportAccessStatus.REVOKED;
     record.revokedAt = new Date();
     await this.supportAccessRepository.save(record);
+  }
+
+  private async getHierarchicalPermissions(roleId?: string): Promise<string[]> {
+    if (!roleId) {
+      return [];
+    }
+
+    const role = await this.roleRepository.findOne({ where: { id: roleId } });
+    if (!role) {
+      return [];
+    }
+
+    const inheritedRoles = await this.roleRepository
+      .createQueryBuilder('role')
+      .where('role.hierarchyLevel <= :level', { level: role.hierarchyLevel })
+      .getMany();
+
+    const roleIds = inheritedRoles.map((item) => item.id);
+    if (roleIds.length === 0) {
+      return [];
+    }
+
+    const rolePermissions = await this.rolePermissionRepository.find({
+      where: { roleId: In(roleIds) },
+    });
+
+    const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+    if (permissionIds.length === 0) {
+      return [];
+    }
+
+    const permissions = await this.permissionRepository.find({
+      where: { id: In(permissionIds) },
+    });
+
+    return permissions.map((permission) => permission.slug);
   }
 
   private async createAuditLog(data: {

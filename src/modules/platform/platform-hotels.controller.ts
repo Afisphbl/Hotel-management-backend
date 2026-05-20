@@ -14,6 +14,7 @@ import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { CreateHotelDto } from './dto/create-hotel.dto';
 
 @Controller('platform/hotels')
 @UseGuards(JwtAuthGuard, ScopeGuard)
@@ -27,7 +28,7 @@ export class PlatformHotelsController {
   }
 
   @Post()
-  async createHotel(@Body() data: any) {
+  async createHotel(@Body() data: CreateHotelDto) {
     return this.platformService.createHotel(data);
   }
 
