@@ -39,4 +39,7 @@ export class Hotel extends BaseEntity {
 
   @Column({ type: 'integer', default: 0 })
   storageUsedMb: number;
+
+  @Column({ type: 'integer', default: 120 })
+  rooms: number;
 }

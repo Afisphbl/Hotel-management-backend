@@ -19,6 +19,9 @@ import {
 } from '../../database/entities/global/feature-flag.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
+import { Role } from '../../database/entities/role.entity';
+import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 
 @Injectable()
 export class PlatformService {
@@ -95,6 +98,7 @@ export class PlatformService {
         owner,
         email,
         plan,
+        rooms: hotel.rooms,
       });
     }
 
@@ -149,12 +153,12 @@ export class PlatformService {
     }
 
     // 3. Query count of rooms inside tenant schema
-    let totalRooms = 120;
+    let totalRooms = hotel.rooms;
     try {
       const dbRooms = (await this.dataSource.query(
         `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
       )) as Array<{ count: string }>;
-      totalRooms = parseInt(dbRooms[0]?.count || '120', 10);
+      totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
       // Fallback
     }
@@ -198,7 +202,7 @@ export class PlatformService {
     };
   }
 
-  async createHotel(data: { name: string; subdomain?: string }) {
+  async createHotel(data: any) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -207,16 +211,120 @@ export class PlatformService {
       const hotelId = crypto.randomUUID();
       const schemaName = `hotel_${hotelId.replace(/-/g, '_')}`;
 
+      // Generate appropriate subdomain if not provided
+      const subdomain = data.code
+        ? data.code.toLowerCase().replace(/[^a-z0-9]/g, '')
+        : data.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
       // 1. Create Hotel Record in Global Schema
       const hotel = this.hotelRepository.create({
         id: hotelId,
         name: data.name,
-        subdomain: data.subdomain,
+        subdomain: data.subdomain || subdomain,
         schemaName: schemaName,
         status: HotelStatus.ACTIVE,
+        location: data.city
+          ? `${data.city}, ${data.country || 'United Kingdom'}`
+          : 'London, United Kingdom',
+        timezone: data.timezone || 'UTC',
+        currency: data.country === 'United Kingdom' ? 'GBP' : 'USD',
+        rooms: data.rooms || 120,
       });
 
       const savedHotel = await queryRunner.manager.save(hotel);
+
+      // Create owner user if provided
+      if (data.ownerEmail) {
+        const hashedPassword = await bcrypt.hash(
+          data.password || 'Temporary123!',
+          10,
+        );
+        const nameParts = (data.ownerName || 'Hotel Owner').split(' ');
+        const firstName = nameParts[0] || 'Hotel';
+        const lastName = nameParts.slice(1).join(' ') || 'Owner';
+
+        const user = queryRunner.manager.create(User, {
+          email: data.ownerEmail,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          scope: UserScope.HOTEL,
+          isActive: true,
+        });
+        const savedUser = await queryRunner.manager.save(user);
+
+        // Find or create HOTEL_OWNER role
+        let role = await queryRunner.manager.findOne(Role, {
+          where: { name: 'HOTEL_OWNER' },
+        });
+        if (!role) {
+          role = queryRunner.manager.create(Role, {
+            name: 'HOTEL_OWNER',
+            description: 'Full access to all hotel operations',
+            isSystemRole: true,
+          });
+          role = await queryRunner.manager.save(role);
+        }
+
+        // Create HotelUserAccess
+        const userAccess = queryRunner.manager.create(HotelUserAccess, {
+          userId: savedUser.id,
+          hotelId: savedHotel.id,
+          roleId: role.id,
+        });
+        await queryRunner.manager.save(userAccess);
+      }
+
+      // Create active subscription
+      const rawPlan = data.plan || 'Pro';
+      const plan =
+        rawPlan === 'Pro'
+          ? SubscriptionPlan.PROFESSIONAL
+          : rawPlan === 'Basic'
+            ? SubscriptionPlan.BASIC
+            : rawPlan === 'Enterprise'
+              ? SubscriptionPlan.ENTERPRISE
+              : SubscriptionPlan.PROFESSIONAL;
+
+      const subPrice =
+        plan === SubscriptionPlan.BASIC
+          ? 99
+          : plan === SubscriptionPlan.PROFESSIONAL
+            ? 299
+            : 999;
+
+      const subscription = queryRunner.manager.create(Subscription, {
+        hotel: { id: hotelId },
+        plan,
+        price: subPrice,
+        currency: data.country === 'United Kingdom' ? 'GBP' : 'USD',
+        startDate: new Date(),
+        status: SubscriptionStatus.ACTIVE,
+        features: {
+          enabledFeatures: data.features || [
+            'housekeeping',
+            'maintenance',
+            'analytics',
+          ],
+          branding: {
+            primaryColor: data.primaryColor || '#0F1B2D',
+            accentColor: data.accentColor || '#C9973A',
+          },
+        },
+      });
+      await queryRunner.manager.save(subscription);
+
+      // Create Feature Flags
+      if (data.features && Array.isArray(data.features)) {
+        for (const featureName of data.features) {
+          const flag = queryRunner.manager.create(FeatureFlag, {
+            name: featureName,
+            status: FeatureFlagStatus.ENABLED,
+            hotel: { id: hotelId } as any,
+          });
+          await queryRunner.manager.save(flag);
+        }
+      }
 
       // 2. Create the Physical Schema
       await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);

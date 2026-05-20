@@ -27,7 +27,7 @@ export class PlatformHotelsController {
   }
 
   @Post()
-  async createHotel(@Body() data: { name: string; subdomain?: string }) {
+  async createHotel(@Body() data: any) {
     return this.platformService.createHotel(data);
   }
 
