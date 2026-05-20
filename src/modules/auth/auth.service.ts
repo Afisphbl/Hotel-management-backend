@@ -43,6 +43,10 @@ export class AuthService {
     private configService: ConfigService,
   ) {}
 
+  async findUserById(id: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email },

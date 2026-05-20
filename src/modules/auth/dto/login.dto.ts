@@ -10,4 +10,8 @@ export class LoginDto {
   @IsOptional()
   @IsString()
   hotelId?: string;
+
+  @IsOptional()
+  @IsString()
+  twoFactorCode?: string;
 }

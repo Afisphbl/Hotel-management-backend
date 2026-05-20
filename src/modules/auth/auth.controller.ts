@@ -103,8 +103,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verify2fa(@Body() dto: Verify2faDto, @Request() req: any) {
     // This is used for the second step of login if requires_2fa was returned
-    const user = await this.authService['userRepository'].findOne({ where: { id: dto.userId || dto.tempToken } });
-    if (!user) throw new UnauthorizedException();
+    const user = await this.authService.findUserById(dto.userId || dto.tempToken || '');
+    if (!user) throw new UnauthorizedException('User not found');
 
     await this.authService.verify2FACode(user.id, dto.code);
 

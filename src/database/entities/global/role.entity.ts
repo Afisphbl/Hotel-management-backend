@@ -34,6 +34,9 @@ export class Role {
   @Column({ type: 'boolean', default: false })
   isSystem: boolean;
 
+  @Column({ type: 'integer', default: 0 })
+  hierarchyLevel: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
