@@ -19,6 +19,8 @@ import {
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { authenticator } from 'otplib';
+import * as qrcode from 'qrcode';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +46,7 @@ export class AuthService {
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName'],
+      select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName', 'twoFactorEnabled'],
     });
 
     if (user && (await bcrypt.compare(pass, user.password))) {
@@ -52,6 +54,61 @@ export class AuthService {
       return result;
     }
     return null;
+  }
+
+  async generate2FASecret(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const secret = authenticator.generateSecret();
+    const otpauthUrl = authenticator.keyuri(
+      user.email,
+      'Hotel Management Platform',
+      secret,
+    );
+
+    const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl);
+
+    return {
+      secret,
+      qrCodeDataUrl,
+    };
+  }
+
+  async verify2FASetup(userId: string, secret: string, code: string) {
+    const isValid = authenticator.verify({ token: code, secret });
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid 2FA code');
+    }
+
+    await this.userRepository.update(userId, {
+      twoFactorSecret: secret,
+      twoFactorEnabled: true,
+    });
+
+    return { success: true };
+  }
+
+  async verify2FACode(userId: string, code: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'twoFactorSecret', 'twoFactorEnabled'],
+    });
+
+    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+      throw new UnauthorizedException('2FA not enabled');
+    }
+
+    const isValid = authenticator.verify({
+      token: code,
+      secret: user.twoFactorSecret,
+    });
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid 2FA code');
+    }
+
+    return true;
   }
 
   async login(
@@ -66,8 +123,6 @@ export class AuthService {
     if (hotelId) {
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
       if (user.scope === UserScope.PLATFORM && isImpersonating) {
-        // We'll verify the 'platform:impersonate' permission here if needed, 
-        // but it's better handled in the controller calling this.
         roleName = 'SUPPORT_ADMIN';
         permissions = ['*']; // Full access during impersonation
       } else {
@@ -99,7 +154,7 @@ export class AuthService {
         }
       }
     } else {
-      // PLATFORM SCOPE: Resolve role from database instead of hardcoding SUPER_ADMIN
+      // PLATFORM SCOPE: Resolve role from database
       const userWithRole = await this.userRepository.findOne({
         where: { id: user.id },
         relations: ['role'],
@@ -107,8 +162,6 @@ export class AuthService {
       
       roleName = userWithRole?.role?.name ?? (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
       
-      // For platform users, we might want to resolve global permissions here too
-      // (Implementation depends on how platform roles/permissions are mapped)
       if (roleName === 'SUPER_ADMIN') {
         permissions = ['*'];
       }
