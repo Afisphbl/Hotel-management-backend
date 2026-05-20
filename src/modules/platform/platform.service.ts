@@ -102,7 +102,7 @@ export class PlatformService {
     // 2. Resolve Primary Owner
     const owner = hotel.ownerName || null;
     const email = hotel.ownerEmail || null;
-    let phone = null;
+    let phone: string | null = null;
     if (email) {
       try {
         const ownerUser = await this.dataSource.query(
@@ -129,7 +129,7 @@ export class PlatformService {
     }
 
     // 4. Query count of users linked to this hotel from global
-    let activeUsers = null;
+    let activeUsers: number | null = null;
     try {
       const dbUsers = (await this.dataSource.query(
         `SELECT COUNT(*) as count FROM global.hotel_user_access WHERE "hotelId" = $1`,
@@ -345,11 +345,9 @@ export class PlatformService {
       return savedHotel;
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      if (err instanceof HttpException) {
-        throw err;
-      }
+      const message = err instanceof Error ? err.message : String(err);
       throw new InternalServerErrorException(
-        `Failed to create hotel: ${err.message}`,
+        `Failed to create hotel: ${message}`,
       );
     } finally {
       await queryRunner.release();
