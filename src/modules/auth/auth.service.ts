@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, LessThan } from 'typeorm';
-import { User } from '../../database/entities/user.entity';
+import { User, UserScope } from '../../database/entities/user.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { Role } from '../../database/entities/role.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
@@ -58,36 +58,59 @@ export class AuthService {
     user: any,
     hotelId?: string | null,
     metadata?: { userAgent?: string; ipAddress?: string; device?: string },
+    isImpersonating = false,
   ) {
     let permissions: string[] = [];
-    let roleName = 'SUPER_ADMIN';
+    let roleName = 'USER';
 
     if (hotelId) {
-      const access = await this.accessRepository.findOne({
-        where: { userId: user.id, hotelId },
-      });
-
-      if (!access) {
-        throw new UnauthorizedException('No access to this hotel');
-      }
-
-      // Resolve the actual role name
-      const role = await this.roleRepository.findOne({
-        where: { id: access.roleId },
-      });
-      roleName = role?.name ?? 'USER';
-
-      // Resolve permissions for the role
-      const rolePermissions = await this.rolePermissionRepository.find({
-        where: { roleId: access.roleId },
-      });
-
-      const permissionIds = rolePermissions.map((rp) => rp.permissionId);
-      if (permissionIds.length > 0) {
-        const perms = await this.permissionRepository.find({
-          where: { id: In(permissionIds) },
+      // Impersonation check: Platform users with proper permissions can bypass normal access checks
+      if (user.scope === UserScope.PLATFORM && isImpersonating) {
+        // We'll verify the 'platform:impersonate' permission here if needed, 
+        // but it's better handled in the controller calling this.
+        roleName = 'SUPPORT_ADMIN';
+        permissions = ['*']; // Full access during impersonation
+      } else {
+        const access = await this.accessRepository.findOne({
+          where: { userId: user.id, hotelId },
         });
-        permissions = perms.map((p) => p.slug);
+
+        if (!access) {
+          throw new UnauthorizedException('No access to this hotel');
+        }
+
+        // Resolve the actual role name
+        const role = await this.roleRepository.findOne({
+          where: { id: access.roleId },
+        });
+        roleName = role?.name ?? 'USER';
+
+        // Resolve permissions for the role
+        const rolePermissions = await this.rolePermissionRepository.find({
+          where: { roleId: access.roleId },
+        });
+
+        const permissionIds = rolePermissions.map((rp) => rp.permissionId);
+        if (permissionIds.length > 0) {
+          const perms = await this.permissionRepository.find({
+            where: { id: In(permissionIds) },
+          });
+          permissions = perms.map((p) => p.slug);
+        }
+      }
+    } else {
+      // PLATFORM SCOPE: Resolve role from database instead of hardcoding SUPER_ADMIN
+      const userWithRole = await this.userRepository.findOne({
+        where: { id: user.id },
+        relations: ['role'],
+      });
+      
+      roleName = userWithRole?.role?.name ?? (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
+      
+      // For platform users, we might want to resolve global permissions here too
+      // (Implementation depends on how platform roles/permissions are mapped)
+      if (roleName === 'SUPER_ADMIN') {
+        permissions = ['*'];
       }
     }
 
@@ -98,6 +121,7 @@ export class AuthService {
       scope: user.scope,
       permissions,
       role: roleName,
+      is_impersonating: isImpersonating,
     };
 
     const accessToken = this.jwtService.sign(payload);

@@ -1,5 +1,6 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './base.entity';
+import { Role } from './role.entity';
 
 export enum UserScope {
   PLATFORM = 'platform',
@@ -29,4 +30,17 @@ export class User extends BaseEntity {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ nullable: true })
+  roleId: string;
+
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: 'roleId' })
+  role: Role;
+
+  @Column({ default: false })
+  twoFactorEnabled: boolean;
+
+  @Column({ select: false, nullable: true })
+  twoFactorSecret: string;
 }

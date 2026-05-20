@@ -110,9 +110,21 @@ const PERMISSIONS = [
   { slug: 'shifts:read', description: 'View shift schedules' },
   { slug: 'shifts:manage', description: 'Manage shift assignments' },
   { slug: 'hotel:settings', description: 'Manage hotel settings' },
+  { slug: 'platform:impersonate', description: 'Impersonate hotel accounts for support' },
+  { slug: 'platform:manage', description: 'Full platform management' },
 ];
 
 const ROLES: RoleDefinition[] = [
+  {
+    name: 'SUPER_ADMIN',
+    description: 'Full control over the entire platform',
+    permissions: PERMISSIONS.map((p) => p.slug),
+  },
+  {
+    name: 'SUPPORT_ADMIN',
+    description: 'Platform support and impersonation access',
+    permissions: ['rooms:read', 'bookings:read', 'guests:read', 'platform:impersonate'],
+  },
   {
     name: 'HOTEL_OWNER',
     description: 'Full access to all hotel operations',
@@ -531,6 +543,7 @@ async function bootstrap() {
     // ──────────────────────────────────────────────
     console.log('--- Super Admin ---');
     const userRepo = dataSource.getRepository(User);
+    const superAdminRole = savedRoles['SUPER_ADMIN'];
     const adminEmail = 'admin@platform.com';
     let admin = await userRepo.findOne({ where: { email: adminEmail } });
     if (!admin) {
@@ -543,11 +556,14 @@ async function bootstrap() {
           lastName: 'Admin',
           scope: UserScope.PLATFORM,
           isActive: true,
+          roleId: superAdminRole?.id,
         }),
       );
       console.log(`  Created: ${adminEmail} / Admin123!`);
     } else {
-      console.log(`  Already exists: ${adminEmail}`);
+      admin.roleId = superAdminRole?.id;
+      await userRepo.save(admin);
+      console.log(`  Updated role for: ${adminEmail}`);
     }
 
     // ──────────────────────────────────────────────

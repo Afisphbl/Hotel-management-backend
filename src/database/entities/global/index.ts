@@ -7,3 +7,4 @@ export * from './audit-log.entity';
 export * from './hotel.entity';
 export * from './subscriptions.entity';
 export * from './feature-flag.entity';
+export * from './global-setting.entity';

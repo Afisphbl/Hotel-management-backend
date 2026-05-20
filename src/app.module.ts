@@ -17,7 +17,8 @@ import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
-import { JwtModule } from '@nestjs/jwt';
+import { MaintenanceMiddleware } from './common/middleware/maintenance.middleware';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -85,10 +86,14 @@ import { JwtModule } from '@nestjs/jwt';
     PlatformModule,
     WorkersModule,
   ],
-  providers: [RateLimitMiddleware],
+  providers: [RateLimitMiddleware, MaintenanceMiddleware],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(MaintenanceMiddleware)
+      .forRoutes({ path: 'api/*', method: RequestMethod.ALL });
+
     consumer
       .apply(TenantMiddleware)
       .forRoutes({ path: '*path', method: RequestMethod.ALL });

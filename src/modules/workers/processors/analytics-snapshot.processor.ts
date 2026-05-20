@@ -28,6 +28,10 @@ export class AnalyticsSnapshotProcessor extends WorkerHost {
         return this.analyticsService.computeRevenueSummary();
       case SnapshotType.BOOKING_STATS:
         return this.analyticsService.computeBookingStats();
+      case SnapshotType.PLATFORM_KPI:
+        return this.analyticsService.computePlatformKPIs();
+      case SnapshotType.PLATFORM_REVENUE:
+        return this.analyticsService.computePlatformRevenue();
       default:
         this.logger.warn(`Unknown snapshot type: ${jobType}`);
         return null;

@@ -7,6 +7,8 @@ export enum SnapshotType {
   BOOKING_STATS = 'booking_stats',
   HOUSEKEEPING_METRICS = 'housekeeping_metrics',
   MAINTENANCE_METRICS = 'maintenance_metrics',
+  PLATFORM_KPI = 'platform_kpi',
+  PLATFORM_REVENUE = 'platform_revenue',
 }
 
 @Entity({ name: 'analytics_snapshots' })
