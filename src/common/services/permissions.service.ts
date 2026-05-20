@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Permission } from '../../database/entities/permission.entity';
@@ -12,7 +16,11 @@ import {
   PermissionAssignmentDto,
   BulkPermissionAssignmentDto,
 } from '../dto/permissions.dto';
-import { AuditLog, AuditAction, AuditResource } from '../../database/entities/audit-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+} from '../../database/entities/audit-log.entity';
 import { RedisService } from '../../modules/redis/redis.service';
 
 const PREDEFINED_ROLES = [
@@ -176,7 +184,9 @@ export class PermissionsService {
   }
 
   async findOne(id: string): Promise<Permission> {
-    const permission = await this.permissionRepository.findOne({ where: { id } });
+    const permission = await this.permissionRepository.findOne({
+      where: { id },
+    });
     if (!permission) {
       throw new NotFoundException(`Permission with ID ${id} not found`);
     }
@@ -336,7 +346,10 @@ export class PermissionsService {
     return permissions.map((p) => p.slug);
   }
 
-  async getUserPermissions(userId: string, hotelId?: string): Promise<string[]> {
+  async getUserPermissions(
+    userId: string,
+    hotelId?: string,
+  ): Promise<string[]> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user?.roleId) {
       return [];
@@ -347,7 +360,9 @@ export class PermissionsService {
 
   async createPredefinedPermissions(): Promise<Permission[]> {
     const existingPermissions = await this.permissionRepository.find();
-    const existingCodes = new Set(existingPermissions.map((permission) => permission.slug));
+    const existingCodes = new Set(
+      existingPermissions.map((permission) => permission.slug),
+    );
     const newPermissions = PREDEFINED_PERMISSION_SLUGS.filter(
       (permission) => !existingCodes.has(permission),
     );
@@ -374,7 +389,9 @@ export class PermissionsService {
 
   async createPredefinedRoles(): Promise<Role[]> {
     const existingRoles = await this.roleRepository.find();
-    const existingByName = new Map(existingRoles.map((role) => [role.name, role]));
+    const existingByName = new Map(
+      existingRoles.map((role) => [role.name, role]),
+    );
     const rolesToSave = PREDEFINED_ROLES.map((definition) => {
       const role =
         existingByName.get(definition.name) ??
@@ -415,7 +432,9 @@ export class PermissionsService {
     return this.auditLogRepository.save(auditLog);
   }
 
-  private async getInheritedRolePermissions(roleId: string): Promise<Permission[]> {
+  private async getInheritedRolePermissions(
+    roleId: string,
+  ): Promise<Permission[]> {
     const role = await this.roleRepository.findOne({ where: { id: roleId } });
     if (!role) {
       return [];
@@ -435,7 +454,9 @@ export class PermissionsService {
       where: { roleId: In(roleIds) },
     });
 
-    const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+    const permissionIds = [
+      ...new Set(rolePermissions.map((rp) => rp.permissionId)),
+    ];
     if (permissionIds.length === 0) {
       return [];
     }
@@ -458,7 +479,12 @@ export class PermissionsService {
 
     const grants: Record<string, string[]> = {
       STAFF: ['bookings:read', 'rooms:read', 'guests:read'],
-      HOUSEKEEPING: ['housekeeping:read', 'housekeeping:update', 'rooms:read', 'rooms:update'],
+      HOUSEKEEPING: [
+        'housekeeping:read',
+        'housekeeping:update',
+        'rooms:read',
+        'rooms:update',
+      ],
       RECEPTIONIST: [
         'bookings:create',
         'bookings:read',
@@ -513,20 +539,25 @@ export class PermissionsService {
 
     const existingAssignments = await this.rolePermissionRepository.find();
     const existingKeys = new Set(
-      existingAssignments.map((assignment) => `${assignment.roleId}:${assignment.permissionId}`),
+      existingAssignments.map(
+        (assignment) => `${assignment.roleId}:${assignment.permissionId}`,
+      ),
     );
 
-    const assignments = Array.from(rolePermissions.entries()).flatMap(([roleId, slugs]) =>
-      slugs
-        .map((slug) => permissionBySlug.get(slug))
-        .filter((permission): permission is Permission => Boolean(permission))
-        .filter((permission) => !existingKeys.has(`${roleId}:${permission.id}`))
-        .map((permission) =>
-          this.rolePermissionRepository.create({
-            roleId,
-            permissionId: permission.id,
-          }),
-        ),
+    const assignments = Array.from(rolePermissions.entries()).flatMap(
+      ([roleId, slugs]) =>
+        slugs
+          .map((slug) => permissionBySlug.get(slug))
+          .filter((permission): permission is Permission => Boolean(permission))
+          .filter(
+            (permission) => !existingKeys.has(`${roleId}:${permission.id}`),
+          )
+          .map((permission) =>
+            this.rolePermissionRepository.create({
+              roleId,
+              permissionId: permission.id,
+            }),
+          ),
     );
 
     if (assignments.length > 0) {
@@ -534,7 +565,9 @@ export class PermissionsService {
     }
   }
 
-  private async clearPermissionCachesForRoleChanges(roles: Role[]): Promise<void> {
+  private async clearPermissionCachesForRoleChanges(
+    roles: Role[],
+  ): Promise<void> {
     const roleIds = roles.map((role) => role.id);
     if (roleIds.length === 0) {
       return;

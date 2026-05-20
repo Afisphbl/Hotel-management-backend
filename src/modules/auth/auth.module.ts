@@ -14,7 +14,10 @@ import { Permission } from '../../database/entities/permission.entity';
 import { RefreshToken } from '../../database/entities/refresh-token.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
 import { SupportAccess } from '../../database/entities/global/support-access.entity';
-import { PlatformUser, Role as GlobalRole } from '../../database/entities/global';
+import {
+  PlatformUser,
+  Role as GlobalRole,
+} from '../../database/entities/global';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { UserManagementService } from '../platform/user-management.service';
@@ -44,7 +47,14 @@ import { RedisService } from '../redis/redis.service';
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, PasswordPolicyService, TenantQuotaService, UserManagementService, RedisService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    PasswordPolicyService,
+    TenantQuotaService,
+    UserManagementService,
+    RedisService,
+  ],
   controllers: [AuthController],
   exports: [AuthService, JwtStrategy, PassportModule],
 })

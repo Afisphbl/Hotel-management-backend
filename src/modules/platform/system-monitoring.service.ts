@@ -1,10 +1,20 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, MoreThan, Between } from 'typeorm';
 import { Hotel } from '../../database/entities/hotel.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
-import { UptimeRecord, UptimeStatus } from '../../database/entities/global/uptime-record.entity';
-import { MaintenanceWindow, MaintenanceWindowStatus } from '../../database/entities/global/maintenance-window.entity';
+import {
+  UptimeRecord,
+  UptimeStatus,
+} from '../../database/entities/global/uptime-record.entity';
+import {
+  MaintenanceWindow,
+  MaintenanceWindowStatus,
+} from '../../database/entities/global/maintenance-window.entity';
 import { Subscription } from '../../database/entities/global/subscriptions.entity';
 
 export interface HealthComponent {
@@ -58,7 +68,9 @@ export class SystemMonitoringService {
 
     const redisStart = Date.now();
     try {
-      const redisPing = await this.dataSource.query('SELECT pg_is_in_recovery() as recovery');
+      const redisPing = await this.dataSource.query(
+        'SELECT pg_is_in_recovery() as recovery',
+      );
       components.push({
         name: 'cache',
         status: 'ok',
@@ -120,8 +132,10 @@ export class SystemMonitoringService {
     }
 
     const uptime = Date.now() - this.startTime;
-    const downComponents = components.filter(c => c.status === 'down');
-    const degradedComponents = components.filter(c => c.status === 'degraded');
+    const downComponents = components.filter((c) => c.status === 'down');
+    const degradedComponents = components.filter(
+      (c) => c.status === 'degraded',
+    );
 
     let overallStatus: 'ok' | 'degraded' | 'down';
     if (downComponents.length > 0) {
@@ -140,7 +154,12 @@ export class SystemMonitoringService {
     };
   }
 
-  async recordUptimeCheck(component: string, status: UptimeStatus, responseTimeMs: number, message?: string): Promise<UptimeRecord> {
+  async recordUptimeCheck(
+    component: string,
+    status: UptimeStatus,
+    responseTimeMs: number,
+    message?: string,
+  ): Promise<UptimeRecord> {
     const record = this.uptimeRepository.create({
       component,
       status,
@@ -183,18 +202,25 @@ export class SystemMonitoringService {
       order: { recordedAt: 'DESC' },
     });
 
-    const todayRecords = allRecords.filter(r => r.recordedAt >= last24h);
-    const components = [...new Set(allRecords.map(r => r.component))];
+    const todayRecords = allRecords.filter((r) => r.recordedAt >= last24h);
+    const components = [...new Set(allRecords.map((r) => r.component))];
 
-    const componentStats = components.map(component => {
-      const compRecords = allRecords.filter(r => r.component === component);
-      const up = compRecords.filter(r => r.status === UptimeStatus.UP).length;
-      const down = compRecords.filter(r => r.status === UptimeStatus.DOWN).length;
-      const degraded = compRecords.filter(r => r.status === UptimeStatus.DEGRADED).length;
+    const componentStats = components.map((component) => {
+      const compRecords = allRecords.filter((r) => r.component === component);
+      const up = compRecords.filter((r) => r.status === UptimeStatus.UP).length;
+      const down = compRecords.filter(
+        (r) => r.status === UptimeStatus.DOWN,
+      ).length;
+      const degraded = compRecords.filter(
+        (r) => r.status === UptimeStatus.DEGRADED,
+      ).length;
       const total = compRecords.length;
-      const avgLatency = total > 0
-        ? Math.round(compRecords.reduce((s, r) => s + r.responseTimeMs, 0) / total)
-        : 0;
+      const avgLatency =
+        total > 0
+          ? Math.round(
+              compRecords.reduce((s, r) => s + r.responseTimeMs, 0) / total,
+            )
+          : 0;
 
       return {
         component,
@@ -206,15 +232,17 @@ export class SystemMonitoringService {
       };
     });
 
-    const allUp = allRecords.filter(r => r.status === 'up').length;
-    const overallUptime = allRecords.length > 0
-      ? Math.round((allUp / allRecords.length) * 10000) / 100
-      : 100;
+    const allUp = allRecords.filter((r) => r.status === 'up').length;
+    const overallUptime =
+      allRecords.length > 0
+        ? Math.round((allUp / allRecords.length) * 10000) / 100
+        : 100;
 
-    const todayUp = todayRecords.filter(r => r.status === 'up').length;
-    const todayUptime = todayRecords.length > 0
-      ? Math.round((todayUp / todayRecords.length) * 10000) / 100
-      : 100;
+    const todayUp = todayRecords.filter((r) => r.status === 'up').length;
+    const todayUptime =
+      todayRecords.length > 0
+        ? Math.round((todayUp / todayRecords.length) * 10000) / 100
+        : 100;
 
     return { overallUptime, todayUptime, componentStats };
   }
@@ -243,7 +271,10 @@ export class SystemMonitoringService {
     return this.maintenanceWindowRepository.save(window);
   }
 
-  async getMaintenanceWindows(status?: MaintenanceWindowStatus, hotelId?: string): Promise<MaintenanceWindow[]> {
+  async getMaintenanceWindows(
+    status?: MaintenanceWindowStatus,
+    hotelId?: string,
+  ): Promise<MaintenanceWindow[]> {
     const where: any = {};
     if (status) where.status = status;
     if (hotelId) where.hotelId = hotelId;
@@ -268,19 +299,32 @@ export class SystemMonitoringService {
     });
   }
 
-  async updateMaintenanceWindowStatus(id: string, status: MaintenanceWindowStatus): Promise<MaintenanceWindow> {
-    const window = await this.maintenanceWindowRepository.findOne({ where: { id } });
+  async updateMaintenanceWindowStatus(
+    id: string,
+    status: MaintenanceWindowStatus,
+  ): Promise<MaintenanceWindow> {
+    const window = await this.maintenanceWindowRepository.findOne({
+      where: { id },
+    });
     if (!window) throw new Error('Maintenance window not found');
     window.status = status;
     return this.maintenanceWindowRepository.save(window);
   }
 
-  async cancelMaintenanceWindow(id: string, reason?: string): Promise<MaintenanceWindow> {
-    const window = await this.maintenanceWindowRepository.findOne({ where: { id } });
+  async cancelMaintenanceWindow(
+    id: string,
+    reason?: string,
+  ): Promise<MaintenanceWindow> {
+    const window = await this.maintenanceWindowRepository.findOne({
+      where: { id },
+    });
     if (!window) throw new Error('Maintenance window not found');
     window.status = MaintenanceWindowStatus.CANCELLED;
     if (reason) {
-      window.metadata = { ...(window.metadata || {}), cancellationReason: reason };
+      window.metadata = {
+        ...(window.metadata || {}),
+        cancellationReason: reason,
+      };
     }
     return this.maintenanceWindowRepository.save(window);
   }

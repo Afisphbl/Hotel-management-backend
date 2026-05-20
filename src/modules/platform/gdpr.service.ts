@@ -4,7 +4,10 @@ import { Repository, DataSource } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
 
 @Injectable()
 export class GdprService {
@@ -66,7 +69,9 @@ export class GdprService {
         );
 
         if (bookings && bookings.length > 0) {
-          const hotelEntry = exportData.tenantAccess.find((t: any) => t.hotelId === hotel.id) || {
+          const hotelEntry = exportData.tenantAccess.find(
+            (t: any) => t.hotelId === hotel.id,
+          ) || {
             hotelId: hotel.id,
             hotelName: hotel.name,
             bookings: [],

@@ -41,6 +41,10 @@ class Verify2faDto {
 
   @IsOptional()
   @IsString()
+  mfaToken?: string;
+
+  @IsOptional()
+  @IsString()
   userId?: string;
 
   @IsOptional()
@@ -63,14 +67,14 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if 2FA is required for Platform users
+    // Check if 2FA is required for users
     if (user.twoFactorEnabled && !loginDto.twoFactorCode) {
       // Return a temporary token to be used for 2FA verification
-      // For simplicity here, we'll just return that 2FA is needed and the user ID
-      // In production, use a short-lived signed token (e.g., 'mfa_token')
+      const mfaToken = await this.authService.generateMfaToken(user.id);
       return {
         requires_2fa: true,
-        userId: user.id,
+        mfaToken,
+        userId: user.id, // For backward compatibility
       };
     }
 
@@ -99,15 +103,31 @@ export class AuthController {
   @Post('activate-2fa')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async activate2fa(@Body() body: { secret: string; code: string }, @Request() req: any) {
-    return this.authService.verify2FASetup(req.user.userId, body.secret, body.code);
+  async activate2fa(
+    @Body() body: { secret: string; code: string },
+    @Request() req: any,
+  ) {
+    return this.authService.verify2FASetup(
+      req.user.userId,
+      body.secret,
+      body.code,
+    );
   }
 
   @Post('verify-2fa')
   @HttpCode(HttpStatus.OK)
   async verify2fa(@Body() dto: Verify2faDto, @Request() req: any) {
     // This is used for the second step of login if requires_2fa was returned
-    const user = await this.authService.findUserById(dto.userId || dto.tempToken || '');
+    let userId: string;
+
+    if (dto.mfaToken) {
+      userId = await this.authService.verifyMfaToken(dto.mfaToken);
+    } else {
+      // @deprecated - Fallback to insecure userId/tempToken for backward compatibility
+      userId = dto.userId || dto.tempToken || '';
+    }
+
+    const user = await this.authService.findUserById(userId);
     if (!user) throw new UnauthorizedException('User not found');
 
     await this.authService.verify2FACode(user.id, dto.code);
@@ -127,7 +147,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async impersonate(@Body() dto: ImpersonateDto, @Request() req: any) {
     const user = req.user;
-    
+
     const metadata = {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,

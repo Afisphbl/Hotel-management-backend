@@ -16,7 +16,10 @@ import {
   AuditAction,
   AuditResource,
 } from '../../database/entities/audit-log.entity';
-import { SupportAccess, SupportAccessStatus } from '../../database/entities/global/support-access.entity';
+import {
+  SupportAccess,
+  SupportAccessStatus,
+} from '../../database/entities/global/support-access.entity';
 import { UserManagementService } from '../platform/user-management.service';
 import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import * as bcrypt from 'bcrypt';
@@ -59,13 +62,22 @@ export class AuthService {
     const [user, platformUser] = await Promise.all([
       this.userRepository.findOne({
         where: { email },
-        select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName', 'twoFactorEnabled'],
+        select: [
+          'id',
+          'email',
+          'password',
+          'scope',
+          'firstName',
+          'lastName',
+          'twoFactorEnabled',
+        ],
       }),
       this.userManagementService.findByEmail(email),
     ]);
 
     if (platformUser) {
-      const lockStatus = await this.userManagementService.checkAccountLockout(email);
+      const lockStatus =
+        await this.userManagementService.checkAccountLockout(email);
       if (lockStatus.locked) {
         this.logger.warn(`Login attempt on locked account: ${email}`);
         throw new UnauthorizedException(
@@ -143,6 +155,30 @@ export class AuthService {
     return true;
   }
 
+  async generateMfaToken(userId: string): Promise<string> {
+    return this.jwtService.signAsync(
+      { sub: userId, purpose: 'mfa' },
+      {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        expiresIn: '5m',
+      },
+    );
+  }
+
+  async verifyMfaToken(token: string): Promise<string> {
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      });
+      if (payload.purpose !== 'mfa') {
+        throw new UnauthorizedException('Invalid token purpose');
+      }
+      return payload.sub as string;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async login(
     user: any,
     hotelId?: string | null,
@@ -197,7 +233,9 @@ export class AuthService {
       }
     } else {
       // PLATFORM SCOPE: Resolve role from database
-      roleName = userWithRole?.role?.name ?? (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
+      roleName =
+        userWithRole?.role?.name ??
+        (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
       permissions = await this.getHierarchicalPermissions(resolvedRoleId);
     }
 
@@ -406,7 +444,9 @@ export class AuthService {
       where: { roleId: In(roleIds) },
     });
 
-    const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+    const permissionIds = [
+      ...new Set(rolePermissions.map((rp) => rp.permissionId)),
+    ];
     if (permissionIds.length === 0) {
       return [];
     }

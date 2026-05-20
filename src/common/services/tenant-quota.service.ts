@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { DataSource, Repository, MoreThan } from 'typeorm';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
 import { TenantQuota } from '../../database/entities/global/tenant-quota.entity';
@@ -8,8 +13,16 @@ import {
   SubscriptionStatus,
 } from '../../database/entities/global/subscriptions.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
-import { OverageBilling, OverageType, OverageStatus } from '../../database/entities/global/overage-billing.entity';
-import { QuotaAlert, QuotaAlertSeverity, QuotaAlertStatus } from '../../database/entities/global/quota-alert.entity';
+import {
+  OverageBilling,
+  OverageType,
+  OverageStatus,
+} from '../../database/entities/global/overage-billing.entity';
+import {
+  QuotaAlert,
+  QuotaAlertSeverity,
+  QuotaAlertStatus,
+} from '../../database/entities/global/quota-alert.entity';
 
 export interface TenantQuotaLimits {
   rooms: number;
@@ -75,7 +88,13 @@ export class TenantQuotaService {
     const overageRates = this.getOverageRates(subscription);
     const overageAmount = this.calculateOverageCost(overage, overageRates);
 
-    const quota = await this.saveSnapshot(quotaRepository, hotelId, limits, usage, overageAmount);
+    const quota = await this.saveSnapshot(
+      quotaRepository,
+      hotelId,
+      limits,
+      usage,
+      overageAmount,
+    );
 
     await this.checkAndCreateAlerts(hotelId, limits, usage);
 
@@ -97,7 +116,13 @@ export class TenantQuotaService {
       const overageUnits = total - snapshot.limits.rooms;
       const overageRates = this.getOverageRates(snapshot.subscription);
       const overageCost = overageUnits * overageRates.rooms;
-      await this.recordOverage(snapshot.hotel.id, OverageType.ROOMS, overageUnits, overageRates.rooms, overageCost);
+      await this.recordOverage(
+        snapshot.hotel.id,
+        OverageType.ROOMS,
+        overageUnits,
+        overageRates.rooms,
+        overageCost,
+      );
       return { allowed: true, overage: true, overageCost };
     }
 
@@ -106,7 +131,10 @@ export class TenantQuotaService {
     );
   }
 
-  async assertUserCapacity(hotelId: string, additionalUsers = 1): Promise<{ allowed: boolean; overage: boolean; overageCost: number }> {
+  async assertUserCapacity(
+    hotelId: string,
+    additionalUsers = 1,
+  ): Promise<{ allowed: boolean; overage: boolean; overageCost: number }> {
     const snapshot = await this.getQuotaSnapshot(hotelId);
     const total = snapshot.usage.users + additionalUsers;
 
@@ -118,7 +146,13 @@ export class TenantQuotaService {
       const overageUnits = total - snapshot.limits.users;
       const overageRates = this.getOverageRates(snapshot.subscription);
       const overageCost = overageUnits * overageRates.users;
-      await this.recordOverage(snapshot.hotel.id, OverageType.USERS, overageUnits, overageRates.users, overageCost);
+      await this.recordOverage(
+        snapshot.hotel.id,
+        OverageType.USERS,
+        overageUnits,
+        overageRates.users,
+        overageCost,
+      );
       return { allowed: true, overage: true, overageCost };
     }
 
@@ -132,7 +166,9 @@ export class TenantQuotaService {
     additionalMb: number,
   ): Promise<{ allowed: boolean; overage: boolean; overageCost: number }> {
     if (!Number.isFinite(additionalMb) || additionalMb <= 0) {
-      throw new BadRequestException('Storage allocation must be greater than zero');
+      throw new BadRequestException(
+        'Storage allocation must be greater than zero',
+      );
     }
 
     const snapshot = await this.getQuotaSnapshot(hotelId);
@@ -146,7 +182,13 @@ export class TenantQuotaService {
       const overageUnits = total - snapshot.limits.storageMb;
       const overageRates = this.getOverageRates(snapshot.subscription);
       const overageCost = overageUnits * overageRates.storageMb;
-      await this.recordOverage(snapshot.hotel.id, OverageType.STORAGE, overageUnits, overageRates.storageMb, overageCost);
+      await this.recordOverage(
+        snapshot.hotel.id,
+        OverageType.STORAGE,
+        overageUnits,
+        overageRates.storageMb,
+        overageCost,
+      );
       return { allowed: true, overage: true, overageCost };
     }
 
@@ -155,10 +197,7 @@ export class TenantQuotaService {
     );
   }
 
-  async reserveStorage(
-    hotelId: string,
-    additionalMb: number,
-  ): Promise<Hotel> {
+  async reserveStorage(hotelId: string, additionalMb: number): Promise<Hotel> {
     const result = await this.assertStorageCapacity(hotelId, additionalMb);
 
     const hotelRepository = this.dataSource.getRepository(Hotel);
@@ -195,7 +234,13 @@ export class TenantQuotaService {
       this.calculateOverage(usage, limits),
       this.getOverageRates(subscription),
     );
-    return this.saveSnapshot(quotaRepository, hotelId, limits, usage, overageAmount);
+    return this.saveSnapshot(
+      quotaRepository,
+      hotelId,
+      limits,
+      usage,
+      overageAmount,
+    );
   }
 
   async incrementRoomUsage(hotelId: string): Promise<TenantQuota> {
@@ -234,7 +279,8 @@ export class TenantQuotaService {
   }
 
   async getPendingOverageTotal(): Promise<number> {
-    const result = await this.dataSource.getRepository(OverageBilling)
+    const result = await this.dataSource
+      .getRepository(OverageBilling)
       .createQueryBuilder('ob')
       .select('COALESCE(SUM(ob.totalAmount), 0)', 'total')
       .where('ob.status = :status', { status: OverageStatus.PENDING })
@@ -263,25 +309,30 @@ export class TenantQuotaService {
       rooms: {
         used: snapshot.usage.rooms,
         limit: snapshot.limits.rooms,
-        utilizationPct: snapshot.limits.rooms > 0
-          ? Math.round((snapshot.usage.rooms / snapshot.limits.rooms) * 100)
-          : 0,
+        utilizationPct:
+          snapshot.limits.rooms > 0
+            ? Math.round((snapshot.usage.rooms / snapshot.limits.rooms) * 100)
+            : 0,
         overage: snapshot.overage.rooms,
       },
       users: {
         used: snapshot.usage.users,
         limit: snapshot.limits.users,
-        utilizationPct: snapshot.limits.users > 0
-          ? Math.round((snapshot.usage.users / snapshot.limits.users) * 100)
-          : 0,
+        utilizationPct:
+          snapshot.limits.users > 0
+            ? Math.round((snapshot.usage.users / snapshot.limits.users) * 100)
+            : 0,
         overage: snapshot.overage.users,
       },
       storage: {
         used: snapshot.usage.storageMb,
         limit: snapshot.limits.storageMb,
-        utilizationPct: snapshot.limits.storageMb > 0
-          ? Math.round((snapshot.usage.storageMb / snapshot.limits.storageMb) * 100)
-          : 0,
+        utilizationPct:
+          snapshot.limits.storageMb > 0
+            ? Math.round(
+                (snapshot.usage.storageMb / snapshot.limits.storageMb) * 100,
+              )
+            : 0,
         overage: snapshot.overage.storageMb,
       },
       overageAmount: snapshot.overageAmount,
@@ -302,8 +353,16 @@ export class TenantQuotaService {
         overageUnits: snapshot.overage.rooms,
         unitPrice: overageRates.rooms,
         totalAmount: snapshot.overage.rooms * overageRates.rooms,
-        billingPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        billingPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        billingPeriodStart: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1,
+        ),
+        billingPeriodEnd: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth() + 1,
+          0,
+        ),
         status: OverageStatus.BILLED,
         description: `Overage for ${snapshot.overage.rooms} additional rooms`,
       });
@@ -317,8 +376,16 @@ export class TenantQuotaService {
         overageUnits: snapshot.overage.users,
         unitPrice: overageRates.users,
         totalAmount: snapshot.overage.users * overageRates.users,
-        billingPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        billingPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        billingPeriodStart: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1,
+        ),
+        billingPeriodEnd: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth() + 1,
+          0,
+        ),
         status: OverageStatus.BILLED,
         description: `Overage for ${snapshot.overage.users} additional users`,
       });
@@ -332,15 +399,25 @@ export class TenantQuotaService {
         overageUnits: snapshot.overage.storageMb,
         unitPrice: overageRates.storageMb,
         totalAmount: snapshot.overage.storageMb * overageRates.storageMb,
-        billingPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        billingPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        billingPeriodStart: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          1,
+        ),
+        billingPeriodEnd: new Date(
+          new Date().getFullYear(),
+          new Date().getMonth() + 1,
+          0,
+        ),
         status: OverageStatus.BILLED,
         description: `Overage for ${snapshot.overage.storageMb} MB additional storage`,
       });
       billings.push(await repo.save(billing));
     }
 
-    const quota = await this.dataSource.getRepository(TenantQuota).findOne({ where: { hotelId } });
+    const quota = await this.dataSource
+      .getRepository(TenantQuota)
+      .findOne({ where: { hotelId } });
     if (quota) {
       quota.overageAmount = snapshot.overageAmount;
       quota.lastOverageBilledAt = new Date();
@@ -350,7 +427,10 @@ export class TenantQuotaService {
     return billings;
   }
 
-  private calculateOverage(usage: TenantQuotaUsage, limits: TenantQuotaLimits): { rooms: number; users: number; storageMb: number } {
+  private calculateOverage(
+    usage: TenantQuotaUsage,
+    limits: TenantQuotaLimits,
+  ): { rooms: number; users: number; storageMb: number } {
     return {
       rooms: Math.max(0, usage.rooms - limits.rooms),
       users: Math.max(0, usage.users - limits.users),
@@ -361,19 +441,38 @@ export class TenantQuotaService {
   private getOverageRates(subscription: Subscription | null): OverageRate {
     if (subscription?.overagePricing) {
       return {
-        rooms: Number(subscription.overagePricing['rooms']) || DEFAULT_OVERAGE_RATES.rooms,
-        users: Number(subscription.overagePricing['users']) || DEFAULT_OVERAGE_RATES.users,
-        storageMb: Number(subscription.overagePricing['storageMb']) || DEFAULT_OVERAGE_RATES.storageMb,
+        rooms:
+          Number(subscription.overagePricing['rooms']) ||
+          DEFAULT_OVERAGE_RATES.rooms,
+        users:
+          Number(subscription.overagePricing['users']) ||
+          DEFAULT_OVERAGE_RATES.users,
+        storageMb:
+          Number(subscription.overagePricing['storageMb']) ||
+          DEFAULT_OVERAGE_RATES.storageMb,
       };
     }
     return { ...DEFAULT_OVERAGE_RATES };
   }
 
-  private calculateOverageCost(overage: { rooms: number; users: number; storageMb: number }, rates: OverageRate): number {
-    return (overage.rooms * rates.rooms) + (overage.users * rates.users) + (overage.storageMb * rates.storageMb);
+  private calculateOverageCost(
+    overage: { rooms: number; users: number; storageMb: number },
+    rates: OverageRate,
+  ): number {
+    return (
+      overage.rooms * rates.rooms +
+      overage.users * rates.users +
+      overage.storageMb * rates.storageMb
+    );
   }
 
-  private async recordOverage(hotelId: string, type: OverageType, units: number, unitPrice: number, totalAmount: number): Promise<OverageBilling> {
+  private async recordOverage(
+    hotelId: string,
+    type: OverageType,
+    units: number,
+    unitPrice: number,
+    totalAmount: number,
+  ): Promise<OverageBilling> {
     const repo = this.dataSource.getRepository(OverageBilling);
     const billing = repo.create({
       hotelId,
@@ -381,15 +480,27 @@ export class TenantQuotaService {
       overageUnits: units,
       unitPrice,
       totalAmount,
-      billingPeriodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      billingPeriodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+      billingPeriodStart: new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1,
+      ),
+      billingPeriodEnd: new Date(
+        new Date().getFullYear(),
+        new Date().getMonth() + 1,
+        0,
+      ),
       status: OverageStatus.PENDING,
       description: `Auto-recorded overage: ${units} ${type}`,
     });
     return repo.save(billing);
   }
 
-  private async checkAndCreateAlerts(hotelId: string, limits: TenantQuotaLimits, usage: TenantQuotaUsage): Promise<void> {
+  private async checkAndCreateAlerts(
+    hotelId: string,
+    limits: TenantQuotaLimits,
+    usage: TenantQuotaUsage,
+  ): Promise<void> {
     const alertRepo = this.dataSource.getRepository(QuotaAlert);
     const resources = [
       { type: 'rooms', current: usage.rooms, limit: limits.rooms },
@@ -404,7 +515,9 @@ export class TenantQuotaService {
       for (const threshold of OVERAGE_ALERT_THRESHOLDS) {
         if (pct >= threshold) {
           if (pct >= 100) {
-            this.logger.warn(`Hotel ${hotelId} has exceeded ${resource.type} limit: ${resource.current}/${resource.limit}`);
+            this.logger.warn(
+              `Hotel ${hotelId} has exceeded ${resource.type} limit: ${resource.current}/${resource.limit}`,
+            );
           }
           const existing = await alertRepo.findOne({
             where: {
@@ -415,16 +528,23 @@ export class TenantQuotaService {
             },
           });
           if (!existing) {
-            const severity = pct >= 100 ? QuotaAlertSeverity.CRITICAL : pct >= 90 ? QuotaAlertSeverity.WARNING : QuotaAlertSeverity.INFO;
-            await alertRepo.save(alertRepo.create({
-              hotelId,
-              resourceType: resource.type,
-              currentUsage: resource.current,
-              limitValue: resource.limit,
-              thresholdPercent: threshold,
-              severity,
-              message: `${resource.type} usage at ${pct}% (${resource.current}/${resource.limit})`,
-            }));
+            const severity =
+              pct >= 100
+                ? QuotaAlertSeverity.CRITICAL
+                : pct >= 90
+                  ? QuotaAlertSeverity.WARNING
+                  : QuotaAlertSeverity.INFO;
+            await alertRepo.save(
+              alertRepo.create({
+                hotelId,
+                resourceType: resource.type,
+                currentUsage: resource.current,
+                limitValue: resource.limit,
+                thresholdPercent: threshold,
+                severity,
+                message: `${resource.type} usage at ${pct}% (${resource.current}/${resource.limit})`,
+              }),
+            );
           }
           break;
         }
@@ -434,9 +554,8 @@ export class TenantQuotaService {
 
   private resolveLimits(subscription: Subscription | null): TenantQuotaLimits {
     const plan = subscription?.plan ?? SubscriptionPlan.BASIC;
-    const customLimits = (subscription?.features?.limits || {}) as Partial<
-      TenantQuotaLimits
-    >;
+    const customLimits = (subscription?.features?.limits ||
+      {}) as Partial<TenantQuotaLimits>;
 
     const defaults: Record<SubscriptionPlan, TenantQuotaLimits> = {
       [SubscriptionPlan.BASIC]: { rooms: 50, users: 10, storageMb: 1024 },
@@ -524,7 +643,8 @@ export class TenantQuotaService {
 
     if (usage.rooms > quota.peakRooms) quota.peakRooms = usage.rooms;
     if (usage.users > quota.peakUsers) quota.peakUsers = usage.users;
-    if (usage.storageMb > quota.peakStorageMb) quota.peakStorageMb = usage.storageMb;
+    if (usage.storageMb > quota.peakStorageMb)
+      quota.peakStorageMb = usage.storageMb;
 
     return quotaRepository.save(quota);
   }
@@ -533,7 +653,9 @@ export class TenantQuotaService {
     quotaRepository: Repository<TenantQuota>,
     hotel: Hotel,
   ): Promise<void> {
-    const quota = await quotaRepository.findOne({ where: { hotelId: hotel.id } });
+    const quota = await quotaRepository.findOne({
+      where: { hotelId: hotel.id },
+    });
     if (!quota) {
       return;
     }

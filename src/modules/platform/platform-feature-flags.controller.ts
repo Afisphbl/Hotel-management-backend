@@ -12,7 +12,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { PlatformService } from './platform.service';
-import { FeatureFlagEvaluationService, EvaluationContext } from './feature-flag-evaluation.service';
+import {
+  FeatureFlagEvaluationService,
+  EvaluationContext,
+} from './feature-flag-evaluation.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
@@ -38,7 +41,9 @@ class CreateFeatureFlagDto {
   @IsOptional() @IsUUID() hotelId?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
   @IsOptional() conditions?: Record<string, any>;
-  @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
+  @IsOptional()
+  @IsEnum(FeatureFlagRolloutStrategy)
+  rolloutStrategy?: FeatureFlagRolloutStrategy;
   @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
   @IsOptional() targetingRules?: Array<any>;
   @IsOptional() allowedUserIds?: string[];
@@ -51,7 +56,9 @@ class UpdateFeatureFlagDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
   @IsOptional() conditions?: Record<string, any>;
-  @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
+  @IsOptional()
+  @IsEnum(FeatureFlagRolloutStrategy)
+  rolloutStrategy?: FeatureFlagRolloutStrategy;
   @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
   @IsOptional() targetingRules?: Array<any>;
   @IsOptional() allowedUserIds?: string[];
@@ -102,16 +109,23 @@ export class PlatformFeatureFlagsController {
 
   @Post('evaluate')
   @HttpCode(HttpStatus.OK)
-  async evaluate(@Body() body: { flagName: string; context: EvaluationContext }) {
+  async evaluate(
+    @Body() body: { flagName: string; context: EvaluationContext },
+  ) {
     return {
       flagName: body.flagName,
-      enabled: await this.flagEvaluationService.isEnabled(body.flagName, body.context),
+      enabled: await this.flagEvaluationService.isEnabled(
+        body.flagName,
+        body.context,
+      ),
     };
   }
 
   @Post('evaluate-variant')
   @HttpCode(HttpStatus.OK)
-  async evaluateVariant(@Body() body: { flagName: string; context: EvaluationContext }) {
+  async evaluateVariant(
+    @Body() body: { flagName: string; context: EvaluationContext },
+  ) {
     return this.flagEvaluationService.getVariant(body.flagName, body.context);
   }
 }

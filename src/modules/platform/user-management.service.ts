@@ -1,6 +1,16 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { Repository, DataSource, LessThan, MoreThan, IsNull } from 'typeorm';
-import { PlatformUser, UserStatus, UserRole } from '../../database/entities/global/platform-user.entity';
+import {
+  PlatformUser,
+  UserStatus,
+  UserRole,
+} from '../../database/entities/global/platform-user.entity';
 import { Role } from '../../database/entities/global/role.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { RedisService } from '../redis/redis.service';
@@ -42,11 +52,15 @@ export class UserManagementService {
     return setting?.value ?? DEFAULT_LOCKOUT_CONFIG;
   }
 
-  async updateLockoutConfig(config: Partial<AccountLockoutConfig>): Promise<AccountLockoutConfig> {
+  async updateLockoutConfig(
+    config: Partial<AccountLockoutConfig>,
+  ): Promise<AccountLockoutConfig> {
     const repository = this.dataSource.getRepository(GlobalSetting);
     const current = await this.getLockoutConfig();
     const merged = { ...current, ...config };
-    let setting = await repository.findOne({ where: { key: 'security:account_lockout' } });
+    let setting = await repository.findOne({
+      where: { key: 'security:account_lockout' },
+    });
     if (setting) {
       setting.value = merged;
     } else {
@@ -71,16 +85,24 @@ export class UserManagementService {
 
     if (user.failedLoginAttempts >= config.maxFailedAttempts) {
       user.isLocked = true;
-      user.lockedUntil = new Date(Date.now() + config.lockoutDurationMinutes * 60 * 1000);
+      user.lockedUntil = new Date(
+        Date.now() + config.lockoutDurationMinutes * 60 * 1000,
+      );
       user.lockedAt = new Date();
       user.lockReason = `Account locked after ${user.failedLoginAttempts} failed login attempts`;
-      this.logger.warn(`Account locked: ${user.email} until ${user.lockedUntil}`);
+      this.logger.warn(
+        `Account locked: ${user.email} until ${user.lockedUntil}`,
+      );
     }
 
     await this.userRepository.save(user);
   }
 
-  async checkAccountLockout(email: string): Promise<{ locked: boolean; remainingAttempts?: number; lockedUntil?: Date }> {
+  async checkAccountLockout(email: string): Promise<{
+    locked: boolean;
+    remainingAttempts?: number;
+    lockedUntil?: Date;
+  }> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) return { locked: false };
 
@@ -98,7 +120,10 @@ export class UserManagementService {
     const config = await this.getLockoutConfig();
     return {
       locked: false,
-      remainingAttempts: Math.max(0, config.maxFailedAttempts - (user.failedLoginAttempts || 0)),
+      remainingAttempts: Math.max(
+        0,
+        config.maxFailedAttempts - (user.failedLoginAttempts || 0),
+      ),
     };
   }
 
@@ -114,17 +139,28 @@ export class UserManagementService {
   }
 
   async findUserById(id: string): Promise<PlatformUser> {
-    const user = await this.userRepository.findOne({ where: { id }, relations: ['role'] });
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: ['role'],
+    });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
   async findByEmail(email: string): Promise<PlatformUser | null> {
-    return this.userRepository.findOne({ where: { email }, relations: ['role'] });
+    return this.userRepository.findOne({
+      where: { email },
+      relations: ['role'],
+    });
   }
 
-  async findAll(filter?: { status?: UserStatus; roleId?: string; search?: string }): Promise<PlatformUser[]> {
-    const qb = this.userRepository.createQueryBuilder('user')
+  async findAll(filter?: {
+    status?: UserStatus;
+    roleId?: string;
+    search?: string;
+  }): Promise<PlatformUser[]> {
+    const qb = this.userRepository
+      .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role');
 
     if (filter?.status) {
@@ -134,7 +170,10 @@ export class UserManagementService {
       qb.andWhere('user.roleId = :roleId', { roleId: filter.roleId });
     }
     if (filter?.search) {
-      qb.andWhere('(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)', { search: `%${filter.search}%` });
+      qb.andWhere(
+        '(user.email ILIKE :search OR user.firstName ILIKE :search OR user.lastName ILIKE :search)',
+        { search: `%${filter.search}%` },
+      );
     }
     return qb.orderBy('user.createdAt', 'DESC').getMany();
   }
@@ -148,12 +187,19 @@ export class UserManagementService {
     roleId?: string;
     roleName?: UserRole;
   }): Promise<PlatformUser> {
-    const existing = await this.userRepository.findOne({ where: { email: data.email } });
-    if (existing) throw new ConflictException('User with this email already exists');
+    const existing = await this.userRepository.findOne({
+      where: { email: data.email },
+    });
+    if (existing)
+      throw new ConflictException('User with this email already exists');
 
-    let role = data.roleId ? await this.roleRepository.findOne({ where: { id: data.roleId } }) : null;
+    let role = data.roleId
+      ? await this.roleRepository.findOne({ where: { id: data.roleId } })
+      : null;
     if (!role && data.roleName) {
-      role = await this.roleRepository.findOne({ where: { name: data.roleName } });
+      role = await this.roleRepository.findOne({
+        where: { name: data.roleName },
+      });
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -172,7 +218,11 @@ export class UserManagementService {
     return this.userRepository.save(user);
   }
 
-  async deactivateUser(id: string, reason?: string, deactivatedBy?: string): Promise<PlatformUser> {
+  async deactivateUser(
+    id: string,
+    reason?: string,
+    deactivatedBy?: string,
+  ): Promise<PlatformUser> {
     const user = await this.findUserById(id);
     user.status = UserStatus.INACTIVE;
     user.deactivatedAt = new Date();
@@ -197,9 +247,17 @@ export class UserManagementService {
     return this.userRepository.save(user);
   }
 
-  async updateUser(id: string, data: Partial<PlatformUser>): Promise<PlatformUser> {
+  async updateUser(
+    id: string,
+    data: Partial<PlatformUser>,
+  ): Promise<PlatformUser> {
     const user = await this.findUserById(id);
-    const allowedFields = ['firstName', 'lastName', 'phone', 'preferences'] as const;
+    const allowedFields = [
+      'firstName',
+      'lastName',
+      'phone',
+      'preferences',
+    ] as const;
     for (const field of allowedFields) {
       if (data[field] !== undefined) {
         (user as any)[field] = data[field];
@@ -208,7 +266,11 @@ export class UserManagementService {
     return this.userRepository.save(user);
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       select: ['id', 'password', 'passwordHistory', 'lastPasswordChangeAt'],
@@ -216,12 +278,14 @@ export class UserManagementService {
     if (!user) throw new NotFoundException('User not found');
 
     const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) throw new BadRequestException('Current password is incorrect');
+    if (!isValid)
+      throw new BadRequestException('Current password is incorrect');
 
     const history = user.passwordHistory || [];
     for (const oldHash of history) {
       const match = await bcrypt.compare(newPassword, oldHash);
-      if (match) throw new BadRequestException('Cannot reuse a previous password');
+      if (match)
+        throw new BadRequestException('Cannot reuse a previous password');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -241,8 +305,13 @@ export class UserManagementService {
   }
 
   async getUsersByRole(roleName: UserRole): Promise<PlatformUser[]> {
-    const role = await this.roleRepository.findOne({ where: { name: roleName } as any });
+    const role = await this.roleRepository.findOne({
+      where: { name: roleName },
+    });
     if (!role) throw new NotFoundException('Role not found');
-    return this.userRepository.find({ where: { role: { id: role.id } as any }, relations: ['role'] });
+    return this.userRepository.find({
+      where: { role: { id: role.id } as any },
+      relations: ['role'],
+    });
   }
 }

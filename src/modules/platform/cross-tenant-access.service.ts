@@ -1,13 +1,36 @@
-import { Injectable, Logger, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, MoreThan } from 'typeorm';
 import { PlatformUser, UserStatus } from '../../database/entities/global';
 import { Hotel } from '../../database/entities/hotel.entity';
-import { ImpersonationLog, ImpersonationStatus } from '../../database/entities/global/impersonation-log.entity';
-import { EmergencyAccess, EmergencyAccessStatus, EmergencyAccessPriority } from '../../database/entities/global/emergency-access.entity';
-import { DelegatedAdmin, DelegatedAdminStatus } from '../../database/entities/global/delegated-admin.entity';
-import { SupportAccess, SupportAccessStatus } from '../../database/entities/global/support-access.entity';
-import { AuditLog, AuditAction, AuditResource } from '../../database/entities/audit-log.entity';
+import {
+  ImpersonationLog,
+  ImpersonationStatus,
+} from '../../database/entities/global/impersonation-log.entity';
+import {
+  EmergencyAccess,
+  EmergencyAccessStatus,
+  EmergencyAccessPriority,
+} from '../../database/entities/global/emergency-access.entity';
+import {
+  DelegatedAdmin,
+  DelegatedAdminStatus,
+} from '../../database/entities/global/delegated-admin.entity';
+import {
+  SupportAccess,
+  SupportAccessStatus,
+} from '../../database/entities/global/support-access.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+} from '../../database/entities/audit-log.entity';
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
@@ -35,14 +58,22 @@ export class CrossTenantAccessService {
 
   // --- Impersonation ---
 
-  async startImpersonation(impersonatorId: string, targetHotelId: string, reason: string): Promise<{
+  async startImpersonation(
+    impersonatorId: string,
+    targetHotelId: string,
+    reason: string,
+  ): Promise<{
     session: ImpersonationLog;
     token: string;
   }> {
-    const impersonator = await this.userRepository.findOne({ where: { id: impersonatorId } });
+    const impersonator = await this.userRepository.findOne({
+      where: { id: impersonatorId },
+    });
     if (!impersonator) throw new NotFoundException('Impersonator not found');
 
-    const hotel = await this.hotelRepository.findOne({ where: { id: targetHotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: targetHotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
 
     const activeSessions = await this.impersonationRepository.count({
@@ -53,7 +84,9 @@ export class CrossTenantAccessService {
     });
 
     if (activeSessions >= 3) {
-      throw new ForbiddenException('Maximum active impersonation sessions reached (3)');
+      throw new ForbiddenException(
+        'Maximum active impersonation sessions reached (3)',
+      );
     }
 
     const session = this.impersonationRepository.create({
@@ -71,23 +104,34 @@ export class CrossTenantAccessService {
     });
     const saved = await this.impersonationRepository.save(session);
 
-    await this.logAudit(AuditAction.IMPERSONATION_START, impersonatorId, targetHotelId, {
-      sessionId: saved.id,
-      reason,
-      hotelName: hotel.name,
-    });
-
-    const token = Buffer.from(JSON.stringify({
-      type: 'impersonation',
-      sessionId: saved.id,
+    await this.logAudit(
+      AuditAction.IMPERSONATION_START,
       impersonatorId,
-      hotelId: targetHotelId,
-      exp: Date.now() + 3600000,
-    })).toString('base64');
+      targetHotelId,
+      {
+        sessionId: saved.id,
+        reason,
+        hotelName: hotel.name,
+      },
+    );
+
+    const token = Buffer.from(
+      JSON.stringify({
+        type: 'impersonation',
+        sessionId: saved.id,
+        impersonatorId,
+        hotelId: targetHotelId,
+        exp: Date.now() + 3600000,
+      }),
+    ).toString('base64');
 
     await this.redisService.set(
       `impersonation:${saved.id}`,
-      JSON.stringify({ impersonatorId, hotelId: targetHotelId, startedAt: saved.startedAt }),
+      JSON.stringify({
+        impersonatorId,
+        hotelId: targetHotelId,
+        startedAt: saved.startedAt,
+      }),
       3600,
     );
 
@@ -95,8 +139,11 @@ export class CrossTenantAccessService {
   }
 
   async stopImpersonation(sessionId: string): Promise<ImpersonationLog> {
-    const session = await this.impersonationRepository.findOne({ where: { id: sessionId } });
-    if (!session) throw new NotFoundException('Impersonation session not found');
+    const session = await this.impersonationRepository.findOne({
+      where: { id: sessionId },
+    });
+    if (!session)
+      throw new NotFoundException('Impersonation session not found');
 
     session.status = ImpersonationStatus.COMPLETED;
     session.endedAt = new Date();
@@ -104,10 +151,15 @@ export class CrossTenantAccessService {
 
     await this.redisService.del(`impersonation:${sessionId}`);
 
-    await this.logAudit(AuditAction.IMPERSONATION_STOP, session.impersonatorId, session.targetHotelId, {
-      sessionId,
-      duration: session.endedAt.getTime() - session.startedAt.getTime(),
-    });
+    await this.logAudit(
+      AuditAction.IMPERSONATION_STOP,
+      session.impersonatorId,
+      session.targetHotelId,
+      {
+        sessionId,
+        duration: session.endedAt.getTime() - session.startedAt.getTime(),
+      },
+    );
 
     return saved;
   }
@@ -119,7 +171,10 @@ export class CrossTenantAccessService {
     });
   }
 
-  async getImpersonationHistory(userId?: string, limit = 50): Promise<ImpersonationLog[]> {
+  async getImpersonationHistory(
+    userId?: string,
+    limit = 50,
+  ): Promise<ImpersonationLog[]> {
     const where: any = {};
     if (userId) where.impersonatorId = userId;
     return this.impersonationRepository.find({
@@ -144,7 +199,9 @@ export class CrossTenantAccessService {
     priority: EmergencyAccessPriority;
     durationHours: number;
   }): Promise<EmergencyAccess> {
-    const hotel = await this.hotelRepository.findOne({ where: { id: data.hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: data.hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
 
     const activeRequests = await this.emergencyAccessRepository.count({
@@ -155,7 +212,9 @@ export class CrossTenantAccessService {
     });
 
     if (activeRequests >= 2) {
-      throw new ForbiddenException('Maximum active emergency access requests reached (2)');
+      throw new ForbiddenException(
+        'Maximum active emergency access requests reached (2)',
+      );
     }
 
     const expiresAt = new Date();
@@ -178,19 +237,31 @@ export class CrossTenantAccessService {
 
     const saved = await this.emergencyAccessRepository.save(access);
 
-    await this.logAudit(AuditAction.EMERGENCY_REQUEST, data.requestedBy, data.hotelId, {
-      accessId: saved.id,
-      reason: data.reason,
-      priority: data.priority,
-      expiresAt,
-    });
+    await this.logAudit(
+      AuditAction.EMERGENCY_REQUEST,
+      data.requestedBy,
+      data.hotelId,
+      {
+        accessId: saved.id,
+        reason: data.reason,
+        priority: data.priority,
+        expiresAt,
+      },
+    );
 
     return saved;
   }
 
-  async approveEmergencyAccess(accessId: string, approvedBy: string, approverEmail: string): Promise<EmergencyAccess> {
-    const access = await this.emergencyAccessRepository.findOne({ where: { id: accessId } });
-    if (!access) throw new NotFoundException('Emergency access request not found');
+  async approveEmergencyAccess(
+    accessId: string,
+    approvedBy: string,
+    approverEmail: string,
+  ): Promise<EmergencyAccess> {
+    const access = await this.emergencyAccessRepository.findOne({
+      where: { id: accessId },
+    });
+    if (!access)
+      throw new NotFoundException('Emergency access request not found');
     if (access.status !== EmergencyAccessStatus.REQUESTED) {
       throw new BadRequestException('Access request is not in requested state');
     }
@@ -201,19 +272,29 @@ export class CrossTenantAccessService {
     access.approvedAt = new Date();
     const saved = await this.emergencyAccessRepository.save(access);
 
-    await this.logAudit(AuditAction.EMERGENCY_APPROVE, approvedBy, access.hotelId, {
-      accessId,
-      requestedBy: access.requestedBy,
-    });
+    await this.logAudit(
+      AuditAction.EMERGENCY_APPROVE,
+      approvedBy,
+      access.hotelId,
+      {
+        accessId,
+        requestedBy: access.requestedBy,
+      },
+    );
 
     return saved;
   }
 
   async activateEmergencyAccess(accessId: string): Promise<EmergencyAccess> {
-    const access = await this.emergencyAccessRepository.findOne({ where: { id: accessId } });
-    if (!access) throw new NotFoundException('Emergency access request not found');
+    const access = await this.emergencyAccessRepository.findOne({
+      where: { id: accessId },
+    });
+    if (!access)
+      throw new NotFoundException('Emergency access request not found');
     if (access.status !== EmergencyAccessStatus.APPROVED) {
-      throw new BadRequestException('Access must be approved before activation');
+      throw new BadRequestException(
+        'Access must be approved before activation',
+      );
     }
     if (new Date() > access.expiresAt) {
       access.status = EmergencyAccessStatus.EXPIRED;
@@ -231,18 +312,33 @@ export class CrossTenantAccessService {
       Math.ceil((access.expiresAt.getTime() - Date.now()) / 1000),
     );
 
-    await this.logAudit(AuditAction.EMERGENCY_ACTIVATE, access.requestedBy, access.hotelId, {
-      accessId,
-      expiresAt: access.expiresAt,
-    });
+    await this.logAudit(
+      AuditAction.EMERGENCY_ACTIVATE,
+      access.requestedBy,
+      access.hotelId,
+      {
+        accessId,
+        expiresAt: access.expiresAt,
+      },
+    );
 
     return saved;
   }
 
-  async revokeEmergencyAccess(accessId: string, revokedBy: string, reason: string): Promise<EmergencyAccess> {
-    const access = await this.emergencyAccessRepository.findOne({ where: { id: accessId } });
-    if (!access) throw new NotFoundException('Emergency access request not found');
-    if (access.status === EmergencyAccessStatus.REVOKED || access.status === EmergencyAccessStatus.EXPIRED) {
+  async revokeEmergencyAccess(
+    accessId: string,
+    revokedBy: string,
+    reason: string,
+  ): Promise<EmergencyAccess> {
+    const access = await this.emergencyAccessRepository.findOne({
+      where: { id: accessId },
+    });
+    if (!access)
+      throw new NotFoundException('Emergency access request not found');
+    if (
+      access.status === EmergencyAccessStatus.REVOKED ||
+      access.status === EmergencyAccessStatus.EXPIRED
+    ) {
       throw new BadRequestException('Access already revoked or expired');
     }
 
@@ -251,17 +347,26 @@ export class CrossTenantAccessService {
     access.revocationReason = reason;
     const saved = await this.emergencyAccessRepository.save(access);
 
-    await this.redisService.del(`emergency:${access.hotelId}:${access.requestedBy}`);
+    await this.redisService.del(
+      `emergency:${access.hotelId}:${access.requestedBy}`,
+    );
 
-    await this.logAudit(AuditAction.EMERGENCY_REVOKE, revokedBy, access.hotelId, {
-      accessId,
-      reason,
-    });
+    await this.logAudit(
+      AuditAction.EMERGENCY_REVOKE,
+      revokedBy,
+      access.hotelId,
+      {
+        accessId,
+        reason,
+      },
+    );
 
     return saved;
   }
 
-  async getEmergencyAccessRequests(status?: EmergencyAccessStatus): Promise<EmergencyAccess[]> {
+  async getEmergencyAccessRequests(
+    status?: EmergencyAccessStatus,
+  ): Promise<EmergencyAccess[]> {
     const where: any = {};
     if (status) where.status = status;
     return this.emergencyAccessRepository.find({
@@ -288,8 +393,13 @@ export class CrossTenantAccessService {
     });
   }
 
-  async validateEmergencyAccess(userId: string, hotelId: string): Promise<boolean> {
-    const cached = await this.redisService.get(`emergency:${hotelId}:${userId}`);
+  async validateEmergencyAccess(
+    userId: string,
+    hotelId: string,
+  ): Promise<boolean> {
+    const cached = await this.redisService.get(
+      `emergency:${hotelId}:${userId}`,
+    );
     if (cached) {
       const data = JSON.parse(cached);
       if (new Date(data.expiresAt) > new Date()) return true;
@@ -330,7 +440,9 @@ export class CrossTenantAccessService {
     delegatedPermissions: string[];
     expiresInDays?: number;
   }): Promise<DelegatedAdmin> {
-    const hotel = await this.hotelRepository.findOne({ where: { id: data.hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: data.hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
 
     const existing = await this.delegatedAdminRepository.findOne({
@@ -342,7 +454,9 @@ export class CrossTenantAccessService {
     });
 
     if (existing) {
-      throw new BadRequestException('Active delegation already exists for this user and hotel');
+      throw new BadRequestException(
+        'Active delegation already exists for this user and hotel',
+      );
     }
 
     const expiresAt = data.expiresInDays
@@ -364,19 +478,30 @@ export class CrossTenantAccessService {
 
     const saved = await this.delegatedAdminRepository.save(delegation);
 
-    await this.logAudit(AuditAction.DELEGATION_CREATE, data.delegatorUserId, data.hotelId, {
-      delegationId: saved.id,
-      delegateUserId: data.delegateUserId,
-      delegateEmail: data.delegateEmail,
-      permissions: data.delegatedPermissions,
-      expiresAt,
-    });
+    await this.logAudit(
+      AuditAction.DELEGATION_CREATE,
+      data.delegatorUserId,
+      data.hotelId,
+      {
+        delegationId: saved.id,
+        delegateUserId: data.delegateUserId,
+        delegateEmail: data.delegateEmail,
+        permissions: data.delegatedPermissions,
+        expiresAt,
+      },
+    );
 
     return saved;
   }
 
-  async revokeDelegation(delegationId: string, revokedBy: string, reason: string): Promise<DelegatedAdmin> {
-    const delegation = await this.delegatedAdminRepository.findOne({ where: { id: delegationId } });
+  async revokeDelegation(
+    delegationId: string,
+    revokedBy: string,
+    reason: string,
+  ): Promise<DelegatedAdmin> {
+    const delegation = await this.delegatedAdminRepository.findOne({
+      where: { id: delegationId },
+    });
     if (!delegation) throw new NotFoundException('Delegation not found');
 
     delegation.status = DelegatedAdminStatus.REVOKED;
@@ -384,15 +509,23 @@ export class CrossTenantAccessService {
     delegation.revocationReason = reason;
     const saved = await this.delegatedAdminRepository.save(delegation);
 
-    await this.logAudit(AuditAction.DELEGATION_REVOKE, revokedBy, delegation.hotelId, {
-      delegationId,
-      reason,
-    });
+    await this.logAudit(
+      AuditAction.DELEGATION_REVOKE,
+      revokedBy,
+      delegation.hotelId,
+      {
+        delegationId,
+        reason,
+      },
+    );
 
     return saved;
   }
 
-  async getDelegations(hotelId?: string, userId?: string): Promise<DelegatedAdmin[]> {
+  async getDelegations(
+    hotelId?: string,
+    userId?: string,
+  ): Promise<DelegatedAdmin[]> {
     const where: any = {};
     if (hotelId) where.hotelId = hotelId;
     if (userId) where.delegateUserId = userId;
@@ -402,7 +535,10 @@ export class CrossTenantAccessService {
     });
   }
 
-  async getDelegatedPermissions(userId: string, hotelId: string): Promise<string[]> {
+  async getDelegatedPermissions(
+    userId: string,
+    hotelId: string,
+  ): Promise<string[]> {
     const active = await this.delegatedAdminRepository.findOne({
       where: {
         delegateUserId: userId,
@@ -454,23 +590,36 @@ export class CrossTenantAccessService {
 
     const saved = await this.supportAccessRepository.save(access);
 
-    await this.logAudit(AuditAction.SUPPORT_ACCESS_GRANT, data.platformUserId, data.hotelId, {
-      accessId: saved.id,
-      durationHours: data.durationHours,
-      expiresAt,
-    });
+    await this.logAudit(
+      AuditAction.SUPPORT_ACCESS_GRANT,
+      data.platformUserId,
+      data.hotelId,
+      {
+        accessId: saved.id,
+        durationHours: data.durationHours,
+        expiresAt,
+      },
+    );
 
     return saved;
   }
 
-  async revokeSupportAccess(accessId: string, reason?: string): Promise<SupportAccess> {
-    const access = await this.supportAccessRepository.findOne({ where: { id: accessId } });
+  async revokeSupportAccess(
+    accessId: string,
+    reason?: string,
+  ): Promise<SupportAccess> {
+    const access = await this.supportAccessRepository.findOne({
+      where: { id: accessId },
+    });
     if (!access) throw new NotFoundException('Support access not found');
 
     access.status = SupportAccessStatus.REVOKED;
     access.revokedAt = new Date();
     if (reason) {
-      access.metadata = { ...(access.metadata || {}), revocationReason: reason };
+      access.metadata = {
+        ...(access.metadata || {}),
+        revocationReason: reason,
+      };
     }
     return this.supportAccessRepository.save(access);
   }
@@ -495,7 +644,12 @@ export class CrossTenantAccessService {
 
   // --- Audit Trail ---
 
-  private async logAudit(action: AuditAction, userId: string, hotelId: string | null, metadata: any) {
+  private async logAudit(
+    action: AuditAction,
+    userId: string,
+    hotelId: string | null,
+    metadata: any,
+  ) {
     try {
       const log = this.auditLogRepository.create({
         action,
@@ -510,5 +664,3 @@ export class CrossTenantAccessService {
     }
   }
 }
-
-
