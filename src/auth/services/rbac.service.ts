@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In, DataSource } from 'typeorm';
 import {
   PlatformUser,
   Role,
@@ -18,6 +18,7 @@ import { RedisService } from '../../modules/redis/redis.service';
 @Injectable()
 export class RbacService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(PlatformUser)
     private readonly userRepository: Repository<PlatformUser>,
     @InjectRepository(Role)
@@ -61,27 +62,19 @@ export class RbacService {
         (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
-      if (hotelAccess?.permissions?.includes(permission)) {
+      if (!hotelAccess) return false;
+
+      if (hotelAccess.permissions?.includes(permission) || hotelAccess.permissions?.includes('*')) {
         hasPermission = true;
       } else {
-        // Check role permissions
-        const rolePermissions = await this.rolePermissionRepository.find({
-          where: { role: { id: hotelAccess?.role?.id } },
-          relations: ['permission'],
-        });
-        hasPermission = rolePermissions.some(
-          (rp) => rp.permission.code === permission,
-        );
+        // Resolve hierarchical permissions for hotel role
+        const permissions = await this.getHierarchicalPermissions(hotelAccess.role?.id);
+        hasPermission = permissions.includes(permission) || permissions.includes('*');
       }
     } else {
-      // Check platform permissions
-      const rolePermissions = await this.rolePermissionRepository.find({
-        where: { role: { id: user.role?.id } },
-        relations: ['permission'],
-      });
-      hasPermission = rolePermissions.some(
-        (rp) => rp.permission.code === permission,
-      );
+      // PLATFORM SCOPE: Resolve hierarchical permissions for platform role
+      const permissions = await this.getHierarchicalPermissions(user.role?.id);
+      hasPermission = permissions.includes(permission) || permissions.includes('*');
     }
 
     // Cache result
@@ -89,6 +82,30 @@ export class RbacService {
     await this.redisService.set(cacheKey, hasPermission.toString(), cacheTTL);
 
     return hasPermission;
+  }
+
+  private async getHierarchicalPermissions(roleId?: string): Promise<string[]> {
+    if (!roleId) return [];
+
+    const role = await this.roleRepository.findOne({ where: { id: roleId } });
+    if (!role) return [];
+
+    // Super Admin (Level 100) -> Support (Level 50) -> Billing (Level 30)
+    // Higher-level roles inherit all permissions of lower-level roles
+    const inheritedRoles = await this.roleRepository.createQueryBuilder('role')
+      .where('role.hierarchyLevel <= :level', { level: role.hierarchyLevel })
+      .getMany();
+
+    const roleIds = inheritedRoles.map(r => r.id);
+    
+    if (roleIds.length === 0) return [];
+
+    const rolePermissions = await this.rolePermissionRepository.find({
+      where: { role: { id: In(roleIds) } },
+      relations: ['permission'],
+    });
+
+    return [...new Set(rolePermissions.map(rp => rp.permission.code))];
   }
 
   async grantRolePermission(
@@ -214,21 +231,15 @@ export class RbacService {
         (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
-      if (hotelAccess?.permissions) {
-        permissions = hotelAccess.permissions;
-      } else {
-        const rolePermissions = await this.rolePermissionRepository.find({
-          where: { role: { id: hotelAccess?.role?.id } },
-          relations: ['permission'],
-        });
-        permissions = rolePermissions.map((rp) => rp.permission.code);
+      if (hotelAccess) {
+        if (hotelAccess.permissions) {
+          permissions = hotelAccess.permissions;
+        } else {
+          permissions = await this.getHierarchicalPermissions(hotelAccess.role?.id);
+        }
       }
     } else {
-      const rolePermissions = await this.rolePermissionRepository.find({
-        where: { role: { id: user.role?.id } },
-        relations: ['permission'],
-      });
-      permissions = rolePermissions.map((rp) => rp.permission.code);
+      permissions = await this.getHierarchicalPermissions(user.role?.id);
     }
 
     // Cache result

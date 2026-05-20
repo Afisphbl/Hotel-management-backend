@@ -58,6 +58,7 @@ interface RoleDefinition {
   name: string;
   description: string;
   permissions: string[];
+  hierarchyLevel?: number;
 }
 
 const PERMISSIONS = [
@@ -119,16 +120,25 @@ const ROLES: RoleDefinition[] = [
     name: 'SUPER_ADMIN',
     description: 'Full control over the entire platform',
     permissions: PERMISSIONS.map((p) => p.slug),
+    hierarchyLevel: 100,
   },
   {
     name: 'SUPPORT_ADMIN',
     description: 'Platform support and impersonation access',
     permissions: ['rooms:read', 'bookings:read', 'guests:read', 'platform:impersonate'],
+    hierarchyLevel: 50,
+  },
+  {
+    name: 'BILLING_ADMIN',
+    description: 'Manage platform billing and subscriptions',
+    permissions: ['platform:manage', 'subscriptions:read', 'subscriptions:manage'],
+    hierarchyLevel: 30,
   },
   {
     name: 'HOTEL_OWNER',
     description: 'Full access to all hotel operations',
     permissions: PERMISSIONS.map((p) => p.slug),
+    hierarchyLevel: 100,
   },
   {
     name: 'HOTEL_MANAGER',
@@ -518,6 +528,7 @@ async function bootstrap() {
             name: roleDef.name,
             description: roleDef.description,
             isSystemRole: true,
+            hierarchyLevel: roleDef.hierarchyLevel || 0,
           }),
         );
       }

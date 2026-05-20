@@ -11,4 +11,7 @@ export class Role extends BaseEntity {
 
   @Column({ default: false })
   isSystemRole: boolean;
+
+  @Column({ type: 'integer', default: 0 })
+  hierarchyLevel: number; // Higher number = higher authority
 }
