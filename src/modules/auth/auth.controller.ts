@@ -37,6 +37,10 @@ class Verify2faDto {
 
   @IsOptional()
   @IsString()
+  userId?: string;
+
+  @IsOptional()
+  @IsString()
   tempToken?: string;
 }
 
@@ -56,13 +60,18 @@ export class AuthController {
     }
 
     // Check if 2FA is required for Platform users
-    if (user.scope === UserScope.PLATFORM && !req.body.twoFactorCode) {
-      // In a real app, we'd check if user has 2FA enabled or if it's mandatory
-      // For now, let's signal that 2FA is needed
+    if (user.twoFactorEnabled && !loginDto.twoFactorCode) {
+      // Return a temporary token to be used for 2FA verification
+      // For simplicity here, we'll just return that 2FA is needed and the user ID
+      // In production, use a short-lived signed token (e.g., 'mfa_token')
       return {
         requires_2fa: true,
-        temp_token: 'temp_session_id_or_jwt', // In reality, a signed short-lived token
+        userId: user.id,
       };
+    }
+
+    if (user.twoFactorEnabled && loginDto.twoFactorCode) {
+      await this.authService.verify2FACode(user.id, loginDto.twoFactorCode);
     }
 
     const metadata = {
@@ -76,12 +85,35 @@ export class AuthController {
     return this.authService.login(user, loginDto.hotelId, metadata);
   }
 
+  @Post('setup-2fa')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async setup2fa(@Request() req: any) {
+    return this.authService.generate2FASecret(req.user.userId);
+  }
+
+  @Post('activate-2fa')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async activate2fa(@Body() body: { secret: string; code: string }, @Request() req: any) {
+    return this.authService.verify2FASetup(req.user.userId, body.secret, body.code);
+  }
+
   @Post('verify-2fa')
   @HttpCode(HttpStatus.OK)
   async verify2fa(@Body() dto: Verify2faDto, @Request() req: any) {
-    // 2FA verification logic here
-    // If valid, proceed to login
-    return { success: true, message: '2FA verified' };
+    // This is used for the second step of login if requires_2fa was returned
+    const user = await this.authService['userRepository'].findOne({ where: { id: dto.userId || dto.tempToken } });
+    if (!user) throw new UnauthorizedException();
+
+    await this.authService.verify2FACode(user.id, dto.code);
+
+    const metadata = {
+      userAgent: req.headers['user-agent'],
+      ipAddress: req.ip,
+    };
+
+    return this.authService.login(user, null, metadata);
   }
 
   @Post('impersonate')

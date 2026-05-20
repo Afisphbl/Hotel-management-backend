@@ -54,23 +54,28 @@ export class AnalyticsService {
       .getRawOne()) as { mrr: string | null } | null;
     const mrr = Number(mrrResult?.mrr || 0);
 
-    // Bookings across all active hotel schemas
-    let totalBookings = 0;
+    // Bookings across all active hotel schemas - Parallelized
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
     });
     
-    // Note: In a real large-scale app, we'd use a more efficient way than looping
-    for (const h of hotels) {
-      try {
-        const countRes = (await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
-        )) as unknown as Array<{ count: string }>;
-        totalBookings += parseInt(countRes[0]?.count || '0', 10);
-      } catch (err) {
-        this.logger.warn(`Failed to count bookings for hotel ${h.id}: ${err.message}`);
-      }
-    }
+    this.logger.log(`Querying ${hotels.length} hotel schemas in parallel...`);
+    
+    const bookingCounts = await Promise.all(
+      hotels.map(async (h) => {
+        try {
+          const countRes = (await this.dataSource.query(
+            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+          )) as unknown as Array<{ count: string }>;
+          return parseInt(countRes[0]?.count || '0', 10);
+        } catch (err) {
+          this.logger.warn(`Failed to count bookings for hotel ${h.id}: ${err.message}`);
+          return 0;
+        }
+      }),
+    );
+
+    const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
 
     const data = {
       totalHotels,
@@ -90,56 +95,61 @@ export class AnalyticsService {
     const periodStart = new Date(today.getFullYear(), today.getMonth(), 1);
     
     // Calculate last 6 months revenue
-    const revenueData = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
     });
 
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const year = d.getFullYear();
-      const monthIndex = d.getMonth();
+    const revenueData = await Promise.all(
+      Array.from({ length: 6 }).map(async (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        const year = d.getFullYear();
+        const monthIndex = d.getMonth();
 
-      const startOfMonth = new Date(year, monthIndex, 1);
-      const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+        const startOfMonth = new Date(year, monthIndex, 1);
+        const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
 
-      const subSum = (await this.dataSource.getRepository(Subscription)
-        .createQueryBuilder('sub')
-        .select('SUM(sub.price)', 'total')
-        .where('sub.startDate <= :end', { end: endOfMonth })
-        .andWhere('(sub.endDate IS NULL OR sub.endDate >= :start)', {
-          start: startOfMonth,
-        })
-        .andWhere('sub.status != :status', {
-          status: SubscriptionStatus.CANCELLED,
-        })
-        .getRawOne()) as { total: string | null } | null;
+        const subSum = (await this.dataSource.getRepository(Subscription)
+          .createQueryBuilder('sub')
+          .select('SUM(sub.price)', 'total')
+          .where('sub.startDate <= :end', { end: endOfMonth })
+          .andWhere('(sub.endDate IS NULL OR sub.endDate >= :start)', {
+            start: startOfMonth,
+          })
+          .andWhere('sub.status != :status', {
+            status: SubscriptionStatus.CANCELLED,
+          })
+          .getRawOne()) as { total: string | null } | null;
 
-      const revenue = Number(subSum?.total || 0);
+        const revenue = Number(subSum?.total || 0);
 
-      let bookings = 0;
-      for (const h of hotels) {
-        try {
-          const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"
-             WHERE "createdAt" BETWEEN $1 AND $2`,
-            [startOfMonth, endOfMonth],
-          )) as unknown as Array<{ count: string }>;
-          bookings += parseInt(countRes[0]?.count || '0', 10);
-        } catch {
-          // Schema or table might not exist
-        }
-      }
+        // Parallelize bookings count for this month across all hotels
+        const bookingCounts = await Promise.all(
+          hotels.map(async (h) => {
+            try {
+              const countRes = (await this.dataSource.query(
+                `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"
+                 WHERE "createdAt" BETWEEN $1 AND $2`,
+                [startOfMonth, endOfMonth],
+              )) as unknown as Array<{ count: string }>;
+              return parseInt(countRes[0]?.count || '0', 10);
+            } catch {
+              return 0;
+            }
+          })
+        );
 
-      revenueData.push({
-        month: monthNames[monthIndex],
-        revenue,
-        bookings,
-      });
-    }
+        const bookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+
+        return {
+          month: monthNames[monthIndex],
+          revenue,
+          bookings,
+        };
+      })
+    );
 
     return this.saveSnapshot(SnapshotType.PLATFORM_REVENUE, periodStart, today, { chart: revenueData });
   }
