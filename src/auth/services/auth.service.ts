@@ -42,7 +42,7 @@ export class AuthService {
   ): Promise<PlatformUser | null> {
     const user = await this.userRepository.findOne({
       where: { email, status: UserStatus.ACTIVE },
-      relations: ['hotelAccesses'],
+      relations: ['role'],
     });
 
     if (!user) {
@@ -69,7 +69,7 @@ export class AuthService {
     const accessTokenPayload: JWTPayload = {
       sub: user.id,
       hotel_id: hotelId,
-      role: user.hotelAccesses?.[0]?.permissions?.[0] || 'USER',
+      role: user.role?.name || 'USER',
       scope: hotelId ? 'HOTEL' : 'PLATFORM',
       permissions,
       iat: Math.floor(Date.now() / 1000),
@@ -150,22 +150,12 @@ export class AuthService {
     // Get permissions from database
     let permissions: string[] = [];
 
-    if (hotelId) {
-      // Hotel scope permissions
-      const hotelAccess = user.hotelAccesses?.find(
-        (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
-      );
-
-      if (hotelAccess?.permissions) {
-        permissions = hotelAccess.permissions;
-      } else {
-        // Get role permissions for hotel
-        const rolePermissions = await this.rolePermissionRepository.find({
-          where: { role: { id: hotelAccess?.role?.id } },
-          relations: ['permission'],
-        });
-        permissions = rolePermissions.map((rp) => rp.permission.code);
-      }
+    if (hotelId && user.role) {
+      const rolePermissions = await this.rolePermissionRepository.find({
+        where: { role: { id: user.role.id } },
+        relations: ['permission'],
+      });
+      permissions = rolePermissions.map((rp) => rp.permission.code);
     } else {
       // Platform scope permissions
       const rolePermissions = await this.rolePermissionRepository.find({

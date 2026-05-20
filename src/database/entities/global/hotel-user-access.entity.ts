@@ -31,7 +31,7 @@ export class HotelUserAccess {
   @ManyToOne(() => Role)
   role: Role;
 
-  @ManyToOne(() => PlatformUser, (user) => user.hotelAccesses)
+  @ManyToOne(() => PlatformUser)
   user: PlatformUser;
 
   @Column({ type: 'timestamptz' })

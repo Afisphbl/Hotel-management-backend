@@ -47,7 +47,7 @@ export class RbacService {
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['hotelAccesses', 'role'],
+      relations: ['role'],
     });
 
     if (!user) {
@@ -58,7 +58,7 @@ export class RbacService {
 
     if (hotelId) {
       // Check hotel-specific permissions
-      const hotelAccess = user.hotelAccesses?.find(
+      const hotelAccess = (user as any).hotelAccesses?.find(
         (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
@@ -215,10 +215,10 @@ export class RbacService {
       return JSON.parse(cached);
     }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['hotelAccesses', 'role'],
-    });
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['role'],
+      });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -227,8 +227,8 @@ export class RbacService {
     let permissions: string[] = [];
 
     if (hotelId) {
-      const hotelAccess = user.hotelAccesses?.find(
-        (access) => access.hotelId === hotelId && access.status === 'ACTIVE',
+      const hotelAccess = (user as any).hotelAccesses?.find(
+        (access: any) => access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
       if (hotelAccess) {

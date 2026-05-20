@@ -33,6 +33,7 @@ import { PaymentGatewayService } from '../../common/services/payment-gateway.ser
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { RedisService } from '../redis/redis.service';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { Hotel as GlobalHotel } from '../../database/entities/global/hotel.entity';
 import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
 import { Subscription } from '../../database/entities/global/subscriptions.entity';
@@ -59,6 +60,7 @@ import { CustomReport } from '../../database/entities/global/custom-report.entit
   imports: [
     TypeOrmModule.forFeature([
       Hotel,
+      GlobalHotel,
       User,
       Booking,
       Subscription,

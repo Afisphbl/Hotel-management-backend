@@ -11,19 +11,19 @@ export enum ImpersonationStatus {
 @Index(['impersonatorId', 'startedAt'])
 @Index(['targetUserId', 'startedAt'])
 export class ImpersonationLog extends BaseEntity {
-  @Column()
+  @Column({ type: 'varchar' })
   impersonatorId: string;
 
   @Column({ type: 'varchar', length: 255 })
   impersonatorEmail: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   targetUserId: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   targetUserEmail: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   targetHotelId: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

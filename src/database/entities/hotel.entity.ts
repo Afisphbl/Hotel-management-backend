@@ -12,7 +12,7 @@ export class Hotel extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   schemaName: string;
 
   @Column({

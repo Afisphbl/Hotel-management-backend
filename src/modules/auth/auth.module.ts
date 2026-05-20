@@ -31,8 +31,6 @@ import { RedisService } from '../redis/redis.service';
       RefreshToken,
       AuditLog,
       SupportAccess,
-      PlatformUser,
-      GlobalRole,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

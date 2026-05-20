@@ -8,8 +8,6 @@ import {
   OneToMany,
 } from 'typeorm';
 import { HotelUserAccess } from './hotel-user-access.entity';
-import { FeatureFlag } from './feature-flag.entity';
-import { Subscription } from './subscriptions.entity';
 
 export enum HotelStatus {
   ACTIVE = 'ACTIVE',
@@ -98,10 +96,4 @@ export class Hotel {
 
   @OneToMany(() => HotelUserAccess, (access) => access.hotel)
   userAccesses: HotelUserAccess[];
-
-  @OneToMany(() => FeatureFlag, (featureFlag) => featureFlag.hotel)
-  featureFlags: FeatureFlag[];
-
-  @OneToMany(() => Subscription, (subscription) => subscription.hotel)
-  subscriptions: Subscription[];
 }

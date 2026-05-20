@@ -33,7 +33,7 @@ export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => PlatformUser, (user) => user.auditLogs, { nullable: true })
+  @ManyToOne(() => PlatformUser, { nullable: true })
   user: PlatformUser;
 
   @Column({ type: 'enum', enum: AuditAction })

@@ -5,14 +5,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToMany,
-  OneToOne,
   ManyToOne,
 } from 'typeorm';
-import { RolePermission } from './role-permission.entity';
 import { Role } from './role.entity';
-import { HotelUserAccess } from './hotel-user-access.entity';
-import { AuditLog } from './audit-log.entity';
 
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
@@ -126,10 +121,4 @@ export class PlatformUser {
 
   @ManyToOne(() => Role)
   role: Role;
-
-  @OneToMany(() => HotelUserAccess, (access) => access.user)
-  hotelAccesses: HotelUserAccess[];
-
-  @OneToMany(() => AuditLog, (audit) => audit.user)
-  auditLogs: AuditLog[];
 }

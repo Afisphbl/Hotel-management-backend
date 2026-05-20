@@ -1,5 +1,4 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, MoreThan, IsNull } from 'typeorm';
 import { PlatformUser, UserStatus, UserRole } from '../../database/entities/global/platform-user.entity';
 import { Role } from '../../database/entities/global/role.entity';
@@ -24,13 +23,17 @@ export class UserManagementService {
   private readonly logger = new Logger(UserManagementService.name);
 
   constructor(
-    @InjectRepository(PlatformUser)
-    private userRepository: Repository<PlatformUser>,
-    @InjectRepository(Role)
-    private roleRepository: Repository<Role>,
     private dataSource: DataSource,
     private redisService: RedisService,
   ) {}
+
+  private get userRepository(): Repository<PlatformUser> {
+    return this.dataSource.getRepository(PlatformUser);
+  }
+
+  private get roleRepository(): Repository<Role> {
+    return this.dataSource.getRepository(Role);
+  }
 
   async getLockoutConfig(): Promise<AccountLockoutConfig> {
     const setting = await this.dataSource.getRepository(GlobalSetting).findOne({
