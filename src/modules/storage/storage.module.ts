@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
 import { StorageController } from './storage.controller';
 import { StorageService, S3_CLIENT } from './storage.service';
+import { CdnService } from './cdn.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { PlanLimitGuard } from '../../auth/guards/plan-limit.guard';
 
@@ -36,10 +37,11 @@ import { PlanLimitGuard } from '../../auth/guards/plan-limit.guard';
       },
     },
     StorageService,
+    CdnService,
     TenantQuotaService,
     PlanLimitGuard,
   ],
   controllers: [StorageController],
-  exports: [S3_CLIENT, StorageService],
+  exports: [S3_CLIENT, StorageService, CdnService],
 })
 export class StorageModule {}

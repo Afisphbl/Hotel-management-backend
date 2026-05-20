@@ -97,5 +97,17 @@ export function validateEnv(config: Record<string, unknown>) {
     S3_SECRET_KEY: asOptionalString(env, 'S3_SECRET_KEY'),
     S3_BUCKET: asOptionalString(env, 'S3_BUCKET'),
     S3_FORCE_PATH_STYLE: asBoolean(env, 'S3_FORCE_PATH_STYLE', true),
+
+    DB_REPLICA_HOSTS: asOptionalString(env, 'DB_REPLICA_HOSTS'),
+    DB_REPLICA_PORTS: asOptionalString(env, 'DB_REPLICA_PORTS'),
+    DB_REPLICA_WEIGHTS: asOptionalString(env, 'DB_REPLICA_WEIGHTS'),
+    DB_REPLICA_POOL_SIZE: asNumber(env, 'DB_REPLICA_POOL_SIZE', 10),
+    DB_SHARDS: asOptionalString(env, 'DB_SHARDS'),
+
+    CDN_URL: asOptionalString(env, 'CDN_URL'),
+    CDN_PROVIDER: asString(env, 'CDN_PROVIDER', 'cloudfront'),
+    CDN_DISTRIBUTION_ID: asOptionalString(env, 'CDN_DISTRIBUTION_ID'),
+    CDN_API_TOKEN: asOptionalString(env, 'CDN_API_TOKEN'),
+    CDN_ZONE_ID: asOptionalString(env, 'CDN_ZONE_ID'),
   };
 }

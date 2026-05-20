@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Client } from 'pg';
 import { getTenantSchema } from '../common/tenant/tenant-context';
+import { ReplicaDataSourceService } from './replica-data-source.service';
 
 @Injectable()
 class TenantSearchPathService implements OnModuleInit {
@@ -98,7 +99,7 @@ class TenantSearchPathService implements OnModuleInit {
       },
     }),
   ],
-  providers: [TenantSearchPathService],
-  exports: [TypeOrmModule],
+  providers: [TenantSearchPathService, ReplicaDataSourceService],
+  exports: [TypeOrmModule, ReplicaDataSourceService],
 })
 export class DatabaseModule {}
