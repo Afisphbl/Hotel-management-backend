@@ -104,9 +104,9 @@ export class UserManagementService {
     if (!user) throw new NotFoundException('User not found');
     user.failedLoginAttempts = 0;
     user.isLocked = false;
-    user.lockedUntil = null as any;
-    user.lockedAt = null as any;
-    user.lockReason = null as any;
+    user.lockedUntil = null;
+    user.lockedAt = null;
+    user.lockReason = null;
     await this.userRepository.save(user);
   }
 
@@ -173,8 +173,8 @@ export class UserManagementService {
     const user = await this.findUserById(id);
     user.status = UserStatus.INACTIVE;
     user.deactivatedAt = new Date();
-    user.deactivatedBy = deactivatedBy || undefined;
-    user.deactivationReason = reason || undefined;
+    user.deactivatedBy = deactivatedBy ?? null;
+    user.deactivationReason = reason ?? null;
     return this.userRepository.save(user);
   }
 
