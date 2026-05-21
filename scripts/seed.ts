@@ -5,7 +5,7 @@ import { User, UserScope } from '../src/database/entities/user.entity';
 import { Permission } from '../src/database/entities/global/permission.entity';
 import { Role, RoleScope } from '../src/database/entities/global/role.entity';
 import { RolePermission } from '../src/database/entities/global/role-permission.entity';
-import { Hotel, HotelStatus, HotelType } from '../src/database/entities/global/hotel.entity';
+import { Hotel } from '../src/database/entities/hotel.entity';
 import { HotelUserAccess, HotelAccessStatus } from '../src/database/entities/hotel-user-access.entity';
 import { RoomType } from '../src/database/entities/room-type.entity';
 import { Room, RoomStatus } from '../src/database/entities/room.entity';
@@ -289,6 +289,10 @@ function formatSchemaName(id: string): string {
   return `hotel_${id.replace(/-/g, '_')}`;
 }
 
+process.env.DB_SYNCHRONIZE = 'false';
+process.env.OTEL_ENABLED = 'false';
+process.env.DB_LOGGING = 'false';
+
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   const dataSource = app.get(DataSource);
@@ -405,21 +409,24 @@ async function bootstrap() {
     for (const hc of HOTELS) {
       console.log(`\n   === ${hc.name} ===`);
 
-      let hotel = await hotelRepo.findOne({ where: { name: hc.name } });
+      const existingHotels: any[] = await dataSource.query(
+        `SELECT * FROM global.hotels WHERE name = $1 LIMIT 1`, [hc.name]
+      );
+      let hotel: any = existingHotels[0];
+
       if (!hotel) {
         const tempId = crypto.randomUUID();
-        hotel = await hotelRepo.save(hotelRepo.create({
-          id: tempId,
-          name: hc.name,
-          schemaName: formatSchemaName(tempId),
-          status: HotelStatus.ACTIVE,
-          subdomain: hc.subdomain,
-          location: hc.location,
-          region: hc.region,
-          timezone: hc.timezone,
-          currency: hc.currency,
-          rooms: hc.rooms,
-        }));
+        const schemaName = formatSchemaName(tempId);
+        await dataSource.query(
+          `INSERT INTO global.hotels (id, name, "schemaName", status, subdomain, location, region, timezone, currency, rooms, slug, type, description, address, city, country, phone, email, website)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+          [tempId, hc.name, schemaName, 'ACTIVE', hc.subdomain, hc.location, hc.region, hc.timezone, hc.currency, hc.rooms,
+           hc.slug, 'BOUTIQUE', `${hc.name} - ${hc.location}`, hc.location, hc.location.split(',')[0], 'US', '+1-555-0000', `info@${hc.slug}.com`, `https://${hc.slug}.hotel.com`]
+        );
+        hotel = { id: tempId, schemaName };
+        console.log('      Created hotel record');
+      } else {
+        console.log('      Hotel already exists');
       }
 
       await dataSource.query(`CREATE SCHEMA IF NOT EXISTS "${hotel.schemaName}"`);
