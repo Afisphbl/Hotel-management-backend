@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, LessThan, In } from 'typeorm';
+import { assertSafeSchemaName } from '../../common/tenant/tenant-utils';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
 import { User, UserScope } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
@@ -184,8 +185,9 @@ export class PlatformService {
       // 3. Resolve current room count from the tenant database when available
       let totalRooms = hotel.rooms;
       try {
+        const schemaName = assertSafeSchemaName(hotel.schemaName);
         const dbRooms = (await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+          `SELECT COUNT(*) as count FROM "${schemaName}"."rooms"`,
         )) as Array<{ count: string }>;
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
@@ -249,8 +251,9 @@ export class PlatformService {
     // 3. Query count of rooms inside tenant schema
     let totalRooms = hotel.rooms;
     try {
+      const schemaName = assertSafeSchemaName(hotel.schemaName);
       const dbRooms = (await this.dataSource.query(
-        `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+        `SELECT COUNT(*) as count FROM "${schemaName}"."rooms"`,
       )) as Array<{ count: string }>;
       totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
@@ -475,6 +478,7 @@ export class PlatformService {
       }
 
       // 2. Create the Physical Schema
+      assertSafeSchemaName(schemaName);
       await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
       // 3. TODO: In a real app, run migrations for the new schema here
@@ -586,8 +590,9 @@ export class PlatformService {
 
     // Drop tenant-specific schema cleanly
     try {
+      const schemaName = assertSafeSchemaName(hotel.schemaName);
       await this.dataSource.query(
-        `DROP SCHEMA IF EXISTS "${hotel.schemaName}" CASCADE`,
+        `DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`,
       );
     } catch {
       /* schema may not exist */
@@ -778,6 +783,7 @@ export class PlatformService {
       statusClause: string,
     ) => {
       try {
+        assertSafeSchemaName(schemaName);
         const rows = (await this.dataSource.query(
           `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
            FROM "${schemaName}"."invoices"

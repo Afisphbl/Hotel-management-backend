@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { assertSafeSchemaName } from '../../common/tenant/tenant-utils';
 import { User } from '../../database/entities/user.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
@@ -44,9 +45,10 @@ export class GdprService {
     const hotels = await this.hotelRepository.find();
     for (const hotel of hotels) {
       try {
+        const schemaName = assertSafeSchemaName(hotel.schemaName);
         // Check if user exists as a guest in this hotel schema
         const guests = await this.dataSource.query(
-          `SELECT * FROM "${hotel.schemaName}"."guests" WHERE email = $1`,
+          `SELECT * FROM "${schemaName}"."guests" WHERE email = $1`,
           [user.email],
         );
 
@@ -59,8 +61,8 @@ export class GdprService {
 
         // Check for bookings
         const bookings = await this.dataSource.query(
-          `SELECT b.* FROM "${hotel.schemaName}"."bookings" b
-           JOIN "${hotel.schemaName}"."guests" g ON b."guestId" = g.id
+          `SELECT b.* FROM "${schemaName}"."bookings" b
+           JOIN "${schemaName}"."guests" g ON b."guestId" = g.id
            WHERE g.email = $1`,
           [user.email],
         );
@@ -105,8 +107,9 @@ export class GdprService {
     const hotels = await this.hotelRepository.find();
     for (const hotel of hotels) {
       try {
+        const schemaName = assertSafeSchemaName(hotel.schemaName);
         await this.dataSource.query(
-          `UPDATE "${hotel.schemaName}"."guests"
+          `UPDATE "${schemaName}"."guests"
            SET "firstName" = 'Anonymized',
                "lastName" = 'User',
                "email" = $1,
