@@ -664,12 +664,10 @@ export class PlatformService {
         id: log.id,
         timestamp: log.createdAt,
         actor: actorId ? userMap.get(actorId) || 'System' : 'System',
-        hotel: log.hotelId
-          ? hotelMap.get(log.hotelId) || 'Grand Peninsula'
-          : '-',
+        hotel: log.hotelId ? hotelMap.get(log.hotelId) || '-' : '-',
         action: log.action,
         resource: log.resourceType,
-        ip: log.metadata?.ipAddress || 'unknown',
+        ip: log.metadata?.ipAddress || '-',
       };
     });
   }
