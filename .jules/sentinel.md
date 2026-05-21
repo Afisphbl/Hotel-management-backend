@@ -1,0 +1,4 @@
+## 2025-05-15 - SQL Injection in Multi-tenant Schema Identifiers
+**Vulnerability:** Raw SQL queries interpolated database schema names directly from the `Hotel` entity without validation. Since schema identifiers cannot be parameterized in standard SQL, this created a potential SQL injection vector if a tenant's schema name was compromised or maliciously crafted.
+**Learning:** Multi-tenant applications using physical schema separation often require raw SQL for cross-schema operations. Standard parameterization (using `$1`, etc.) only works for data values, not identifiers like schema or table names.
+**Prevention:** Always validate schema identifiers against a strict whitelist (e.g., `/^[a-zA-Z0-9_]+$/`) before interpolating them into SQL strings. Use a centralized utility to enforce this validation across the codebase.
