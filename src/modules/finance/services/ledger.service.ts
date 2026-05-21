@@ -42,7 +42,7 @@ export class LedgerService {
       accountId: dto.accountId,
       debit: dto.debit,
       credit: dto.credit,
-      currency: dto.currency || 'USD',
+      currency: dto.currency || 'ETB',
       referenceType: dto.referenceType,
       referenceId: dto.referenceId,
       bookingId: dto.bookingId,

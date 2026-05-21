@@ -50,7 +50,7 @@ export class Invoice extends BaseEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
   taxTotal: number;
 
-  @Column({ type: 'varchar', default: 'USD' })
+  @Column({ type: 'varchar', default: 'ETB' })
   currency: string;
 
   @Column({ type: 'enum', enum: InvoiceStatus, default: InvoiceStatus.DRAFT })

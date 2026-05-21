@@ -15,7 +15,7 @@ export class LedgerEntry extends BaseEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   credit: number;
 
-  @Column({ type: 'varchar', default: 'USD' })
+  @Column({ type: 'varchar', default: 'ETB' })
   currency: string;
 
   @Column()

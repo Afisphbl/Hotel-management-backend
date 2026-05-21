@@ -115,7 +115,7 @@ export class PricingService {
       } else {
         price = price - Number(promo.discountValue);
         this.logger.debug(
-          `Promotion "${promo.name}" $${promo.discountValue} off → ${price}`,
+          `Promotion "${promo.name}" ETB ${promo.discountValue} off → ${price}`,
         );
       }
     }

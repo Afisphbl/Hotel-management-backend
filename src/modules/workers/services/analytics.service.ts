@@ -14,7 +14,10 @@ import {
   InvoiceStatus,
 } from '../../../database/entities/invoice.entity';
 import { Hotel, HotelStatus } from '../../../database/entities/hotel.entity';
-import { Subscription, SubscriptionStatus } from '../../../database/entities/global/subscriptions.entity';
+import {
+  Subscription,
+  SubscriptionStatus,
+} from '../../../database/entities/global/subscriptions.entity';
 import { User } from '../../../database/entities/user.entity';
 
 @Injectable()
@@ -47,7 +50,8 @@ export class AnalyticsService {
     ]);
 
     // MRR calculation
-    const mrrResult = (await this.dataSource.getRepository(Subscription)
+    const mrrResult = (await this.dataSource
+      .getRepository(Subscription)
       .createQueryBuilder('sub')
       .select('SUM(sub.price)', 'mrr')
       .where('sub.status = :status', { status: SubscriptionStatus.ACTIVE })
@@ -58,9 +62,9 @@ export class AnalyticsService {
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
     });
-    
+
     this.logger.log(`Querying ${hotels.length} hotel schemas in parallel...`);
-    
+
     const bookingCounts = await Promise.all(
       hotels.map(async (h) => {
         try {
@@ -69,7 +73,9 @@ export class AnalyticsService {
           )) as unknown as Array<{ count: string }>;
           return parseInt(countRes[0]?.count || '0', 10);
         } catch (err) {
-          this.logger.warn(`Failed to count bookings for hotel ${h.id}: ${err.message}`);
+          this.logger.warn(
+            `Failed to count bookings for hotel ${h.id}: ${err.message}`,
+          );
           return 0;
         }
       }),
@@ -86,17 +92,35 @@ export class AnalyticsService {
       timestamp: new Date().toISOString(),
     };
 
-    return this.saveSnapshot(SnapshotType.PLATFORM_KPI, today, new Date(), data);
+    return this.saveSnapshot(
+      SnapshotType.PLATFORM_KPI,
+      today,
+      new Date(),
+      data,
+    );
   }
 
   async computePlatformRevenue(): Promise<AnalyticsSnapshot> {
     this.logger.log('Computing Platform Revenue...');
     const today = new Date();
     const periodStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    
+
     // Calculate last 6 months revenue
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
     });
@@ -111,7 +135,8 @@ export class AnalyticsService {
         const startOfMonth = new Date(year, monthIndex, 1);
         const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
 
-        const subSum = (await this.dataSource.getRepository(Subscription)
+        const subSum = (await this.dataSource
+          .getRepository(Subscription)
           .createQueryBuilder('sub')
           .select('SUM(sub.price)', 'total')
           .where('sub.startDate <= :end', { end: endOfMonth })
@@ -138,7 +163,7 @@ export class AnalyticsService {
             } catch {
               return 0;
             }
-          })
+          }),
         );
 
         const bookings = bookingCounts.reduce((sum, count) => sum + count, 0);
@@ -148,10 +173,15 @@ export class AnalyticsService {
           revenue,
           bookings,
         };
-      })
+      }),
     );
 
-    return this.saveSnapshot(SnapshotType.PLATFORM_REVENUE, periodStart, today, { chart: revenueData });
+    return this.saveSnapshot(
+      SnapshotType.PLATFORM_REVENUE,
+      periodStart,
+      today,
+      { chart: revenueData },
+    );
   }
 
   async computeDailyOccupancy(): Promise<AnalyticsSnapshot> {
@@ -194,7 +224,7 @@ export class AnalyticsService {
     return this.saveSnapshot(SnapshotType.REVENUE_SUMMARY, today, tomorrow, {
       totalRevenue,
       paidInvoiceCount: paidInvoices.length,
-      currency: 'USD',
+      currency: 'ETB',
       timestamp: new Date().toISOString(),
     });
   }

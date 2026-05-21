@@ -95,7 +95,7 @@ export class InvoicesService {
       amount,
       subtotal,
       taxTotal,
-      currency: dto.currency || 'USD',
+      currency: dto.currency || 'ETB',
       status: InvoiceStatus.DRAFT,
       lineItems: dto.lineItems || [],
       dueDate: dto.dueDate

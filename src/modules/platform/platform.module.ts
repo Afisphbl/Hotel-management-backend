@@ -33,7 +33,6 @@ import { PaymentGatewayService } from '../../common/services/payment-gateway.ser
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { RedisService } from '../redis/redis.service';
 import { Hotel } from '../../database/entities/hotel.entity';
-import { Hotel as GlobalHotel } from '../../database/entities/global/hotel.entity';
 import { User } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
 import { Subscription } from '../../database/entities/global/subscriptions.entity';
@@ -41,7 +40,13 @@ import { FeatureFlag } from '../../database/entities/global/feature-flag.entity'
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { AnalyticsSnapshot } from '../../database/entities/analytics-snapshot.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
-import { PlatformUser, Role, Permission, RolePermission, HotelUserAccess } from '../../database/entities/global';
+import {
+  PlatformUser,
+  Role,
+  Permission,
+  RolePermission,
+  HotelUserAccess,
+} from '../../database/entities/global';
 import { SupportAccess } from '../../database/entities/global/support-access.entity';
 import { TenantQuota } from '../../database/entities/global/tenant-quota.entity';
 import { OverageBilling } from '../../database/entities/global/overage-billing.entity';
@@ -60,7 +65,6 @@ import { CustomReport } from '../../database/entities/global/custom-report.entit
   imports: [
     TypeOrmModule.forFeature([
       Hotel,
-      GlobalHotel,
       User,
       Booking,
       Subscription,

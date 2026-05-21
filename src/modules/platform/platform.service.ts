@@ -82,8 +82,27 @@ export class PlatformService {
           : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
 
       // 2. Resolve Primary Owner
-      const owner = hotel.ownerName || 'John Doe';
-      const email = hotel.ownerEmail || 'owner@example.com';
+      const ownerEmail = hotel.ownerEmail || null;
+      let ownerName = hotel.ownerName || null;
+      if (!ownerName && ownerEmail) {
+        const ownerUser = await this.userRepository.findOne({
+          where: { email: ownerEmail },
+        });
+        if (ownerUser) {
+          ownerName = `${ownerUser.firstName} ${ownerUser.lastName}`.trim();
+        }
+      }
+
+      // 3. Resolve current room count from the tenant database when available
+      let totalRooms = hotel.rooms;
+      try {
+        const dbRooms = (await this.dataSource.query(
+          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+        )) as Array<{ count: string }>;
+        totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
+      } catch {
+        // Fallback to the stored value on the global hotel record.
+      }
 
       enrichedHotels.push({
         id: hotel.id,
@@ -92,10 +111,13 @@ export class PlatformService {
         schemaName: hotel.schemaName,
         status: hotel.status,
         created: hotel.createdAt,
-        owner,
-        email,
+        owner: ownerName,
+        ownerName,
+        email: ownerEmail,
+        ownerEmail,
         plan,
-        rooms: hotel.rooms,
+        rooms: totalRooms,
+        totalRooms,
       });
     }
 
@@ -250,7 +272,7 @@ export class PlatformService {
           ? `${data.city}, ${data.country || 'United Kingdom'}`
           : 'London, United Kingdom',
         timezone: data.timezone || 'UTC',
-        currency: data.country === 'United Kingdom' ? 'GBP' : 'USD',
+        currency: 'ETB',
         rooms: data.rooms || 120,
       });
       hotel.id = hotelId;
@@ -335,7 +357,7 @@ export class PlatformService {
         hotel: { id: hotelId },
         plan,
         price: subPrice,
-        currency: data.country === 'United Kingdom' ? 'GBP' : 'USD',
+        currency: 'ETB',
         startDate: new Date(),
         status: SubscriptionStatus.ACTIVE,
         features: {
@@ -665,20 +687,31 @@ export class PlatformService {
     let collectedRevenue = 0;
     let outstandingRevenue = 0;
 
-    for (const hotel of hotels) {
-      const paidInvoices = (await this.dataSource.query(
-        `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
-         FROM "${hotel.schemaName}"."invoices"
-         WHERE status = 'paid'`,
-      )) as Array<{ revenue: string }>;
-      const openInvoices = (await this.dataSource.query(
-        `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
-         FROM "${hotel.schemaName}"."invoices"
-         WHERE status IN ('issued', 'overdue', 'partially_paid')`,
-      )) as Array<{ revenue: string }>;
+    const readHotelRevenue = async (
+      schemaName: string,
+      statusClause: string,
+    ) => {
+      try {
+        const rows = (await this.dataSource.query(
+          `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
+           FROM "${schemaName}"."invoices"
+           WHERE ${statusClause}`,
+        )) as Array<{ revenue: string }>;
+        return Number(rows[0]?.revenue ?? 0);
+      } catch {
+        return 0;
+      }
+    };
 
-      const hotelRevenue = Number(paidInvoices[0]?.revenue ?? 0);
-      const hotelOutstanding = Number(openInvoices[0]?.revenue ?? 0);
+    for (const hotel of hotels) {
+      const hotelRevenue = await readHotelRevenue(
+        hotel.schemaName,
+        "status = 'paid'",
+      );
+      const hotelOutstanding = await readHotelRevenue(
+        hotel.schemaName,
+        "status IN ('issued', 'overdue', 'partially_paid')",
+      );
       const monthlySubscriptionRevenue = Number(
         subscriptions.find((sub) => sub.hotel?.id === hotel.id)?.price ?? 0,
       );
@@ -709,6 +742,7 @@ export class PlatformService {
       outstandingRevenue,
       averageRevenuePerHotel:
         hotels.length > 0 ? collectedRevenue / hotels.length : 0,
+      currency: 'ETB',
       revenueByHotel,
     };
   }

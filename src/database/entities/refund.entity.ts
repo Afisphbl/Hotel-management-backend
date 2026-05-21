@@ -52,7 +52,7 @@ export class Refund extends BaseEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
 
-  @Column({ type: 'varchar', default: 'USD' })
+  @Column({ type: 'varchar', default: 'ETB' })
   currency: string;
 
   @Column({

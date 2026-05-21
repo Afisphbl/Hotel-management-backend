@@ -53,8 +53,8 @@ export class PdfGeneratorService {
         <tr>
           <td>${item.description}</td>
           <td>${item.quantity}</td>
-          <td>$${Number(item.unitPrice).toFixed(2)}</td>
-          <td>$${Number(item.total).toFixed(2)}</td>
+          <td>ETB ${Number(item.unitPrice).toFixed(2)}</td>
+          <td>ETB ${Number(item.total).toFixed(2)}</td>
         </tr>`,
       )
       .join('');
@@ -80,9 +80,9 @@ export class PdfGeneratorService {
     ${items}
   </table>
   <hr>
-  <p><strong>Subtotal:</strong> $${Number(invoice.subtotal || invoice.amount).toFixed(2)}</p>
-  <p><strong>Tax:</strong> $${Number(invoice.taxTotal).toFixed(2)}</p>
-  <p style="font-size:1.2em;"><strong>Total:</strong> $${Number(invoice.amount).toFixed(2)} ${invoice.currency}</p>
+  <p><strong>Subtotal:</strong> ETB ${Number(invoice.subtotal || invoice.amount).toFixed(2)}</p>
+  <p><strong>Tax:</strong> ETB ${Number(invoice.taxTotal).toFixed(2)}</p>
+  <p style="font-size:1.2em;"><strong>Total:</strong> ETB ${Number(invoice.amount).toFixed(2)} ${invoice.currency}</p>
 </body>
 </html>`;
   }

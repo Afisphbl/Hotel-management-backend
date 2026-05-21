@@ -1,9 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Between, LessThan, MoreThan } from 'typeorm';
-import { Subscription, SubscriptionPlan, SubscriptionStatus } from '../../database/entities/global/subscriptions.entity';
+import {
+  Subscription,
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from '../../database/entities/global/subscriptions.entity';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
-import { AnalyticsSnapshot, SnapshotType } from '../../database/entities/analytics-snapshot.entity';
+import {
+  AnalyticsSnapshot,
+  SnapshotType,
+} from '../../database/entities/analytics-snapshot.entity';
 import { User } from '../../database/entities/user.entity';
 
 @Injectable()
@@ -28,7 +35,10 @@ export class RevenueAnalyticsService {
       relations: ['hotel'],
     });
 
-    const mrrByPlan: Record<string, { count: number; revenue: number; hotels: string[] }> = {};
+    const mrrByPlan: Record<
+      string,
+      { count: number; revenue: number; hotels: string[] }
+    > = {};
     let totalMRR = 0;
     let totalOverageMRR = 0;
 
@@ -50,10 +60,17 @@ export class RevenueAnalyticsService {
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const lastMonthSubs = await this.subscriptionRepository.find({
-      where: { status: SubscriptionStatus.ACTIVE, createdAt: LessThan(lastMonth) },
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        createdAt: LessThan(lastMonth),
+      },
     });
-    const lastMonthMRR = lastMonthSubs.reduce((sum, s) => sum + Number(s.price), 0);
-    const mrrGrowth = lastMonthMRR > 0 ? ((totalMRR - lastMonthMRR) / lastMonthMRR) * 100 : 0;
+    const lastMonthMRR = lastMonthSubs.reduce(
+      (sum, s) => sum + Number(s.price),
+      0,
+    );
+    const mrrGrowth =
+      lastMonthMRR > 0 ? ((totalMRR - lastMonthMRR) / lastMonthMRR) * 100 : 0;
 
     return {
       totalMRR,
@@ -64,13 +81,17 @@ export class RevenueAnalyticsService {
         plan,
         hotelCount: data.count,
         revenue: data.revenue,
-        revenueShare: totalMRR > 0 ? Math.round((data.revenue / totalMRR) * 10000) / 100 : 0,
+        revenueShare:
+          totalMRR > 0
+            ? Math.round((data.revenue / totalMRR) * 10000) / 100
+            : 0,
       })),
-      averageRevenuePerHotel: activeSubscriptions.length > 0
-        ? Math.round(totalMRR / activeSubscriptions.length * 100) / 100
-        : 0,
+      averageRevenuePerHotel:
+        activeSubscriptions.length > 0
+          ? Math.round((totalMRR / activeSubscriptions.length) * 100) / 100
+          : 0,
       totalSubscriptions: activeSubscriptions.length,
-      currency: 'USD',
+      currency: 'ETB',
       computedAt: new Date(),
     };
   }
@@ -110,16 +131,25 @@ export class RevenueAnalyticsService {
 
     const totalSubsEver = await this.subscriptionRepository.count();
 
-    const churnRate = totalActive + cancelledLast30 > 0
-      ? Math.round((cancelledLast30 / (totalActive + cancelledLast30)) * 10000) / 100
-      : 0;
+    const churnRate =
+      totalActive + cancelledLast30 > 0
+        ? Math.round(
+            (cancelledLast30 / (totalActive + cancelledLast30)) * 10000,
+          ) / 100
+        : 0;
 
     let netRetention = 0;
     const activeAtStart = await this.subscriptionRepository.count({
-      where: { status: SubscriptionStatus.ACTIVE, createdAt: LessThan(thirtyDaysAgo) },
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+        createdAt: LessThan(thirtyDaysAgo),
+      },
     });
     if (activeAtStart > 0) {
-      netRetention = Math.round(((activeAtStart - cancelledLast30) / activeAtStart) * 10000) / 100;
+      netRetention =
+        Math.round(
+          ((activeAtStart - cancelledLast30) / activeAtStart) * 10000,
+        ) / 100;
     }
 
     const mrrBreakdown = await this.getMRRBreakdown();
@@ -140,7 +170,9 @@ export class RevenueAnalyticsService {
   }
 
   async getDetailedFinancialReport(startDate?: string, endDate?: string) {
-    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1);
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1);
     const end = endDate ? new Date(endDate) : new Date();
 
     const subscriptions = await this.subscriptionRepository.find({
@@ -162,15 +194,23 @@ export class RevenueAnalyticsService {
     let cursor = new Date(start);
     while (cursor <= end) {
       const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-      const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59);
-
-      const activeInMonth = subscriptions.filter(s =>
-        new Date(s.startDate) <= monthEnd &&
-        (!s.endDate || new Date(s.endDate) >= monthStart),
+      const monthEnd = new Date(
+        cursor.getFullYear(),
+        cursor.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
       );
 
-      const newInMonth = activeInMonth.filter(s =>
-        s.createdAt >= monthStart && s.createdAt <= monthEnd,
+      const activeInMonth = subscriptions.filter(
+        (s) =>
+          new Date(s.startDate) <= monthEnd &&
+          (!s.endDate || new Date(s.endDate) >= monthStart),
+      );
+
+      const newInMonth = activeInMonth.filter(
+        (s) => s.createdAt >= monthStart && s.createdAt <= monthEnd,
       );
 
       const churnedInMonth = await this.subscriptionRepository.count({
@@ -180,8 +220,14 @@ export class RevenueAnalyticsService {
         },
       });
 
-      const subRevenue = activeInMonth.reduce((sum, s) => sum + Number(s.price), 0);
-      const overageRevenue = activeInMonth.reduce((sum, s) => sum + Number(s.overageBilled || 0), 0);
+      const subRevenue = activeInMonth.reduce(
+        (sum, s) => sum + Number(s.price),
+        0,
+      );
+      const overageRevenue = activeInMonth.reduce(
+        (sum, s) => sum + Number(s.overageBilled || 0),
+        0,
+      );
 
       monthlyData.push({
         month: cursor.toLocaleString('default', { month: 'short' }),
@@ -203,11 +249,18 @@ export class RevenueAnalyticsService {
       period: { start, end },
       summary: {
         totalRevenue: Math.round(totalRevenue * 100) / 100,
-        averageMonthlyRevenue: monthlyData.length > 0
-          ? Math.round((totalRevenue / monthlyData.length) * 100) / 100
-          : 0,
-        subscriptionRevenue: Math.round(monthlyData.reduce((s, m) => s + m.subscriptionRevenue, 0) * 100) / 100,
-        overageRevenue: Math.round(monthlyData.reduce((s, m) => s + m.overageRevenue, 0) * 100) / 100,
+        averageMonthlyRevenue:
+          monthlyData.length > 0
+            ? Math.round((totalRevenue / monthlyData.length) * 100) / 100
+            : 0,
+        subscriptionRevenue:
+          Math.round(
+            monthlyData.reduce((s, m) => s + m.subscriptionRevenue, 0) * 100,
+          ) / 100,
+        overageRevenue:
+          Math.round(
+            monthlyData.reduce((s, m) => s + m.overageRevenue, 0) * 100,
+          ) / 100,
         totalMonths: monthlyData.length,
       },
       monthlyData,

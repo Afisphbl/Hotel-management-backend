@@ -55,7 +55,7 @@ export class Payment extends BaseEntity {
   @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
   netAmount: number;
 
-  @Column({ type: 'varchar', default: 'USD' })
+  @Column({ type: 'varchar', default: 'ETB' })
   currency: string;
 
   @Column({
