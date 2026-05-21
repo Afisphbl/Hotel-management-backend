@@ -64,17 +64,24 @@ export class RbacService {
 
       if (!hotelAccess) return false;
 
-      if (hotelAccess.permissions?.includes(permission) || hotelAccess.permissions?.includes('*')) {
+      if (
+        hotelAccess.permissions?.includes(permission) ||
+        hotelAccess.permissions?.includes('*')
+      ) {
         hasPermission = true;
       } else {
         // Resolve hierarchical permissions for hotel role
-        const permissions = await this.getHierarchicalPermissions(hotelAccess.role?.id);
-        hasPermission = permissions.includes(permission) || permissions.includes('*');
+        const permissions = await this.getHierarchicalPermissions(
+          hotelAccess.role?.id,
+        );
+        hasPermission =
+          permissions.includes(permission) || permissions.includes('*');
       }
     } else {
       // PLATFORM SCOPE: Resolve hierarchical permissions for platform role
       const permissions = await this.getHierarchicalPermissions(user.role?.id);
-      hasPermission = permissions.includes(permission) || permissions.includes('*');
+      hasPermission =
+        permissions.includes(permission) || permissions.includes('*');
     }
 
     // Cache result
@@ -92,12 +99,13 @@ export class RbacService {
 
     // Super Admin (Level 100) -> Support (Level 50) -> Billing (Level 30)
     // Higher-level roles inherit all permissions of lower-level roles
-    const inheritedRoles = await this.roleRepository.createQueryBuilder('role')
+    const inheritedRoles = await this.roleRepository
+      .createQueryBuilder('role')
       .where('role.hierarchyLevel <= :level', { level: role.hierarchyLevel })
       .getMany();
 
-    const roleIds = inheritedRoles.map(r => r.id);
-    
+    const roleIds = inheritedRoles.map((r) => r.id);
+
     if (roleIds.length === 0) return [];
 
     const rolePermissions = await this.rolePermissionRepository.find({
@@ -105,7 +113,7 @@ export class RbacService {
       relations: ['permission'],
     });
 
-    return [...new Set(rolePermissions.map(rp => rp.permission.code))];
+    return [...new Set(rolePermissions.map((rp) => rp.permission.code))];
   }
 
   async grantRolePermission(
@@ -166,15 +174,16 @@ export class RbacService {
     }
 
     let access = await this.hotelUserAccessRepository.findOne({
-      where: { user: { id: userId }, hotelId },
+      where: { userId, hotelId },
     });
 
     if (!access) {
       access = this.hotelUserAccessRepository.create({
-        user,
+        userId,
         hotelId,
         grantedAt: new Date(),
         permissions,
+        status: 'ACTIVE' as any,
       });
     } else {
       access.permissions = permissions;
@@ -215,10 +224,10 @@ export class RbacService {
       return JSON.parse(cached);
     }
 
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-        relations: ['role'],
-      });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -228,14 +237,17 @@ export class RbacService {
 
     if (hotelId) {
       const hotelAccess = (user as any).hotelAccesses?.find(
-        (access: any) => access.hotelId === hotelId && access.status === 'ACTIVE',
+        (access: any) =>
+          access.hotelId === hotelId && access.status === 'ACTIVE',
       );
 
       if (hotelAccess) {
         if (hotelAccess.permissions) {
           permissions = hotelAccess.permissions;
         } else {
-          permissions = await this.getHierarchicalPermissions(hotelAccess.role?.id);
+          permissions = await this.getHierarchicalPermissions(
+            hotelAccess.role?.id,
+          );
         }
       }
     } else {

@@ -5,9 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToMany,
 } from 'typeorm';
-import { HotelUserAccess } from './hotel-user-access.entity';
 
 export enum HotelStatus {
   ACTIVE = 'ACTIVE',
@@ -93,7 +91,4 @@ export class Hotel {
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true })
   deletedAt: Date | null;
-
-  @OneToMany(() => HotelUserAccess, (access) => access.hotel)
-  userAccesses: HotelUserAccess[];
 }

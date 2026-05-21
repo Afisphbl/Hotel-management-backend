@@ -24,6 +24,9 @@ export class Permission {
   description: string;
 
   @Column({ type: 'text', nullable: true })
+  slug: string;
+
+  @Column({ type: 'text', nullable: true })
   resource: string;
 
   @Column({ type: 'text', nullable: true })
