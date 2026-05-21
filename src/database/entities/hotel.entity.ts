@@ -2,15 +2,29 @@ import { Entity, Column } from 'typeorm';
 import { BaseEntity } from './base.entity';
 
 export enum HotelStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum HotelType {
+  BOUTIQUE = 'BOUTIQUE',
+  CHAIN = 'CHAIN',
+  RESORT = 'RESORT',
+  MOTEL = 'MOTEL',
+  LUXURY = 'LUXURY',
 }
 
 @Entity({ name: 'hotels', schema: 'global' })
 export class Hotel extends BaseEntity {
   @Column({ unique: true })
   name: string;
+
+  @Column({ unique: true })
+  slug: string;
+
+  @Column({ type: 'enum', enum: HotelType, default: HotelType.BOUTIQUE })
+  type: HotelType;
 
   @Column({ unique: true, nullable: true })
   schemaName: string;

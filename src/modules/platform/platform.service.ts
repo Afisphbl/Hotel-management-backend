@@ -20,12 +20,19 @@ import {
   FeatureFlagStatus,
   FeatureFlagRolloutStrategy,
 } from '../../database/entities/global/feature-flag.entity';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
-import { AnalyticsSnapshot, SnapshotType } from '../../database/entities/analytics-snapshot.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
+import {
+  AnalyticsSnapshot,
+  SnapshotType,
+} from '../../database/entities/analytics-snapshot.entity';
 import { AuditLog } from '../../database/entities/audit-log.entity';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { Role } from '../../database/entities/role.entity';
+import { RoleScope } from '../../database/entities/role.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
@@ -117,10 +124,10 @@ export class PlatformService {
     let phone: string | null = null;
     if (email) {
       try {
-        const ownerUser = await this.dataSource.query(
+        const ownerUser = (await this.dataSource.query(
           `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
           [email],
-        ) as Array<{ phone: string | null }>;
+        )) as Array<{ phone: string | null }>;
         if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
           phone = ownerUser[0].phone;
         }
@@ -225,10 +232,15 @@ export class PlatformService {
       const subdomain = data.code
         ? data.code.toLowerCase().replace(/[^a-z0-9]/g, '')
         : data.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slug = data.code
+        ? data.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        : data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
       // 1. Create Hotel Record in Global Schema
       const hotel = Object.assign(new Hotel(), {
         name: data.name,
+        slug,
+        type: 'BOUTIQUE',
         ownerName: data.ownerName || null,
         ownerEmail: data.ownerEmail || null,
         subdomain: data.subdomain || subdomain,
@@ -285,6 +297,7 @@ export class PlatformService {
         if (!role) {
           role = queryRunner.manager.create(Role, {
             name: 'HOTEL_ADMIN',
+            scope: RoleScope.HOTEL,
             description: 'Full access to all hotel operations',
             isSystemRole: true,
             hierarchyLevel: 80,
@@ -297,6 +310,7 @@ export class PlatformService {
           userId: savedUser.id,
           hotelId: savedHotel.id,
           roleId: role.id,
+          grantedAt: new Date(),
         });
         await queryRunner.manager.save(userAccess);
       }
@@ -398,9 +412,9 @@ export class PlatformService {
       }
     }
 
-    // Normalise status to lowercase to match HotelStatus enum values ('active' | 'suspended')
+    // Normalise status to uppercase to match HotelStatus enum values ('ACTIVE' | 'SUSPENDED')
     if (sanitizedData.status) {
-      sanitizedData.status = sanitizedData.status.toLowerCase() as HotelStatus;
+      sanitizedData.status = sanitizedData.status.toUpperCase() as HotelStatus;
     }
 
     await this.hotelRepository.update(id, sanitizedData);
@@ -734,7 +748,8 @@ export class PlatformService {
 
   async createPlatformStaff(data: any) {
     const rawPassword =
-      data.password || (await this.passwordPolicyService.generateTemporaryPassword());
+      data.password ||
+      (await this.passwordPolicyService.generateTemporaryPassword());
     await this.passwordPolicyService.assertCompliant(rawPassword);
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const user = this.userRepository.create({
@@ -891,7 +906,8 @@ export class PlatformService {
     flag.status = data.status || FeatureFlagStatus.DISABLED;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
-    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.rolloutPercentage != null)
+      flag.rolloutPercentage = data.rolloutPercentage;
     if (data.targetingRules) flag.targetingRules = data.targetingRules;
     if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
     if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;
@@ -920,7 +936,8 @@ export class PlatformService {
     if (data.status) flag.status = data.status;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
-    if (data.rolloutPercentage != null) flag.rolloutPercentage = data.rolloutPercentage;
+    if (data.rolloutPercentage != null)
+      flag.rolloutPercentage = data.rolloutPercentage;
     if (data.targetingRules) flag.targetingRules = data.targetingRules;
     if (data.allowedUserIds) flag.allowedUserIds = data.allowedUserIds;
     if (data.allowedRoleIds) flag.allowedRoleIds = data.allowedRoleIds;
