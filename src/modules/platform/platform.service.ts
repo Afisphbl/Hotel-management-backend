@@ -37,6 +37,7 @@ import { HotelUserAccess } from '../../database/entities/hotel-user-access.entit
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { CreateHotelDto } from './dto/create-hotel.dto';
+import { PaginatedResult } from '../../common/pagination/pagination.interface';
 
 @Injectable()
 export class PlatformService {
@@ -63,6 +64,93 @@ export class PlatformService {
   ) {}
 
   // --- Hotel Management ---
+
+  async findAllHotelsPaginated(options: {
+    page: number;
+    limit: number;
+    search?: string;
+    plan?: string;
+    sortBy?: string;
+  }): Promise<PaginatedResult<any>> {
+    const { page, limit, search, plan, sortBy } = options;
+    const qb = this.hotelRepository.createQueryBuilder('hotel');
+
+    // Join with active subscription to get the plan
+    qb.leftJoinAndMapOne(
+      'hotel.activeSubscription',
+      Subscription,
+      'sub',
+      'sub.hotelId = hotel.id AND sub.status = :activeStatus',
+      { activeStatus: SubscriptionStatus.ACTIVE },
+    );
+
+    if (search) {
+      qb.andWhere(
+        '(hotel.name ILIKE :search OR hotel.ownerName ILIKE :search OR hotel.ownerEmail ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    if (plan && plan !== 'all') {
+      let planValue = plan.toUpperCase();
+      if (planValue === 'PRO') planValue = SubscriptionPlan.PROFESSIONAL;
+      qb.andWhere('sub.plan = :plan', { plan: planValue });
+    }
+
+    // Sorting
+    if (sortBy) {
+      const [field, order] = sortBy.split('-');
+      const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
+      if (field === 'name') {
+        qb.orderBy('hotel.name', sortOrder);
+      } else if (field === 'rooms') {
+        qb.orderBy('hotel.rooms', sortOrder);
+      } else if (field === 'created') {
+        qb.orderBy('hotel.createdAt', sortOrder);
+      }
+    } else {
+      qb.orderBy('hotel.createdAt', 'DESC');
+    }
+
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    const [hotels, total] = await qb.getManyAndCount();
+    const enrichedHotels: any[] = [];
+
+    for (const hotel of hotels) {
+      const activeSub = (hotel as any).activeSubscription;
+      const rawPlan = activeSub?.plan || SubscriptionPlan.BASIC;
+      const planLabel =
+        rawPlan === SubscriptionPlan.PROFESSIONAL
+          ? 'Pro'
+          : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
+
+      enrichedHotels.push({
+        id: hotel.id,
+        name: hotel.name,
+        subdomain: hotel.subdomain,
+        schemaName: hotel.schemaName,
+        status: hotel.status,
+        created: hotel.createdAt,
+        owner: hotel.ownerName,
+        ownerName: hotel.ownerName,
+        email: hotel.ownerEmail,
+        ownerEmail: hotel.ownerEmail,
+        plan: planLabel,
+        rooms: hotel.rooms,
+        totalRooms: hotel.rooms,
+      });
+    }
+
+    return {
+      items: enrichedHotels,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
   async findAllHotels(): Promise<Array<Record<string, any>>> {
     const hotels = await this.hotelRepository.find({

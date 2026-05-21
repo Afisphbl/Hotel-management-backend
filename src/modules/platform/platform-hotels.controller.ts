@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { PlatformService } from './platform.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,8 +24,20 @@ export class PlatformHotelsController {
   constructor(private platformService: PlatformService) {}
 
   @Get()
-  async getHotels() {
-    return this.platformService.findAllHotels();
+  async getHotels(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 15,
+    @Query('search') search?: string,
+    @Query('plan') plan?: string,
+    @Query('sortBy') sortBy?: string,
+  ) {
+    return this.platformService.findAllHotelsPaginated({
+      page: Number(page),
+      limit: Number(limit),
+      search,
+      plan,
+      sortBy,
+    });
   }
 
   @Post()
