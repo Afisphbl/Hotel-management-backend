@@ -4,10 +4,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { DataSource } from 'typeorm';
 import { User, UserScope } from '../src/database/entities/user.entity';
-import { Permission } from '../src/database/entities/global/permission.entity';
-import { Role, RoleScope } from '../src/database/entities/global/role.entity';
-import { RolePermission } from '../src/database/entities/global/role-permission.entity';
-import { Hotel, HotelStatus } from '../src/database/entities/hotel.entity';
+import { Permission } from '../src/database/entities/permission.entity';
+import { Role, RoleScope } from '../src/database/entities/role.entity';
+import { RolePermission } from '../src/database/entities/role-permission.entity';
+import { Hotel, HotelStatus, HotelType } from '../src/database/entities/hotel.entity';
 import {
   HotelUserAccess,
   HotelAccessStatus,
@@ -368,7 +368,7 @@ const ROLES: RoleDefinition[] = [
     name: 'SUPER_ADMIN',
     description: 'Full control over the entire platform',
     scope: RoleScope.PLATFORM,
-    permissions: PERMISSIONS.map((p) => p.code),
+    permissions: PERMISSIONS.map((p) => p.slug),
     hierarchyLevel: 100,
   },
   {
@@ -395,8 +395,8 @@ const ROLES: RoleDefinition[] = [
     description: 'Full access to all hotel operations',
     scope: RoleScope.HOTEL,
     permissions: PERMISSIONS.filter(
-      (p) => !['platform:impersonate', 'platform:manage'].includes(p.code),
-    ).map((p) => p.code),
+      (p) => !['platform:impersonate', 'platform:manage'].includes(p.slug),
+    ).map((p) => p.slug),
     hierarchyLevel: 100,
   },
   {
@@ -803,6 +803,26 @@ async function bootstrap() {
   console.log('=== Hotel Booking System - Seed Script ===\n');
 
   try {
+    console.log('0. Cleaning up database...');
+    // Drop all hotel schemas
+    const schemas: { nspname: string }[] = await dataSource.query(
+      `SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname LIKE 'hotel_%'`,
+    );
+    for (const schema of schemas) {
+      console.log(`   Dropping schema: ${schema.nspname}`);
+      await dataSource.query(`DROP SCHEMA IF EXISTS "${schema.nspname}" CASCADE`);
+    }
+
+    // Truncate all tables in global schema
+    const tables: { tablename: string }[] = await dataSource.query(
+      `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'global'`,
+    );
+    for (const table of tables) {
+      console.log(`   Truncating table: global.${table.tablename}`);
+      await dataSource.query(`TRUNCATE TABLE "global"."${table.tablename}" CASCADE`);
+    }
+    console.log('   Cleanup complete\n');
+
     const permissionRepo = dataSource.getRepository(Permission);
     const roleRepo = dataSource.getRepository(Role);
     const rolePermRepo = dataSource.getRepository(RolePermission);
@@ -831,11 +851,18 @@ async function bootstrap() {
     console.log('1. Creating Permissions...');
     const savedPermissions: Record<string, Permission> = {};
     for (const p of PERMISSIONS) {
-      let perm = await permissionRepo.findOne({ where: { code: p.code } });
+      let perm = await permissionRepo.findOne({ where: { slug: p.slug } });
       if (!perm) {
-        perm = await permissionRepo.save(permissionRepo.create(p));
+        perm = await permissionRepo.save(
+          permissionRepo.create({
+            name: p.name,
+            code: p.slug, // Use slug as code
+            slug: p.slug,
+            description: p.description,
+          }),
+        );
       }
-      savedPermissions[p.code] = perm;
+      savedPermissions[p.slug] = perm;
     }
     console.log(
       `   ${Object.keys(savedPermissions).length} permissions ready\n`,
@@ -851,26 +878,25 @@ async function bootstrap() {
             name: roleDef.name,
             description: roleDef.description,
             scope: roleDef.scope,
-            isSystem: true,
-            isActive: true,
+            isSystemRole: true,
             hierarchyLevel: roleDef.hierarchyLevel || 0,
           }),
         );
       }
       savedRoles[roleDef.name] = role;
 
-      const allowedCodes = new Set(roleDef.permissions);
-      for (const code of roleDef.permissions) {
-        const perm = savedPermissions[code];
+      const allowedSlugs = new Set(roleDef.permissions);
+      for (const slug of roleDef.permissions) {
+        const perm = savedPermissions[slug];
         if (!perm) continue;
         const exists = await rolePermRepo.findOne({
-          where: { role: { id: role.id }, permission: { id: perm.id } },
+          where: { roleId: role.id, permissionId: perm.id },
         });
         if (!exists) {
           await rolePermRepo.save(
             rolePermRepo.create({
-              role,
-              permission: perm,
+              roleId: role.id,
+              permissionId: perm.id,
               grantedAt: new Date(),
             }),
           );
@@ -878,11 +904,11 @@ async function bootstrap() {
       }
 
       const stale = await rolePermRepo.find({
-        where: { role: { id: role.id } },
-        relations: ['permission'],
+        where: { roleId: role.id },
       });
       for (const rp of stale) {
-        if (!allowedCodes.has(rp.permission.code)) {
+        const perm = await permissionRepo.findOne({ where: { id: rp.permissionId } });
+        if (perm && !allowedSlugs.has(perm.slug)) {
           await rolePermRepo.remove(rp);
         }
       }
@@ -949,13 +975,15 @@ async function bootstrap() {
         // Only insert columns that exist in the Hotel entity
         await dataSource.query(
           `INSERT INTO global.hotels
-             (id, name, "schemaName", status, subdomain, location, region, timezone, currency, rooms, "ownerName", "ownerEmail", "maintenanceMode", "storageUsedMb")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+             (id, name, slug, type, "schemaName", status, subdomain, location, region, timezone, currency, rooms, "ownerName", "ownerEmail", "maintenanceMode", "storageUsedMb")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
           [
             tempId,
             hc.name,
+            hc.slug,
+            HotelType.BOUTIQUE,
             schemaName,
-            HotelStatus.ACTIVE, // lowercase enum value: 'active'
+            HotelStatus.ACTIVE,
             hc.subdomain,
             hc.location,
             hc.region,

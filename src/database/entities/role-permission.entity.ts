@@ -9,4 +9,7 @@ export class RolePermission extends BaseEntity {
 
   @Column()
   permissionId: string;
+
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  grantedAt: Date;
 }
