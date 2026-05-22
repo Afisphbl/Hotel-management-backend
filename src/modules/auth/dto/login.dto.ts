@@ -13,5 +13,9 @@ export class LoginDto {
 
   @IsOptional()
   @IsString()
+  domain?: string;
+
+  @IsOptional()
+  @IsString()
   twoFactorCode?: string;
 }

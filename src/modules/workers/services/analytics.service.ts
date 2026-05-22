@@ -83,12 +83,32 @@ export class AnalyticsService {
 
     const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
 
+    const previousSnapshot = await this.snapshotRepository.findOne({
+      where: { snapshotType: SnapshotType.PLATFORM_KPI },
+      order: { periodStart: 'DESC' },
+    });
+
+    const previousHotels = previousSnapshot?.data?.totalHotels ?? totalHotels;
+    const previousMrr = previousSnapshot?.data?.mrr ?? mrr;
+
+    const hotelsGrowth =
+      previousHotels > 0
+        ? Math.round(((totalHotels - previousHotels) / previousHotels) * 10000) / 100
+        : 0;
+
+    const mrrGrowth =
+      previousMrr > 0
+        ? Math.round(((mrr - previousMrr) / previousMrr) * 10000) / 100
+        : 0;
+
     const data = {
       totalHotels,
       activeSubscriptions,
       mrr,
       totalBookings,
       activeUsers,
+      mrrGrowth,
+      hotelsGrowth,
       timestamp: new Date().toISOString(),
     };
 

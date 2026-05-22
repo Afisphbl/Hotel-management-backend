@@ -670,32 +670,31 @@ export class PlatformService {
       throw new NotFoundException('Hotel not found');
     }
 
-    // Delete related records to avoid FK constraint violations
-    try {
-      await this.dataSource.query(
-        `DELETE FROM global.feature_flags WHERE "hotelId" = $1`,
-        [id],
-      );
-    } catch {
-      /* table may not exist yet */
-    }
+    // Delete related records from global schema to avoid FK constraint violations
+    const tablesToClean = [
+      'global.feature_flags',
+      'global.subscriptions',
+      'global.hotel_user_access',
+      'global.tenant_quotas',
+      'global.quota_alerts',
+      'global.overage_billing',
+      'global.maintenance_windows',
+      'global.locale_settings',
+      'global.custom_reports',
+      'global.consent_records',
+      'global.support_access',
+      'global.emergency_access',
+      'global.delegated_admins',
+    ];
 
-    try {
-      await this.dataSource.query(
-        `DELETE FROM global.subscriptions WHERE "hotelId" = $1`,
-        [id],
-      );
-    } catch {
-      /* table may not exist yet */
-    }
-
-    try {
-      await this.dataSource.query(
-        `DELETE FROM global.hotel_user_access WHERE "hotelId" = $1`,
-        [id],
-      );
-    } catch {
-      /* table may not exist yet */
+    for (const table of tablesToClean) {
+      try {
+        await this.dataSource.query(`DELETE FROM ${table} WHERE "hotelId" = $1`, [
+          id,
+        ]);
+      } catch (e) {
+        // Table might not exist or no records for this hotel
+      }
     }
 
     // Drop tenant-specific schema cleanly
@@ -728,6 +727,61 @@ export class PlatformService {
     };
   }
 
+  async getPlatformRoles() {
+    const roles = await this.dataSource.query(
+      `SELECT id, name, description, "hierarchyLevel", "isSystemRole" FROM global.roles ORDER BY "hierarchyLevel" DESC`,
+    );
+
+    return Promise.all(
+      roles.map(async (role: any) => {
+        const [userCountResult, permissionSlugsResult] = await Promise.all([
+          this.dataSource.query(
+            `SELECT COUNT(*)::int as count FROM global.users WHERE "roleId" = $1`,
+            [role.id],
+          ),
+          this.dataSource.query(
+            `SELECT p.slug FROM global.role_permissions rp JOIN global.permissions p ON rp."permissionId" = p.id WHERE rp."roleId" = $1`,
+            [role.id],
+          ),
+        ]);
+
+        return {
+          id: role.id,
+          name: role.name,
+          description: role.description,
+          hierarchyLevel: role.hierarchyLevel,
+          isSystemRole: role.isSystemRole,
+          users: parseInt(userCountResult[0]?.count ?? '0', 10),
+          permissions: permissionSlugsResult.map((p: any) => p.slug),
+        };
+      }),
+    );
+  }
+
+  async getPlatformPermissionsList() {
+    return this.dataSource.query(
+      `SELECT id, slug, description, "createdAt", "updatedAt" FROM global.permissions ORDER BY slug ASC`,
+    );
+  }
+
+  async getPlatformRolesSummary() {
+    const [userResult, roleResult, permResult, auditResult] = await Promise.all([
+      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.platform_users`),
+      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.roles`),
+      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.permissions`),
+      this.dataSource.query(
+        `SELECT "createdAt" FROM global.audit_logs ORDER BY "createdAt" DESC LIMIT 1`,
+      ),
+    ]);
+
+    return {
+      totalAdmins: userResult[0]?.count ?? 0,
+      activeRoles: roleResult[0]?.count ?? 0,
+      permissionSets: permResult[0]?.count ?? 0,
+      lastAuditTimestamp: auditResult[0]?.createdAt ?? null,
+    };
+  }
+
   async getPlatformKPIs() {
     const latestSnapshot = await this.snapshotRepository.findOne({
       where: { snapshotType: SnapshotType.PLATFORM_KPI },
@@ -742,14 +796,50 @@ export class PlatformService {
       };
     }
 
+    const [totalHotels, activeSubscriptions, activeUsers] = await Promise.all([
+      this.hotelRepository.count(),
+      this.subscriptionRepository.count({
+        where: { status: SubscriptionStatus.ACTIVE },
+      }),
+      this.userRepository.count({ where: { isActive: true } }),
+    ]);
+
+    const mrrResult = await this.subscriptionRepository
+      .createQueryBuilder('sub')
+      .select('SUM(sub.price)', 'mrr')
+      .where('sub.status = :status', { status: SubscriptionStatus.ACTIVE })
+      .getRawOne();
+
+    const mrr = Number((mrrResult as any)?.mrr || 0);
+
+    const hotels = await this.hotelRepository.find({
+      where: { status: HotelStatus.ACTIVE },
+    });
+
+    const bookingCounts = await Promise.all(
+      hotels.map(async (h) => {
+        try {
+          const countRes = (await this.dataSource.query(
+            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+          )) as unknown as Array<{ count: string }>;
+          return parseInt(countRes[0]?.count || '0', 10);
+        } catch {
+          return 0;
+        }
+      }),
+    );
+
+    const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+
     return {
-      totalHotels: 0,
-      activeSubscriptions: 0,
-      mrr: 0,
-      totalBookings: 0,
-      activeUsers: 0,
+      totalHotels,
+      activeSubscriptions,
+      mrr,
+      totalBookings,
+      activeUsers,
       mrrGrowth: 0,
       hotelsGrowth: 0,
+      isCached: false,
     };
   }
 

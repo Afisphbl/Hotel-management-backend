@@ -63,6 +63,16 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    let hotelId = loginDto.hotelId;
+
+    if (loginDto.domain && !hotelId) {
+      // Find hotel by subdomain if domain is provided
+      const hotel = await this.authService.findHotelBySubdomain(loginDto.domain);
+      if (hotel) {
+        hotelId = hotel.id;
+      }
+    }
+
     // Check if 2FA is required for Platform users
     if (user.twoFactorEnabled && !loginDto.twoFactorCode) {
       // Return a temporary token to be used for 2FA verification
@@ -86,7 +96,7 @@ export class AuthController {
         : 'desktop',
     };
 
-    return this.authService.login(user, loginDto.hotelId, metadata);
+    return this.authService.login(user, hotelId, metadata);
   }
 
   @Post('setup-2fa')

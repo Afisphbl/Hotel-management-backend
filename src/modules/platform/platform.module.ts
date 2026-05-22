@@ -15,6 +15,7 @@ import { PlatformLocalesController } from './platform-locales.controller';
 import { PlatformUsersManagementController } from './platform-users-management.controller';
 import { PlatformConsentController } from './platform-consent.controller';
 import { PlatformAnalyticsExportController } from './platform-analytics-export.controller';
+import { PlatformRolesController } from './platform-roles.controller';
 import { PlatformService } from './platform.service';
 import { GdprService } from './gdpr.service';
 import { RevenueAnalyticsService } from './revenue-analytics.service';
@@ -108,6 +109,7 @@ import { CustomReport } from '../../database/entities/global/custom-report.entit
     PlatformUsersManagementController,
     PlatformConsentController,
     PlatformAnalyticsExportController,
+    PlatformRolesController,
   ],
   providers: [
     PlatformService,

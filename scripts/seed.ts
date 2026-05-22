@@ -394,7 +394,9 @@ const ROLES: RoleDefinition[] = [
     name: 'HOTEL_OWNER',
     description: 'Full access to all hotel operations',
     scope: RoleScope.HOTEL,
-    permissions: PERMISSIONS.map((p) => p.code),
+    permissions: PERMISSIONS.filter(
+      (p) => !['platform:impersonate', 'platform:manage'].includes(p.code),
+    ).map((p) => p.code),
     hierarchyLevel: 100,
   },
   {
@@ -857,6 +859,7 @@ async function bootstrap() {
       }
       savedRoles[roleDef.name] = role;
 
+      const allowedCodes = new Set(roleDef.permissions);
       for (const code of roleDef.permissions) {
         const perm = savedPermissions[code];
         if (!perm) continue;
@@ -871,6 +874,16 @@ async function bootstrap() {
               grantedAt: new Date(),
             }),
           );
+        }
+      }
+
+      const stale = await rolePermRepo.find({
+        where: { role: { id: role.id } },
+        relations: ['permission'],
+      });
+      for (const rp of stale) {
+        if (!allowedCodes.has(rp.permission.code)) {
+          await rolePermRepo.remove(rp);
         }
       }
     }

@@ -1,8 +1,9 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, LessThan } from 'typeorm';
+import { DataSource, Repository, In, LessThan } from 'typeorm';
 import { User, UserScope } from '../../database/entities/user.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { Role } from '../../database/entities/role.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
@@ -46,10 +47,17 @@ export class AuthService {
     private auditLogRepository: Repository<AuditLog>,
     @InjectRepository(SupportAccess)
     private supportAccessRepository: Repository<SupportAccess>,
+    private dataSource: DataSource,
     private jwtService: JwtService,
     private configService: ConfigService,
     private userManagementService: UserManagementService,
   ) {}
+
+  async findHotelBySubdomain(subdomain: string): Promise<any> {
+    return this.dataSource.getRepository(Hotel).findOne({
+      where: { subdomain },
+    });
+  }
 
   async findUserById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
@@ -80,6 +88,10 @@ export class AuthService {
       }
       const { password, ...result } = user;
       return result;
+    } else if (user) {
+      this.logger.debug(`Password mismatch for user: ${email}`);
+    } else {
+      this.logger.debug(`User not found: ${email}`);
     }
 
     if (platformUser) {
