@@ -53,11 +53,12 @@ export class CustomReportService {
     const config = report.config;
     const snapshotType = this.resolveSnapshotType(report.reportType);
     const snapshot = await this.snapshotRepository.findOne({
-      where: { snapshotType, hotelId: report.hotelId || undefined as any },
+      where: { snapshotType, hotelId: report.hotelId || (undefined as any) },
       order: { periodStart: 'DESC' },
     });
 
-    if (!snapshot) return { data: [], message: 'No data available for this report' };
+    if (!snapshot)
+      return { data: [], message: 'No data available for this report' };
     return this.processReportData(snapshot.data, config);
   }
 

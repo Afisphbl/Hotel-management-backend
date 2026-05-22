@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { HotelManagementService } from '../services/hotel-management.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -10,7 +19,9 @@ import { success } from '../common/response.interceptor';
 @UseGuards(JwtAuthGuard, ScopeGuard)
 @Scopes(UserScope.HOTEL)
 export class HotelManagementController {
-  constructor(private readonly hotelManagementService: HotelManagementService) {}
+  constructor(
+    private readonly hotelManagementService: HotelManagementService,
+  ) {}
 
   @Get()
   async findAll(@Request() req: any) {
@@ -39,8 +50,14 @@ export class HotelManagementController {
   }
 
   @Post(':id/branding')
-  async updateBranding(@Param('id') id: string, @Body('branding') branding: any) {
-    const hotel = await this.hotelManagementService.updateBranding(id, branding);
+  async updateBranding(
+    @Param('id') id: string,
+    @Body('branding') branding: any,
+  ) {
+    const hotel = await this.hotelManagementService.updateBranding(
+      id,
+      branding,
+    );
     return success(hotel);
   }
 }

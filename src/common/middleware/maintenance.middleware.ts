@@ -27,7 +27,7 @@ export class MaintenanceMiddleware implements NestMiddleware {
         const token = authHeader.split(' ')[1];
         const payload = this.jwtService.verify(token, {
           secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-        }) as any;
+        });
         if (payload?.scope === UserScope.PLATFORM) {
           return next();
         }

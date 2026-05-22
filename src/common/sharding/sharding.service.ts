@@ -18,9 +18,7 @@ export class ShardingService implements OnModuleInit {
   private ring: number[] = [];
   private vnodes = 256;
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
 
   onModuleInit(): void {
     this.initializeShards();
@@ -29,11 +27,16 @@ export class ShardingService implements OnModuleInit {
   private initializeShards(): void {
     const shardConfigs = this.configService.get<string>('DB_SHARDS');
     if (!shardConfigs) {
-      this.logger.log('No shard configuration found, running in single-database mode');
+      this.logger.log(
+        'No shard configuration found, running in single-database mode',
+      );
       return;
     }
 
-    const entries = shardConfigs.split(';').map(s => s.trim()).filter(Boolean);
+    const entries = shardConfigs
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean);
     for (const entry of entries) {
       const parts = entry.split(',');
       if (parts.length >= 3) {
@@ -42,14 +45,18 @@ export class ShardingService implements OnModuleInit {
           name: parts[1],
           host: parts[2],
           port: parseInt(parts[3] || '5432', 10),
-          database: parts[4] || this.configService.get<string>('DB_NAME', 'hotel_booking'),
+          database:
+            parts[4] ||
+            this.configService.get<string>('DB_NAME', 'hotel_booking'),
           weight: parseInt(parts[5] || '1', 10),
         });
       }
     }
 
     this.buildConsistentHashRing();
-    this.logger.log(`Initialized ${this.shards.length} shard(s) with ${this.vnodes} virtual nodes`);
+    this.logger.log(
+      `Initialized ${this.shards.length} shard(s) with ${this.vnodes} virtual nodes`,
+    );
   }
 
   private buildConsistentHashRing(): void {

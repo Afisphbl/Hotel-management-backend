@@ -40,21 +40,27 @@ export class HotelManagementExtendedService {
     if (!hotel) return null;
     if (payload.timezone) hotel.timezone = payload.timezone;
     if (payload.currency) hotel.currency = payload.currency;
-    if (payload.taxes) hotel.settings = { ...(hotel.settings || {}), taxes: payload.taxes };
+    if (payload.taxes)
+      hotel.settings = { ...(hotel.settings || {}), taxes: payload.taxes };
     return this.hotelRepo.save(hotel);
   }
 
   async updateSubscription(id: string, subscription: any) {
     const hotel = await this.hotelRepo.findOne({ where: { id } });
     if (!hotel) return null;
-    hotel.subscription = { ...(hotel.subscription || {}), ...(subscription || {}) };
+    hotel.subscription = {
+      ...(hotel.subscription || {}),
+      ...(subscription || {}),
+    };
     return this.hotelRepo.save(hotel);
   }
 
   async getPerformance(id: string, days = 30) {
     // Lightweight tenant-agnostic metrics: count bookings and paid invoices in last `days`
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const bookings = await this.bookingRepo.count({ where: { hotelId: id, createdAt: { $gte: since } } as any }).catch(() => 0);
+    const bookings = await this.bookingRepo
+      .count({ where: { hotelId: id, createdAt: { $gte: since } } as any })
+      .catch(() => 0);
     const revenueResult = await this.invoiceRepo
       .createQueryBuilder('invoice')
       .select('COALESCE(SUM(invoice.amount), 0)', 'revenue')
@@ -95,7 +101,11 @@ export class HotelManagementExtendedService {
   }
 
   async getAuditLogs(id: string, limit = 50) {
-    return this.auditLogRepo.find({ where: { hotelId: id }, order: { createdAt: 'DESC' }, take: limit });
+    return this.auditLogRepo.find({
+      where: { hotelId: id },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
   }
 
   async setNotifications(id: string, notifications: any) {

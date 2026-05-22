@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
-import { PLAN_LIMIT_KEY, PlanLimitResource } from '../../common/decorators/plan-limit.decorator';
+import {
+  PLAN_LIMIT_KEY,
+  PlanLimitResource,
+} from '../../common/decorators/plan-limit.decorator';
 
 @Injectable()
 export class PlanLimitGuard implements CanActivate {
@@ -46,14 +49,21 @@ export class PlanLimitGuard implements CanActivate {
 
     if (resource === 'storage') {
       const rawSizeMb =
-        request.body?.sizeMb ?? request.body?.storageSizeMb ?? request.query?.sizeMb;
+        request.body?.sizeMb ??
+        request.body?.storageSizeMb ??
+        request.query?.sizeMb;
       const sizeMb = Number(rawSizeMb);
 
       if (!Number.isFinite(sizeMb) || sizeMb <= 0) {
-        throw new BadRequestException('sizeMb is required for storage operations');
+        throw new BadRequestException(
+          'sizeMb is required for storage operations',
+        );
       }
 
-      const result = await this.tenantQuotaService.assertStorageCapacity(hotelId, sizeMb);
+      const result = await this.tenantQuotaService.assertStorageCapacity(
+        hotelId,
+        sizeMb,
+      );
       if (result.overage) {
         request.overageCost = result.overageCost;
       }

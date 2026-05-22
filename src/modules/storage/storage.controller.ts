@@ -39,7 +39,13 @@ class StorageUsageDto {
 }
 
 @Controller('hotel/storage')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard, PlanLimitGuard)
+@UseGuards(
+  JwtAuthGuard,
+  ScopeGuard,
+  TenantGuard,
+  PermissionsGuard,
+  PlanLimitGuard,
+)
 @Scopes(UserScope.HOTEL)
 export class StorageController {
   constructor(
@@ -49,7 +55,10 @@ export class StorageController {
 
   @Post('presign')
   @PlanLimit('storage')
-  async createPresignedUploadUrl(@Body() dto: UploadUrlDto, @Request() req: any) {
+  async createPresignedUploadUrl(
+    @Body() dto: UploadUrlDto,
+    @Request() req: any,
+  ) {
     const url = await this.storageService.getPresignedPutUrl({
       key: dto.key,
       contentType: dto.contentType,
@@ -68,7 +77,10 @@ export class StorageController {
   @PlanLimit('storage')
   async recordUsage(@Body() dto: StorageUsageDto, @Request() req: any) {
     const hotelId = req.user.hotel_id;
-    const hotel = await this.tenantQuotaService.reserveStorage(hotelId, dto.sizeMb);
+    const hotel = await this.tenantQuotaService.reserveStorage(
+      hotelId,
+      dto.sizeMb,
+    );
 
     return {
       hotelId: hotel.id,

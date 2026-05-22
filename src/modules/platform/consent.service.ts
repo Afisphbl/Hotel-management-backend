@@ -6,7 +6,10 @@ import {
   ConsentType,
   ConsentStatus,
 } from '../../database/entities/global/consent-record.entity';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
 
 @Injectable()
 export class ConsentService {
@@ -28,7 +31,11 @@ export class ConsentService {
     policyVersion?: string;
   }): Promise<ConsentRecord> {
     const existing = await this.consentRepository.findOne({
-      where: { userId: data.userId, type: data.type, status: ConsentStatus.GRANTED },
+      where: {
+        userId: data.userId,
+        type: data.type,
+        status: ConsentStatus.GRANTED,
+      },
     });
     if (existing && data.granted) return existing;
 

@@ -85,7 +85,9 @@ export class PermissionsController {
 
   @Post('bulk-assign')
   @HttpCode(HttpStatus.CREATED)
-  async bulkAssignPermissions(@Body() bulkAssignmentDto: BulkPermissionAssignmentDto) {
+  async bulkAssignPermissions(
+    @Body() bulkAssignmentDto: BulkPermissionAssignmentDto,
+  ) {
     return this.permissionsService.bulkAssignPermissions(bulkAssignmentDto);
   }
 

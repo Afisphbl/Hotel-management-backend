@@ -18,15 +18,17 @@ export class HotelManagementService {
   async create(data: any) {
     const entity = this.hotelRepository.create({
       name: data.name,
-      slug: data.slug || (data.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      slug:
+        data.slug ||
+        (data.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       location: data.location,
       timezone: data.timezone,
       currency: data.currency,
       ownerEmail: data.ownerEmail,
       ownerName: data.ownerName,
-          status: HotelStatus.ACTIVE,
+      status: HotelStatus.ACTIVE,
       branding: data.branding || null,
-        } as any);
+    } as any);
     return this.hotelRepository.save(entity);
   }
 

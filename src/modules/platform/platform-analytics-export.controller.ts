@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Res,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
@@ -24,9 +33,15 @@ export class PlatformAnalyticsExportController {
     @Query('format') format: ReportFormat = ReportFormat.JSON,
     @Res() res: Response,
   ) {
-    const result = await this.exportService.exportSnapshot(snapshotType, format);
+    const result = await this.exportService.exportSnapshot(
+      snapshotType,
+      format,
+    );
     res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     if (typeof result.data === 'string') {
       return res.send(result.data);
     }
@@ -67,7 +82,10 @@ export class PlatformAnalyticsExportController {
   ) {
     const result = await this.exportService.exportCustomReport(id, format);
     res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     if (typeof result.data === 'string') {
       return res.send(result.data);
     }

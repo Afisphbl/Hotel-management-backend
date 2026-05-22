@@ -38,6 +38,7 @@ import { PasswordPolicyService } from '../../common/services/password-policy.ser
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { PaginatedResult } from '../../common/pagination/pagination.interface';
+import { assertSafeSchemaName } from '../../common/tenant/tenant-utils';
 
 @Injectable()
 export class PlatformService {
@@ -184,9 +185,10 @@ export class PlatformService {
       // 3. Resolve current room count from the tenant database when available
       let totalRooms = hotel.rooms;
       try {
-        const dbRooms = (await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-        )) as Array<{ count: string }>;
+        const schemaName = assertSafeSchemaName(hotel.schemaName);
+        const dbRooms = await this.dataSource.query(
+          `SELECT COUNT(*) as count FROM "${schemaName}"."rooms"`,
+        );
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
         // Fallback to the stored value on the global hotel record.
@@ -234,10 +236,10 @@ export class PlatformService {
     let phone: string | null = null;
     if (email) {
       try {
-        const ownerUser = (await this.dataSource.query(
+        const ownerUser = await this.dataSource.query(
           `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
           [email],
-        )) as Array<{ phone: string | null }>;
+        );
         if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
           phone = ownerUser[0].phone;
         }
@@ -249,9 +251,10 @@ export class PlatformService {
     // 3. Query count of rooms inside tenant schema
     let totalRooms = hotel.rooms;
     try {
-      const dbRooms = (await this.dataSource.query(
-        `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-      )) as Array<{ count: string }>;
+      const schemaName = assertSafeSchemaName(hotel.schemaName);
+      const dbRooms = await this.dataSource.query(
+        `SELECT COUNT(*) as count FROM "${schemaName}"."rooms"`,
+      );
       totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
       // Fallback
@@ -260,10 +263,10 @@ export class PlatformService {
     // 4. Query count of users linked to this hotel from global
     let activeUsers: number | null = null;
     try {
-      const dbUsers = (await this.dataSource.query(
+      const dbUsers = await this.dataSource.query(
         `SELECT COUNT(*) as count FROM global.hotel_user_access WHERE "hotelId" = $1`,
         [hotel.id],
-      )) as Array<{ count: string }>;
+      );
       const count = parseInt(dbUsers[0]?.count || '0', 10);
       activeUsers = count > 0 ? count : null;
     } catch {
@@ -495,7 +498,9 @@ export class PlatformService {
       }
 
       // 2. Create the Physical Schema
-      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+      await queryRunner.query(
+        `CREATE SCHEMA IF NOT EXISTS "${assertSafeSchemaName(schemaName)}"`,
+      );
 
       // 3. TODO: In a real app, run migrations for the new schema here
       // await queryRunner.query(`SET search_path TO "${schemaName}"`);
@@ -630,7 +635,7 @@ export class PlatformService {
     featureId: string,
     enabled: boolean,
   ) {
-    let flag = await this.featureFlagRepository.findOne({
+    const flag = await this.featureFlagRepository.findOne({
       where: { id: featureId },
       relations: ['hotel'],
     });
@@ -664,7 +669,7 @@ export class PlatformService {
     const isGlobalFlag = !flag.hotel;
 
     if (isGlobalFlag) {
-      let override = await this.featureFlagRepository.findOne({
+      const override = await this.featureFlagRepository.findOne({
         where: { name: flag.name, hotel: { id: hotelId } },
       });
       if (override) {
@@ -680,7 +685,7 @@ export class PlatformService {
         status: enabled
           ? FeatureFlagStatus.ENABLED
           : FeatureFlagStatus.DISABLED,
-        hotel: { id: hotelId } as any,
+        hotel: { id: hotelId },
         rolloutStrategy: flag.rolloutStrategy,
         rolloutPercentage: flag.rolloutPercentage,
       });
@@ -750,8 +755,9 @@ export class PlatformService {
 
     // Drop tenant-specific schema cleanly
     try {
+      const schemaName = assertSafeSchemaName(hotel.schemaName);
       await this.dataSource.query(
-        `DROP SCHEMA IF EXISTS "${hotel.schemaName}" CASCADE`,
+        `DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`,
       );
     } catch {
       /* schema may not exist */
@@ -869,7 +875,7 @@ export class PlatformService {
       .where('sub.status = :status', { status: SubscriptionStatus.ACTIVE })
       .getRawOne();
 
-    const mrr = Number((mrrResult as any)?.mrr || 0);
+    const mrr = Number(mrrResult?.mrr || 0);
 
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
@@ -878,8 +884,9 @@ export class PlatformService {
     const bookingCounts = await Promise.all(
       hotels.map(async (h) => {
         try {
+          const schemaName = assertSafeSchemaName(h.schemaName);
           const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+            `SELECT COUNT(*) as count FROM "${schemaName}"."bookings"`,
           )) as unknown as Array<{ count: string }>;
           return parseInt(countRes[0]?.count || '0', 10);
         } catch {
@@ -1044,11 +1051,12 @@ export class PlatformService {
       statusClause: string,
     ) => {
       try {
-        const rows = (await this.dataSource.query(
+        const safeSchemaName = assertSafeSchemaName(schemaName);
+        const rows = await this.dataSource.query(
           `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
-           FROM "${schemaName}"."invoices"
+           FROM "${safeSchemaName}"."invoices"
            WHERE ${statusClause}`,
-        )) as Array<{ revenue: string }>;
+        );
         return Number(rows[0]?.revenue ?? 0);
       } catch {
         return 0;

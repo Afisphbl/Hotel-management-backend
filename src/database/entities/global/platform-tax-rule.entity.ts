@@ -40,7 +40,11 @@ export class PlatformTaxRule extends BaseEntity {
   @Column({ type: 'numeric', precision: 5, scale: 2 })
   rate: number;
 
-  @Column({ type: 'enum', enum: TaxApplicationMethod, default: TaxApplicationMethod.PERCENTAGE })
+  @Column({
+    type: 'enum',
+    enum: TaxApplicationMethod,
+    default: TaxApplicationMethod.PERCENTAGE,
+  })
   applicationMethod: TaxApplicationMethod;
 
   @Column({ nullable: true })

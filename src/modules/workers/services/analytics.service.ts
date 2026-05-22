@@ -19,6 +19,7 @@ import {
   SubscriptionStatus,
 } from '../../../database/entities/global/subscriptions.entity';
 import { User } from '../../../database/entities/user.entity';
+import { assertSafeSchemaName } from '../../../common/tenant/tenant-utils';
 
 @Injectable()
 export class AnalyticsService {
@@ -68,8 +69,9 @@ export class AnalyticsService {
     const bookingCounts = await Promise.all(
       hotels.map(async (h) => {
         try {
+          const schemaName = assertSafeSchemaName(h.schemaName);
           const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+            `SELECT COUNT(*) as count FROM "${schemaName}"."bookings"`,
           )) as unknown as Array<{ count: string }>;
           return parseInt(countRes[0]?.count || '0', 10);
         } catch (err) {
@@ -93,7 +95,9 @@ export class AnalyticsService {
 
     const hotelsGrowth =
       previousHotels > 0
-        ? Math.round(((totalHotels - previousHotels) / previousHotels) * 10000) / 100
+        ? Math.round(
+            ((totalHotels - previousHotels) / previousHotels) * 10000,
+          ) / 100
         : 0;
 
     const mrrGrowth =
@@ -174,8 +178,9 @@ export class AnalyticsService {
         const bookingCounts = await Promise.all(
           hotels.map(async (h) => {
             try {
+              const schemaName = assertSafeSchemaName(h.schemaName);
               const countRes = (await this.dataSource.query(
-                `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"
+                `SELECT COUNT(*) as count FROM "${schemaName}"."bookings"
                  WHERE "createdAt" BETWEEN $1 AND $2`,
                 [startOfMonth, endOfMonth],
               )) as unknown as Array<{ count: string }>;
