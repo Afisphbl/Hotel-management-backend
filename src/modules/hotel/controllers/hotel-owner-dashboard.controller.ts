@@ -2,15 +2,16 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
+import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 
 import { success } from '../common/response.interceptor';
 
-@Controller('platform/dashboard')
-@UseGuards(JwtAuthGuard, ScopeGuard)
-@Scopes(UserScope.PLATFORM)
-export class DashboardController {
+@Controller('hotel/dashboard')
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
+@Scopes(UserScope.HOTEL)
+export class HotelOwnerDashboardController {
   constructor(private dashboardService: DashboardService) {}
 
   @Get()

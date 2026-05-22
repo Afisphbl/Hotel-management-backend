@@ -18,6 +18,12 @@ import { Shift } from '../../database/entities/shift.entity';
 import { Payment } from '../../database/entities/payment.entity';
 import { Refund } from '../../database/entities/refund.entity';
 import { TaxRule } from '../../database/entities/tax-rule.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
+import { HotelOwnerDashboardController } from './controllers/hotel-owner-dashboard.controller';
+import { HotelManagementController } from './controllers/hotel-management.controller';
+import { HotelManagementService } from './services/hotel-management.service';
+import { HotelManagementExtendedController } from './controllers/hotel-management-extended.controller';
+import { HotelManagementExtendedService } from './services/hotel-management-extended.service';
 
 import { RoomsController } from './controllers/rooms.controller';
 import { RoomTypesController } from './controllers/room-types.controller';
@@ -65,6 +71,7 @@ const entities = [
   Payment,
   Refund,
   TaxRule,
+  Hotel,
 ];
 
 const controllers = [
@@ -79,6 +86,9 @@ const controllers = [
   InvoicesController,
   PaymentsController,
   DashboardController,
+  HotelOwnerDashboardController,
+  HotelManagementController,
+  HotelManagementExtendedController,
   PricingController,
 ];
 
@@ -95,6 +105,8 @@ const services = [
   InvoicesService,
   PaymentsService,
   DashboardService,
+  HotelManagementService,
+  HotelManagementExtendedService,
 ];
 
 @Module({

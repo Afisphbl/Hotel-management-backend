@@ -57,6 +57,21 @@ export class Hotel extends BaseEntity {
   @Column({ nullable: true })
   ownerEmail: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  branding: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  settings: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  subscription: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  paymentMethods: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  cancellationPolicy: any;
+
   @Column({ type: 'integer', default: 0 })
   storageUsedMb: number;
 
