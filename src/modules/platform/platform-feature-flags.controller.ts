@@ -37,6 +37,7 @@ class CreateFeatureFlagDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsUUID() hotelId?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
+  @IsOptional() @IsString() category?: string;
   @IsOptional() conditions?: Record<string, any>;
   @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
   @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
@@ -50,6 +51,7 @@ class CreateFeatureFlagDto {
 class UpdateFeatureFlagDto {
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsEnum(FeatureFlagStatus) status?: FeatureFlagStatus;
+  @IsOptional() @IsString() category?: string;
   @IsOptional() conditions?: Record<string, any>;
   @IsOptional() @IsEnum(FeatureFlagRolloutStrategy) rolloutStrategy?: FeatureFlagRolloutStrategy;
   @IsOptional() @IsNumber() @Min(0) @Max(100) rolloutPercentage?: number;
@@ -88,6 +90,11 @@ export class PlatformFeatureFlagsController {
     });
   }
 
+  @Get('rollout-summary')
+  async getRolloutSummary() {
+    return this.platformService.getRolloutSummary();
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.platformService.findFeatureFlagById(id);
@@ -112,11 +119,6 @@ export class PlatformFeatureFlagsController {
   @Post(':id/toggle')
   async toggle(@Param('id') id: string) {
     return this.platformService.toggleFeatureFlag(id);
-  }
-
-  @Get('rollout-summary')
-  async getRolloutSummary() {
-    return this.platformService.getRolloutSummary();
   }
 
   @Post('evaluate')

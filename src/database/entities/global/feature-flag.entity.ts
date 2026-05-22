@@ -70,6 +70,9 @@ export class FeatureFlag {
   scheduledDisabledAt: Date | null;
 
   @Column({ type: 'text', nullable: true })
+  category: string;
+
+  @Column({ type: 'text', nullable: true })
   createdBy: string;
 
   @Column({ type: 'jsonb', nullable: true })

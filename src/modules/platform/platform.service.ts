@@ -6,7 +6,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, LessThan, In } from 'typeorm';
+import { Repository, DataSource, LessThan, In, IsNull } from 'typeorm';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
 import { User, UserScope } from '../../database/entities/user.entity';
 import { Booking } from '../../database/entities/booking.entity';
@@ -531,31 +531,118 @@ export class PlatformService {
     return this.findHotelById(id);
   }
 
-  async toggleHotelFeature(hotelId: string, featureId: string, enabled: boolean) {
-    const sub = await this.subscriptionRepository.findOne({
-      where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+  async findHotelFeatures(hotelId: string) {
+    const flags = await this.featureFlagRepository.find({
+      where: [{ hotel: { id: hotelId } }, { hotel: IsNull() }],
+      relations: ['hotel'],
     });
-    if (!sub) {
-      throw new NotFoundException('No active subscription found for this hotel');
+
+    if (flags.length === 0) {
+      const sub = await this.subscriptionRepository.findOne({
+        where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+      });
+      const defaultFeatures = [
+        { id: 'housekeeping', name: 'Housekeeping Module', category: 'Operations' },
+        { id: 'maintenance', name: 'Maintenance Module', category: 'Operations' },
+        { id: 'pos', name: 'POS Integration', category: 'Integrations' },
+        { id: 'whatsapp', name: 'WhatsApp Notifications', category: 'Guest Services' },
+        { id: 'analytics', name: 'Advanced Analytics', category: 'Business' },
+        { id: 'guest-portal', name: 'Guest Self-Service Portal', category: 'Guest Services' },
+      ];
+      const enabled = (sub?.features as any)?.enabledFeatures || [];
+      return defaultFeatures.map((f) => ({
+        ...f,
+        id: f.id,
+        status: enabled.includes(f.id) ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED,
+      }));
     }
 
-    const features = sub.features || {};
-    const enabledFeatures: string[] = features.enabledFeatures || [];
+    const hotelOverrideNames = new Set(
+      flags.filter((f) => f.hotel?.id === hotelId).map((f) => f.name),
+    );
 
-    if (enabled) {
-      if (!enabledFeatures.includes(featureId)) {
-        enabledFeatures.push(featureId);
-      }
-    } else {
-      const idx = enabledFeatures.indexOf(featureId);
-      if (idx !== -1) {
-        enabledFeatures.splice(idx, 1);
-      }
+    const result: Array<{
+      id: string;
+      name: string;
+      status: FeatureFlagStatus;
+      category: string;
+      rolloutStrategy?: FeatureFlagRolloutStrategy;
+    }> = [];
+
+    for (const flag of flags) {
+      const isGlobal = !flag.hotel;
+      const hasOverride = isGlobal && hotelOverrideNames.has(flag.name);
+
+      if (isGlobal && hasOverride) continue;
+
+      result.push({
+        id: flag.id,
+        name: flag.name,
+        status: flag.status,
+        category: flag.category || (isGlobal ? 'Global' : 'Operations'),
+        rolloutStrategy: flag.rolloutStrategy,
+      });
     }
 
-    sub.features = { ...features, enabledFeatures };
-    await this.subscriptionRepository.save(sub);
-    return this.findHotelById(hotelId);
+    return result;
+  }
+
+  async toggleHotelFeature(hotelId: string, featureId: string, enabled: boolean) {
+    let flag = await this.featureFlagRepository.findOne({
+      where: { id: featureId },
+      relations: ['hotel'],
+    });
+
+    if (!flag) {
+      const sub = await this.subscriptionRepository.findOne({
+        where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+      });
+      if (!sub) {
+        throw new NotFoundException('No active subscription found for this hotel');
+      }
+      const features = (sub.features as any) || {};
+      const enabledFeatures: string[] = features.enabledFeatures || [];
+      if (enabled) {
+        if (!enabledFeatures.includes(featureId)) {
+          enabledFeatures.push(featureId);
+        }
+      } else {
+        const idx = enabledFeatures.indexOf(featureId);
+        if (idx !== -1) {
+          enabledFeatures.splice(idx, 1);
+        }
+      }
+      sub.features = { ...features, enabledFeatures };
+      await this.subscriptionRepository.save(sub);
+      return this.findHotelById(hotelId);
+    }
+
+    const isGlobalFlag = !flag.hotel;
+
+    if (isGlobalFlag) {
+      let override = await this.featureFlagRepository.findOne({
+        where: { name: flag.name, hotel: { id: hotelId } },
+      });
+      if (override) {
+        override.status = enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED;
+        await this.featureFlagRepository.save(override);
+        return this.findFeatureFlagById(override.id);
+      }
+      const newFlag = this.featureFlagRepository.create({
+        name: flag.name,
+        description: flag.description,
+        status: enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED,
+        hotel: { id: hotelId } as any,
+        rolloutStrategy: flag.rolloutStrategy,
+        rolloutPercentage: flag.rolloutPercentage,
+      });
+      await this.featureFlagRepository.save(newFlag);
+      return newFlag;
+    }
+
+    flag.status = enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED;
+    await this.featureFlagRepository.save(flag);
+    return this.findFeatureFlagById(flag.id);
   }
 
   async updateBranding(hotelId: string, brandingData: any) {
@@ -1085,6 +1172,7 @@ export class PlatformService {
         name: flag.name,
         description: flag.description,
         status: flag.status,
+        category: flag.category,
         rolloutStrategy: flag.rolloutStrategy,
         rolloutPercentage: flag.rolloutPercentage,
         hotel: flag.hotel ? { id: flag.hotel.id, name: flag.hotel.name } : null,
@@ -1113,6 +1201,7 @@ export class PlatformService {
     description?: string;
     hotelId?: string;
     status?: FeatureFlagStatus;
+    category?: string;
     conditions?: Record<string, any>;
     rolloutStrategy?: FeatureFlagRolloutStrategy;
     rolloutPercentage?: number;
@@ -1127,6 +1216,7 @@ export class PlatformService {
     if (data.description) flag.description = data.description;
     if (data.hotelId) flag.hotel = { id: data.hotelId } as any;
     flag.status = data.status || FeatureFlagStatus.DISABLED;
+    if (data.category) flag.category = data.category;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
     if (data.rolloutPercentage != null)
@@ -1144,6 +1234,7 @@ export class PlatformService {
     data: Partial<{
       description: string;
       status: FeatureFlagStatus;
+      category: string;
       conditions: Record<string, any>;
       rolloutStrategy: FeatureFlagRolloutStrategy;
       rolloutPercentage: number;
@@ -1157,6 +1248,7 @@ export class PlatformService {
     const flag = await this.findFeatureFlagById(id);
     if (data.description !== undefined) flag.description = data.description;
     if (data.status) flag.status = data.status;
+    if (data.category) flag.category = data.category;
     if (data.conditions) flag.conditions = data.conditions;
     if (data.rolloutStrategy) flag.rolloutStrategy = data.rolloutStrategy;
     if (data.rolloutPercentage != null)
