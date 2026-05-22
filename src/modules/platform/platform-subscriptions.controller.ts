@@ -62,6 +62,11 @@ export class PlatformSubscriptionsController {
     return this.platformService.getSubscriptionPlans();
   }
 
+  @Get('top')
+  async findTop() {
+    return this.platformService.findTopSubscriptions(5);
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.platformService.findSubscriptionById(id);

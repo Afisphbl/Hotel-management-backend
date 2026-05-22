@@ -924,6 +924,26 @@ export class PlatformService {
     return this.subscriptionRepository.find({ relations: ['hotel'] });
   }
 
+  async findTopSubscriptions(limit = 5) {
+    const subs = await this.subscriptionRepository.find({
+      where: { status: SubscriptionStatus.ACTIVE },
+      relations: ['hotel'],
+      order: { price: 'DESC' },
+      take: limit,
+    });
+    return subs.map((sub) => ({
+      id: sub.id,
+      name: sub.hotel?.name || 'Unknown',
+      plan:
+        sub.plan === SubscriptionPlan.PROFESSIONAL
+          ? 'Pro'
+          : sub.plan.charAt(0) + sub.plan.slice(1).toLowerCase(),
+      monthlyRevenue: sub.price,
+      status: sub.hotel?.status || 'inactive',
+      hotelId: sub.hotel?.id,
+    }));
+  }
+
   async getSubscriptionPlans() {
     return [
       {
