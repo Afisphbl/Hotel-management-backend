@@ -65,6 +65,15 @@ export class PlatformHotelsController {
     return this.platformService.deleteHotel(id);
   }
 
+  @Post(':id/features/:featureId/toggle')
+  async toggleFeature(
+    @Param('id') id: string,
+    @Param('featureId') featureId: string,
+    @Body('enabled') enabled: boolean,
+  ) {
+    return this.platformService.toggleHotelFeature(id, featureId, enabled);
+  }
+
   @Get('staff')
   async getPlatformStaff() {
     return this.platformService.findAllPlatformStaff();

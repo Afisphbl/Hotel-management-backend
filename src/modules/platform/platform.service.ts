@@ -531,6 +531,33 @@ export class PlatformService {
     return this.findHotelById(id);
   }
 
+  async toggleHotelFeature(hotelId: string, featureId: string, enabled: boolean) {
+    const sub = await this.subscriptionRepository.findOne({
+      where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
+    });
+    if (!sub) {
+      throw new NotFoundException('No active subscription found for this hotel');
+    }
+
+    const features = sub.features || {};
+    const enabledFeatures: string[] = features.enabledFeatures || [];
+
+    if (enabled) {
+      if (!enabledFeatures.includes(featureId)) {
+        enabledFeatures.push(featureId);
+      }
+    } else {
+      const idx = enabledFeatures.indexOf(featureId);
+      if (idx !== -1) {
+        enabledFeatures.splice(idx, 1);
+      }
+    }
+
+    sub.features = { ...features, enabledFeatures };
+    await this.subscriptionRepository.save(sub);
+    return this.findHotelById(hotelId);
+  }
+
   async updateBranding(hotelId: string, brandingData: any) {
     const activeSub = await this.subscriptionRepository.findOne({
       where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
@@ -709,8 +736,11 @@ export class PlatformService {
     ];
   }
 
-  async getPlatformAuditLogs() {
+  async getPlatformAuditLogs(hotelId?: string) {
+    const where: any = {};
+    if (hotelId) where.hotelId = hotelId;
     const logs = await this.auditLogRepository.find({
+      where,
       order: { createdAt: 'DESC' },
       take: 20,
     });

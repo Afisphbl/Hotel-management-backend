@@ -46,8 +46,8 @@ export class PlatformAnalyticsController {
   }
 
   @Get('audit-logs')
-  async getPlatformAuditLogs() {
-    return this.platformService.getPlatformAuditLogs();
+  async getPlatformAuditLogs(@Query('hotelId') hotelId?: string) {
+    return this.platformService.getPlatformAuditLogs(hotelId);
   }
 
   @Get('mrr')
