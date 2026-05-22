@@ -191,7 +191,7 @@ export class RevenueAnalyticsService {
       churnedSubscriptions: number;
     }> = [];
 
-    let cursor = new Date(start);
+    const cursor = new Date(start);
     while (cursor <= end) {
       const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
       const monthEnd = new Date(

@@ -15,7 +15,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
-import { EmergencyAccessPriority, EmergencyAccessStatus } from '../../database/entities/global/emergency-access.entity';
+import {
+  EmergencyAccessPriority,
+  EmergencyAccessStatus,
+} from '../../database/entities/global/emergency-access.entity';
 
 @Controller('platform/access')
 @UseGuards(JwtAuthGuard, ScopeGuard)
@@ -31,7 +34,11 @@ export class CrossTenantAccessController {
     @Body('targetHotelId') targetHotelId: string,
     @Body('reason') reason: string,
   ) {
-    return this.accessService.startImpersonation(impersonatorId, targetHotelId, reason);
+    return this.accessService.startImpersonation(
+      impersonatorId,
+      targetHotelId,
+      reason,
+    );
   }
 
   @Post('impersonate/:id/stop')
@@ -49,7 +56,10 @@ export class CrossTenantAccessController {
     @Query('userId') userId?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.accessService.getImpersonationHistory(userId, limit ? parseInt(limit, 10) : 50);
+    return this.accessService.getImpersonationHistory(
+      userId,
+      limit ? parseInt(limit, 10) : 50,
+    );
   }
 
   // --- Emergency Access ---
@@ -79,7 +89,11 @@ export class CrossTenantAccessController {
     @Body('approvedBy') approvedBy: string,
     @Body('approverEmail') approverEmail: string,
   ) {
-    return this.accessService.approveEmergencyAccess(id, approvedBy, approverEmail);
+    return this.accessService.approveEmergencyAccess(
+      id,
+      approvedBy,
+      approverEmail,
+    );
   }
 
   @Post('emergency/:id/activate')

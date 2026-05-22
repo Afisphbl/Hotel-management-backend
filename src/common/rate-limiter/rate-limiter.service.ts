@@ -3,7 +3,10 @@ import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../../modules/redis/redis.service';
 import { DataSource } from 'typeorm';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
-import { Subscription, SubscriptionPlan } from '../../database/entities/global/subscriptions.entity';
+import {
+  Subscription,
+  SubscriptionPlan,
+} from '../../database/entities/global/subscriptions.entity';
 
 export interface RateLimitConfig {
   windowMs: number;
@@ -20,9 +23,21 @@ export interface RateLimitResult {
 }
 
 const DEFAULT_TIER_LIMITS: Record<string, RateLimitConfig> = {
-  [SubscriptionPlan.BASIC]: { windowMs: 60000, maxRequests: 60, burstMultiplier: 1.5 },
-  [SubscriptionPlan.PROFESSIONAL]: { windowMs: 60000, maxRequests: 300, burstMultiplier: 2 },
-  [SubscriptionPlan.ENTERPRISE]: { windowMs: 60000, maxRequests: 1000, burstMultiplier: 3 },
+  [SubscriptionPlan.BASIC]: {
+    windowMs: 60000,
+    maxRequests: 60,
+    burstMultiplier: 1.5,
+  },
+  [SubscriptionPlan.PROFESSIONAL]: {
+    windowMs: 60000,
+    maxRequests: 300,
+    burstMultiplier: 2,
+  },
+  [SubscriptionPlan.ENTERPRISE]: {
+    windowMs: 60000,
+    maxRequests: 1000,
+    burstMultiplier: 3,
+  },
   anonymous: { windowMs: 60000, maxRequests: 20, burstMultiplier: 1 },
 };
 
@@ -34,7 +49,9 @@ const ENDPOINT_OVERIDES: Record<string, Partial<RateLimitConfig>> = {
 @Injectable()
 export class RateLimiterService {
   private readonly logger = new Logger(RateLimiterService.name);
-  private tierLimits: Record<string, RateLimitConfig> = { ...DEFAULT_TIER_LIMITS };
+  private tierLimits: Record<string, RateLimitConfig> = {
+    ...DEFAULT_TIER_LIMITS,
+  };
 
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -47,9 +64,11 @@ export class RateLimiterService {
 
   private async loadConfig(): Promise<void> {
     try {
-      const setting = await this.dataSource.getRepository(GlobalSetting).findOne({
-        where: { key: 'rate_limiting:config' },
-      });
+      const setting = await this.dataSource
+        .getRepository(GlobalSetting)
+        .findOne({
+          where: { key: 'rate_limiting:config' },
+        });
       if (setting?.value) {
         this.tierLimits = { ...DEFAULT_TIER_LIMITS, ...setting.value };
       }
@@ -125,7 +144,13 @@ export class RateLimiterService {
       };
     } catch (err) {
       this.logger.error(`Rate limiter error: ${err.message}`);
-      return { allowed: true, remaining: 1, resetAt: 0, retryAfter: 0, limit: 1 };
+      return {
+        allowed: true,
+        remaining: 1,
+        resetAt: 0,
+        retryAfter: 0,
+        limit: 1,
+      };
     }
   }
 

@@ -1,4 +1,14 @@
-import { Controller, Get, Patch, Post, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { HotelManagementExtendedService } from '../services/hotel-management-extended.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -25,7 +35,10 @@ export class HotelManagementExtendedController {
   }
 
   @Patch(':id/timezone-currency-taxes')
-  async setTimezoneCurrencyTaxes(@Param('id') id: string, @Body() payload: any) {
+  async setTimezoneCurrencyTaxes(
+    @Param('id') id: string,
+    @Body() payload: any,
+  ) {
     const hotel = await this.svc.setTimezoneCurrencyTaxes(id, payload);
     return success(hotel);
   }
@@ -38,7 +51,10 @@ export class HotelManagementExtendedController {
 
   @Get(':id/performance')
   async getPerformance(@Param('id') id: string, @Query('days') days?: string) {
-    const metrics = await this.svc.getPerformance(id, days ? parseInt(days, 10) : 30);
+    const metrics = await this.svc.getPerformance(
+      id,
+      days ? parseInt(days, 10) : 30,
+    );
     return success(metrics);
   }
 
@@ -67,19 +83,28 @@ export class HotelManagementExtendedController {
   }
 
   @Patch(':id/notifications')
-  async setNotifications(@Param('id') id: string, @Body('notifications') notifications: any) {
+  async setNotifications(
+    @Param('id') id: string,
+    @Body('notifications') notifications: any,
+  ) {
     const hotel = await this.svc.setNotifications(id, notifications);
     return success(hotel);
   }
 
   @Patch(':id/payment-methods')
-  async setPaymentMethods(@Param('id') id: string, @Body('methods') methods: any) {
+  async setPaymentMethods(
+    @Param('id') id: string,
+    @Body('methods') methods: any,
+  ) {
     const hotel = await this.svc.setPaymentMethods(id, methods);
     return success(hotel);
   }
 
   @Patch(':id/cancellation-policy')
-  async setCancellationPolicy(@Param('id') id: string, @Body('policy') policy: any) {
+  async setCancellationPolicy(
+    @Param('id') id: string,
+    @Body('policy') policy: any,
+  ) {
     const hotel = await this.svc.setCancellationPolicy(id, policy);
     return success(hotel);
   }

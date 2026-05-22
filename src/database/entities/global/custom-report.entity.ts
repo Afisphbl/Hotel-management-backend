@@ -50,7 +50,17 @@ export class CustomReport extends BaseEntity {
     metrics: string[];
     dimensions: string[];
     filters: Record<string, any>;
-    dateRange: 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_year' | 'custom';
+    dateRange:
+      | 'today'
+      | 'yesterday'
+      | 'this_week'
+      | 'last_week'
+      | 'this_month'
+      | 'last_month'
+      | 'this_quarter'
+      | 'last_quarter'
+      | 'this_year'
+      | 'custom';
     startDate?: string;
     endDate?: string;
     groupBy?: string;

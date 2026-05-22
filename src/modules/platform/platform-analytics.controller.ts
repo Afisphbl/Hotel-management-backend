@@ -65,7 +65,10 @@ export class PlatformAnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.revenueAnalyticsService.getDetailedFinancialReport(startDate, endDate);
+    return this.revenueAnalyticsService.getDetailedFinancialReport(
+      startDate,
+      endDate,
+    );
   }
 
   @Get('projections')

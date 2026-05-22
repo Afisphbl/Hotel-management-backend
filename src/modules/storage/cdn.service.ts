@@ -37,8 +37,13 @@ export class CdnService {
 
   private async loadConfig(): Promise<void> {
     const cdnUrl = this.configService.get<string>('CDN_URL');
-    const cdnProvider = this.configService.get<string>('CDN_PROVIDER', 'cloudfront');
-    const cdnDistributionId = this.configService.get<string>('CDN_DISTRIBUTION_ID');
+    const cdnProvider = this.configService.get<string>(
+      'CDN_PROVIDER',
+      'cloudfront',
+    );
+    const cdnDistributionId = this.configService.get<string>(
+      'CDN_DISTRIBUTION_ID',
+    );
     const cdnApiToken = this.configService.get<string>('CDN_API_TOKEN');
     const cdnZoneId = this.configService.get<string>('CDN_ZONE_ID');
 
@@ -51,7 +56,9 @@ export class CdnService {
         apiToken: cdnApiToken,
         zoneId: cdnZoneId,
       };
-      this.logger.log(`CDN enabled: ${this.config.provider} - ${this.config.baseUrl}`);
+      this.logger.log(
+        `CDN enabled: ${this.config.provider} - ${this.config.baseUrl}`,
+      );
     }
   }
 
@@ -88,11 +95,15 @@ export class CdnService {
     return url;
   }
 
-  async purgeCache(paths: string[]): Promise<{ success: boolean; purged: number }> {
+  async purgeCache(
+    paths: string[],
+  ): Promise<{ success: boolean; purged: number }> {
     if (!this.config?.enabled) {
       return { success: false, purged: 0 };
     }
-    this.logger.log(`Cache purge requested for ${paths.length} path(s) on ${this.config.provider}`);
+    this.logger.log(
+      `Cache purge requested for ${paths.length} path(s) on ${this.config.provider}`,
+    );
 
     if (this.config.distributionId) {
       return this.purgeCloudFront(paths);
@@ -102,28 +113,36 @@ export class CdnService {
     return { success: false, purged: 0 };
   }
 
-  async purgeByPrefix(prefix: string): Promise<{ success: boolean; purged: number }> {
+  async purgeByPrefix(
+    prefix: string,
+  ): Promise<{ success: boolean; purged: number }> {
     return this.purgeCache([`${prefix}*`]);
   }
 
-  private async purgeCloudFront(paths: string[]): Promise<{ success: boolean; purged: number }> {
+  private async purgeCloudFront(
+    paths: string[],
+  ): Promise<{ success: boolean; purged: number }> {
     const distributionId = this.config!.distributionId;
-    this.logger.log(`CloudFront invalidation requested for ${paths.length} paths via distribution ${distributionId}`);
+    this.logger.log(
+      `CloudFront invalidation requested for ${paths.length} paths via distribution ${distributionId}`,
+    );
     try {
       const cfModule = require('@aws-sdk/client-cloudfront');
       const client = new cfModule.CloudFrontClient({
         region: this.configService.get('S3_REGION', 'us-east-1'),
       });
-      await client.send(new cfModule.CreateInvalidationCommand({
-        DistributionId: distributionId,
-        InvalidationBatch: {
-          CallerReference: `invalidation-${Date.now()}`,
-          Paths: {
-            Quantity: paths.length,
-            Items: paths.map(p => p.startsWith('/') ? p : `/${p}`),
+      await client.send(
+        new cfModule.CreateInvalidationCommand({
+          DistributionId: distributionId,
+          InvalidationBatch: {
+            CallerReference: `invalidation-${Date.now()}`,
+            Paths: {
+              Quantity: paths.length,
+              Items: paths.map((p) => (p.startsWith('/') ? p : `/${p}`)),
+            },
           },
-        },
-      }));
+        }),
+      );
       return { success: true, purged: paths.length };
     } catch {
       return { success: false, purged: 0 };

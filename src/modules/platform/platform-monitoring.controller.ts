@@ -78,7 +78,12 @@ export class PlatformMonitoringController {
     @Body('responseTimeMs') responseTimeMs: number,
     @Body('message') message?: string,
   ) {
-    return this.monitoringService.recordUptimeCheck(component, status, responseTimeMs, message);
+    return this.monitoringService.recordUptimeCheck(
+      component,
+      status,
+      responseTimeMs,
+      message,
+    );
   }
 
   @Get('maintenance-windows')

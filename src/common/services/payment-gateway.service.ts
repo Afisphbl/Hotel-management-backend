@@ -1,6 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { GlobalSetting, SettingCategory } from '../../database/entities/global/global-setting.entity';
+import {
+  GlobalSetting,
+  SettingCategory,
+} from '../../database/entities/global/global-setting.entity';
 
 export interface PaymentGatewayConfig {
   provider: string;
@@ -23,12 +26,16 @@ export class PaymentGatewayService {
     return (setting?.value as PaymentGatewayConfig | null) ?? null;
   }
 
-  async updateConfig(config: PaymentGatewayConfig): Promise<PaymentGatewayConfig> {
+  async updateConfig(
+    config: PaymentGatewayConfig,
+  ): Promise<PaymentGatewayConfig> {
     if (!config.provider) {
       throw new BadRequestException('Payment gateway provider is required');
     }
     const repository = this.dataSource.getRepository(GlobalSetting);
-    let setting = await repository.findOne({ where: { key: 'payment_gateway:config' } });
+    let setting = await repository.findOne({
+      where: { key: 'payment_gateway:config' },
+    });
     if (setting) {
       setting.value = config;
     } else {
