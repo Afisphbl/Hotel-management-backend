@@ -70,8 +70,22 @@ export class PlatformFeatureFlagsController {
   ) {}
 
   @Get()
-  async findAll() {
-    return this.platformService.findAllFeatureFlags();
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('strategy') strategy?: string,
+    @Query('scope') scope?: 'global' | 'hotel' | 'all',
+  ) {
+    return this.platformService.findAllFeatureFlags({
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      search,
+      status,
+      strategy,
+      scope,
+    });
   }
 
   @Get(':id')
@@ -98,6 +112,11 @@ export class PlatformFeatureFlagsController {
   @Post(':id/toggle')
   async toggle(@Param('id') id: string) {
     return this.platformService.toggleFeatureFlag(id);
+  }
+
+  @Get('rollout-summary')
+  async getRolloutSummary() {
+    return this.platformService.getRolloutSummary();
   }
 
   @Post('evaluate')

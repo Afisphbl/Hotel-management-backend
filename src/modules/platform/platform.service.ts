@@ -1042,8 +1042,61 @@ export class PlatformService {
 
   // --- Feature Flag Management ---
 
-  async findAllFeatureFlags() {
-    return this.featureFlagRepository.find({ relations: ['hotel'] });
+  async findAllFeatureFlags(options?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    strategy?: string;
+    scope?: 'global' | 'hotel' | 'all';
+  }): Promise<PaginatedResult<any>> {
+    const { page = 1, limit = 20, search, status, strategy, scope = 'all' } = options || {};
+    const skip = (page - 1) * limit;
+
+    const qb = this.featureFlagRepository.createQueryBuilder('flag');
+    qb.leftJoinAndSelect('flag.hotel', 'hotel');
+
+    if (search) {
+      qb.andWhere('flag.name ILIKE :search', { search: `%${search}%` });
+    }
+
+    if (status && status !== 'all') {
+      qb.andWhere('flag.status = :status', { status: status.toUpperCase() });
+    }
+
+    if (strategy && strategy !== 'all') {
+      qb.andWhere('flag.rolloutStrategy = :strategy', { strategy });
+    }
+
+    if (scope === 'global') {
+      qb.andWhere('flag.hotelId IS NULL');
+    } else if (scope === 'hotel') {
+      qb.andWhere('flag.hotelId IS NOT NULL');
+    }
+
+    qb.orderBy('flag.createdAt', 'DESC');
+    qb.skip(skip).take(limit);
+
+    const [items, total] = await qb.getManyAndCount();
+
+    return {
+      items: items.map((flag) => ({
+        id: flag.id,
+        name: flag.name,
+        description: flag.description,
+        status: flag.status,
+        rolloutStrategy: flag.rolloutStrategy,
+        rolloutPercentage: flag.rolloutPercentage,
+        hotel: flag.hotel ? { id: flag.hotel.id, name: flag.hotel.name } : null,
+        variants: flag.variants,
+        createdAt: flag.createdAt,
+        updatedAt: flag.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findFeatureFlagById(id: string) {
@@ -1129,5 +1182,38 @@ export class PlatformService {
         ? FeatureFlagStatus.DISABLED
         : FeatureFlagStatus.ENABLED;
     return this.featureFlagRepository.save(flag);
+  }
+
+  async getRolloutSummary() {
+    const flags = await this.featureFlagRepository.find({ relations: ['hotel'] });
+    const totalHotels = await this.hotelRepository.count();
+
+    const grouped = new Map<string, { total: number; enabled: number; strategies: Set<string>; statuses: Set<string> }>();
+
+    for (const flag of flags) {
+      if (!grouped.has(flag.name)) {
+        grouped.set(flag.name, { total: 0, enabled: 0, strategies: new Set(), statuses: new Set() });
+      }
+      const entry = grouped.get(flag.name)!;
+      entry.total++;
+      if (flag.status === FeatureFlagStatus.ENABLED) entry.enabled++;
+      if (flag.rolloutStrategy) entry.strategies.add(flag.rolloutStrategy);
+      entry.statuses.add(flag.status);
+    }
+
+    return Array.from(grouped.entries()).map(([name, data]) => {
+      const percentage = totalHotels > 0 ? Math.round((data.enabled / totalHotels) * 100) : 0;
+      const isFullEnabled = data.statuses.size === 1 && data.statuses.has('ENABLED');
+      const isFullDisabled = data.statuses.size === 1 && data.statuses.has('DISABLED');
+
+      return {
+        name,
+        percentage,
+        total: data.total,
+        enabled: data.enabled,
+        status: isFullEnabled ? 'ENABLED' : isFullDisabled ? 'DISABLED' : 'PARTIAL',
+        strategies: Array.from(data.strategies),
+      };
+    });
   }
 }
