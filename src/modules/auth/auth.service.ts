@@ -17,7 +17,10 @@ import {
   AuditAction,
   AuditResource,
 } from '../../database/entities/audit-log.entity';
-import { SupportAccess, SupportAccessStatus } from '../../database/entities/global/support-access.entity';
+import {
+  SupportAccess,
+  SupportAccessStatus,
+} from '../../database/entities/global/support-access.entity';
 import { UserManagementService } from '../platform/user-management.service';
 import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import * as bcrypt from 'bcrypt';
@@ -67,13 +70,22 @@ export class AuthService {
     const [user, platformUser] = await Promise.all([
       this.userRepository.findOne({
         where: { email },
-        select: ['id', 'email', 'password', 'scope', 'firstName', 'lastName', 'twoFactorEnabled'],
+        select: [
+          'id',
+          'email',
+          'password',
+          'scope',
+          'firstName',
+          'lastName',
+          'twoFactorEnabled',
+        ],
       }),
       this.userManagementService.findByEmail(email),
     ]);
 
     if (platformUser) {
-      const lockStatus = await this.userManagementService.checkAccountLockout(email);
+      const lockStatus =
+        await this.userManagementService.checkAccountLockout(email);
       if (lockStatus.locked) {
         this.logger.warn(`Login attempt on locked account: ${email}`);
         throw new UnauthorizedException(
@@ -168,6 +180,9 @@ export class AuthService {
   ) {
     let permissions: string[] = [];
     let roleName = 'USER';
+    let dashboardRoute = '/hotel/dashboard';
+    let sessionScope = isImpersonating ? UserScope.HOTEL : user.scope;
+    let sessionHotelId = hotelId || null;
     let supportAccessId: string | null = null;
     const userWithRole = await this.userRepository.findOne({
       where: { id: user.id },
@@ -179,6 +194,8 @@ export class AuthService {
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
       if (user.scope === UserScope.PLATFORM && isImpersonating) {
         roleName = 'SUPPORT_ADMIN';
+        dashboardRoute = '/hotel/dashboard';
+        sessionScope = UserScope.HOTEL;
         permissions = await this.getHierarchicalPermissions(resolvedRoleId);
         const supportAccess = await this.supportAccessRepository.save(
           this.supportAccessRepository.create({
@@ -208,16 +225,60 @@ export class AuthService {
         permissions = await this.getHierarchicalPermissions(access.roleId);
       }
     } else {
-      // PLATFORM SCOPE: Resolve role from database
-      roleName = userWithRole?.role?.name ?? (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
-      permissions = await this.getHierarchicalPermissions(resolvedRoleId);
+      // PLATFORM SCOPE: Check if user has HOTEL_OWNER access to any hotel
+      const hotelAccess = await this.accessRepository.findOne({
+        where: { userId: user.id },
+      });
+
+      if (hotelAccess) {
+        // Load role explicitly by roleId (entity stores roleId as plain column)
+        const hotelRole = hotelAccess.roleId
+          ? await this.roleRepository.findOne({
+              where: { id: hotelAccess.roleId },
+            })
+          : null;
+
+        if (hotelRole?.name === 'HOTEL_OWNER') {
+          // User is a hotel owner - assign them the HOTEL_OWNER role
+          roleName = 'HOTEL_OWNER';
+          dashboardRoute = '/hotel/owner/dashboard';
+          sessionScope = UserScope.HOTEL;
+          sessionHotelId = sessionHotelId ?? hotelAccess.hotelId;
+          permissions = await this.getHierarchicalPermissions(
+            hotelAccess.roleId,
+          );
+        } else {
+          // Use resolved hotel role if available, otherwise fall back to user's platform role
+          roleName =
+            hotelRole?.name ??
+            userWithRole?.role?.name ??
+            (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
+          dashboardRoute = '/hotel/dashboard';
+          sessionScope = UserScope.HOTEL;
+          sessionHotelId = sessionHotelId ?? hotelAccess.hotelId;
+          permissions = await this.getHierarchicalPermissions(
+            hotelAccess.roleId ?? resolvedRoleId,
+          );
+        }
+      } else {
+        // No hotel access records — fall back to platform role resolution
+        roleName =
+          userWithRole?.role?.name ??
+          (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
+        dashboardRoute =
+          user.scope === UserScope.PLATFORM
+            ? '/platform/dashboard'
+            : '/hotel/dashboard';
+        sessionScope = user.scope;
+        permissions = await this.getHierarchicalPermissions(resolvedRoleId);
+      }
     }
 
     const payload = {
       sub: user.id,
       email: user.email,
-      hotel_id: hotelId || null,
-      scope: isImpersonating ? UserScope.HOTEL : user.scope,
+      hotel_id: sessionHotelId,
+      scope: sessionScope,
       actor_scope: user.scope,
       permissions,
       role: roleName,
@@ -248,6 +309,7 @@ export class AuthService {
       access_token: accessToken,
       refresh_token: refreshToken,
       expires_in: this.configService.get('JWT_EXPIRATION'),
+      dashboard_route: dashboardRoute,
     };
   }
 
@@ -418,7 +480,9 @@ export class AuthService {
       where: { roleId: In(roleIds) },
     });
 
-    const permissionIds = [...new Set(rolePermissions.map((rp) => rp.permissionId))];
+    const permissionIds = [
+      ...new Set(rolePermissions.map((rp) => rp.permissionId)),
+    ];
     if (permissionIds.length === 0) {
       return [];
     }

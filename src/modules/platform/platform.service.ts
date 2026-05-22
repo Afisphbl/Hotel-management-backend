@@ -367,59 +367,79 @@ export class PlatformService {
 
       const savedHotel = await queryRunner.manager.save(Hotel, hotel);
 
-      // Create owner user if provided
+      // Create or reuse owner user if provided
       if (data.ownerEmail) {
-        const existingUser = await queryRunner.manager.findOne(User, {
-          where: { email: data.ownerEmail },
-        });
-        if (existingUser) {
-          throw new ConflictException(
-            `A user with email ${data.ownerEmail} already exists. Use a different email for the hotel owner.`,
-          );
-        }
-
-        const rawPassword =
-          data.password ||
-          (await this.passwordPolicyService.generateTemporaryPassword());
-        if (!data.password) {
-          temporaryPassword = rawPassword;
-        }
-        await this.passwordPolicyService.assertCompliant(rawPassword);
-        const hashedPassword = await bcrypt.hash(rawPassword, 10);
         const nameParts = (data.ownerName || 'Hotel Owner').split(' ');
         const firstName = nameParts[0] || 'Hotel';
         const lastName = nameParts.slice(1).join(' ') || 'Owner';
 
-        const user = queryRunner.manager.create(User, {
-          email: data.ownerEmail,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          scope: UserScope.HOTEL,
-          isActive: true,
+        let user = await queryRunner.manager.findOne(User, {
+          where: { email: data.ownerEmail },
         });
-        const savedUser = await queryRunner.manager.save(user);
 
-        // Find or create HOTEL_ADMIN role
-        let role = await queryRunner.manager.findOne(Role, {
-          where: { name: 'HOTEL_ADMIN' },
-        });
-        if (!role) {
-          role = queryRunner.manager.create(Role, {
-            name: 'HOTEL_ADMIN',
-            scope: RoleScope.HOTEL,
-            description: 'Full access to all hotel operations',
-            isSystemRole: true,
-            hierarchyLevel: 80,
+        if (!user) {
+          const rawPassword =
+            data.password ||
+            (await this.passwordPolicyService.generateTemporaryPassword());
+          if (!data.password) {
+            temporaryPassword = rawPassword;
+          }
+          await this.passwordPolicyService.assertCompliant(rawPassword);
+          const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+          user = queryRunner.manager.create(User, {
+            email: data.ownerEmail,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            scope: UserScope.HOTEL,
+            isActive: true,
           });
-          role = await queryRunner.manager.save(role);
+          user = await queryRunner.manager.save(user);
+        } else {
+          user.firstName = user.firstName || firstName;
+          user.lastName = user.lastName || lastName;
+          if (user.scope !== UserScope.HOTEL) {
+            user.scope = UserScope.HOTEL;
+          }
+          user = await queryRunner.manager.save(user);
         }
 
-        // Create HotelUserAccess
+        // Find or create HOTEL_OWNER role
+        let ownerRole = await queryRunner.manager.findOne(Role, {
+          where: { name: 'HOTEL_OWNER' },
+        });
+        if (!ownerRole) {
+          ownerRole = queryRunner.manager.create(Role, {
+            name: 'HOTEL_OWNER',
+            scope: RoleScope.HOTEL,
+            description: 'Primary owner access for a hotel tenant',
+            isSystem: true,
+            hierarchyLevel: 100,
+          });
+          ownerRole = await queryRunner.manager.save(ownerRole);
+        }
+
+        // Keep HOTEL_ADMIN available for delegated hotel operators
+        let hotelAdminRole = await queryRunner.manager.findOne(Role, {
+          where: { name: 'HOTEL_ADMIN' },
+        });
+        if (!hotelAdminRole) {
+          hotelAdminRole = queryRunner.manager.create(Role, {
+            name: 'HOTEL_ADMIN',
+            scope: RoleScope.HOTEL,
+            description: 'Delegated administration for hotel operations',
+            isSystem: true,
+            hierarchyLevel: 80,
+          });
+          hotelAdminRole = await queryRunner.manager.save(hotelAdminRole);
+        }
+
+        // Create HotelUserAccess for the owner
         const userAccess = queryRunner.manager.create(HotelUserAccess, {
-          userId: savedUser.id,
+          userId: user.id,
           hotelId: savedHotel.id,
-          roleId: role.id,
+          roleId: ownerRole.id,
           grantedAt: new Date(),
         });
         await queryRunner.manager.save(userAccess);
@@ -542,18 +562,36 @@ export class PlatformService {
         where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
       });
       const defaultFeatures = [
-        { id: 'housekeeping', name: 'Housekeeping Module', category: 'Operations' },
-        { id: 'maintenance', name: 'Maintenance Module', category: 'Operations' },
+        {
+          id: 'housekeeping',
+          name: 'Housekeeping Module',
+          category: 'Operations',
+        },
+        {
+          id: 'maintenance',
+          name: 'Maintenance Module',
+          category: 'Operations',
+        },
         { id: 'pos', name: 'POS Integration', category: 'Integrations' },
-        { id: 'whatsapp', name: 'WhatsApp Notifications', category: 'Guest Services' },
+        {
+          id: 'whatsapp',
+          name: 'WhatsApp Notifications',
+          category: 'Guest Services',
+        },
         { id: 'analytics', name: 'Advanced Analytics', category: 'Business' },
-        { id: 'guest-portal', name: 'Guest Self-Service Portal', category: 'Guest Services' },
+        {
+          id: 'guest-portal',
+          name: 'Guest Self-Service Portal',
+          category: 'Guest Services',
+        },
       ];
       const enabled = (sub?.features as any)?.enabledFeatures || [];
       return defaultFeatures.map((f) => ({
         ...f,
         id: f.id,
-        status: enabled.includes(f.id) ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED,
+        status: enabled.includes(f.id)
+          ? FeatureFlagStatus.ENABLED
+          : FeatureFlagStatus.DISABLED,
       }));
     }
 
@@ -587,7 +625,11 @@ export class PlatformService {
     return result;
   }
 
-  async toggleHotelFeature(hotelId: string, featureId: string, enabled: boolean) {
+  async toggleHotelFeature(
+    hotelId: string,
+    featureId: string,
+    enabled: boolean,
+  ) {
     let flag = await this.featureFlagRepository.findOne({
       where: { id: featureId },
       relations: ['hotel'],
@@ -598,7 +640,9 @@ export class PlatformService {
         where: { hotel: { id: hotelId }, status: SubscriptionStatus.ACTIVE },
       });
       if (!sub) {
-        throw new NotFoundException('No active subscription found for this hotel');
+        throw new NotFoundException(
+          'No active subscription found for this hotel',
+        );
       }
       const features = (sub.features as any) || {};
       const enabledFeatures: string[] = features.enabledFeatures || [];
@@ -624,14 +668,18 @@ export class PlatformService {
         where: { name: flag.name, hotel: { id: hotelId } },
       });
       if (override) {
-        override.status = enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED;
+        override.status = enabled
+          ? FeatureFlagStatus.ENABLED
+          : FeatureFlagStatus.DISABLED;
         await this.featureFlagRepository.save(override);
         return this.findFeatureFlagById(override.id);
       }
       const newFlag = this.featureFlagRepository.create({
         name: flag.name,
         description: flag.description,
-        status: enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED,
+        status: enabled
+          ? FeatureFlagStatus.ENABLED
+          : FeatureFlagStatus.DISABLED,
         hotel: { id: hotelId } as any,
         rolloutStrategy: flag.rolloutStrategy,
         rolloutPercentage: flag.rolloutPercentage,
@@ -640,7 +688,9 @@ export class PlatformService {
       return newFlag;
     }
 
-    flag.status = enabled ? FeatureFlagStatus.ENABLED : FeatureFlagStatus.DISABLED;
+    flag.status = enabled
+      ? FeatureFlagStatus.ENABLED
+      : FeatureFlagStatus.DISABLED;
     await this.featureFlagRepository.save(flag);
     return this.findFeatureFlagById(flag.id);
   }
@@ -689,9 +739,10 @@ export class PlatformService {
 
     for (const table of tablesToClean) {
       try {
-        await this.dataSource.query(`DELETE FROM ${table} WHERE "hotelId" = $1`, [
-          id,
-        ]);
+        await this.dataSource.query(
+          `DELETE FROM ${table} WHERE "hotelId" = $1`,
+          [id],
+        );
       } catch (e) {
         // Table might not exist or no records for this hotel
       }
@@ -765,14 +816,22 @@ export class PlatformService {
   }
 
   async getPlatformRolesSummary() {
-    const [userResult, roleResult, permResult, auditResult] = await Promise.all([
-      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.platform_users`),
-      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.roles`),
-      this.dataSource.query(`SELECT COUNT(*)::int as count FROM global.permissions`),
-      this.dataSource.query(
-        `SELECT "createdAt" FROM global.audit_logs ORDER BY "createdAt" DESC LIMIT 1`,
-      ),
-    ]);
+    const [userResult, roleResult, permResult, auditResult] = await Promise.all(
+      [
+        this.dataSource.query(
+          `SELECT COUNT(*)::int as count FROM global.platform_users`,
+        ),
+        this.dataSource.query(
+          `SELECT COUNT(*)::int as count FROM global.roles`,
+        ),
+        this.dataSource.query(
+          `SELECT COUNT(*)::int as count FROM global.permissions`,
+        ),
+        this.dataSource.query(
+          `SELECT "createdAt" FROM global.audit_logs ORDER BY "createdAt" DESC LIMIT 1`,
+        ),
+      ],
+    );
 
     return {
       totalAdmins: userResult[0]?.count ?? 0,
@@ -1227,7 +1286,14 @@ export class PlatformService {
     strategy?: string;
     scope?: 'global' | 'hotel' | 'all';
   }): Promise<PaginatedResult<any>> {
-    const { page = 1, limit = 20, search, status, strategy, scope = 'all' } = options || {};
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      status,
+      strategy,
+      scope = 'all',
+    } = options || {};
     const skip = (page - 1) * limit;
 
     const qb = this.featureFlagRepository.createQueryBuilder('flag');
@@ -1367,14 +1433,29 @@ export class PlatformService {
   }
 
   async getRolloutSummary() {
-    const flags = await this.featureFlagRepository.find({ relations: ['hotel'] });
+    const flags = await this.featureFlagRepository.find({
+      relations: ['hotel'],
+    });
     const totalHotels = await this.hotelRepository.count();
 
-    const grouped = new Map<string, { total: number; enabled: number; strategies: Set<string>; statuses: Set<string> }>();
+    const grouped = new Map<
+      string,
+      {
+        total: number;
+        enabled: number;
+        strategies: Set<string>;
+        statuses: Set<string>;
+      }
+    >();
 
     for (const flag of flags) {
       if (!grouped.has(flag.name)) {
-        grouped.set(flag.name, { total: 0, enabled: 0, strategies: new Set(), statuses: new Set() });
+        grouped.set(flag.name, {
+          total: 0,
+          enabled: 0,
+          strategies: new Set(),
+          statuses: new Set(),
+        });
       }
       const entry = grouped.get(flag.name)!;
       entry.total++;
@@ -1384,16 +1465,23 @@ export class PlatformService {
     }
 
     return Array.from(grouped.entries()).map(([name, data]) => {
-      const percentage = totalHotels > 0 ? Math.round((data.enabled / totalHotels) * 100) : 0;
-      const isFullEnabled = data.statuses.size === 1 && data.statuses.has('ENABLED');
-      const isFullDisabled = data.statuses.size === 1 && data.statuses.has('DISABLED');
+      const percentage =
+        totalHotels > 0 ? Math.round((data.enabled / totalHotels) * 100) : 0;
+      const isFullEnabled =
+        data.statuses.size === 1 && data.statuses.has('ENABLED');
+      const isFullDisabled =
+        data.statuses.size === 1 && data.statuses.has('DISABLED');
 
       return {
         name,
         percentage,
         total: data.total,
         enabled: data.enabled,
-        status: isFullEnabled ? 'ENABLED' : isFullDisabled ? 'DISABLED' : 'PARTIAL',
+        status: isFullEnabled
+          ? 'ENABLED'
+          : isFullDisabled
+            ? 'DISABLED'
+            : 'PARTIAL',
         strategies: Array.from(data.strategies),
       };
     });
