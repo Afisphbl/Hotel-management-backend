@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { RoomType } from './room-type.entity';
 
@@ -11,6 +11,7 @@ export enum RoomStatus {
 }
 
 @Entity({ name: 'rooms' })
+@Index(['hotelId', 'roomNumber'], { unique: true })
 export class Room extends BaseEntity {
   @Column()
   roomNumber: string;

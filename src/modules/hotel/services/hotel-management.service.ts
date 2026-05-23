@@ -21,7 +21,8 @@ export class HotelManagementService {
   async create(data: any) {
     const hotel = new Hotel();
     hotel.name = data.name;
-    hotel.slug = data.slug || (data.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    hotel.slug =
+      data.slug || (data.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     hotel.location = data.location;
     hotel.timezone = data.timezone;
     hotel.currency = data.currency;
@@ -33,16 +34,27 @@ export class HotelManagementService {
     await this.hotelRepository.save(hotel);
 
     if (data.rooms && data.rooms > 0) {
+      // Fetch any rooms already seeded for this hotel to avoid duplicates
+      const existing = await this.roomRepository.find({
+        where: { hotelId: hotel.id },
+      });
+      const existingNumbers = new Set(existing.map((r) => r.roomNumber));
+
       const rooms: Partial<Room>[] = [];
       for (let i = 1; i <= data.rooms; i++) {
-        rooms.push({
-          roomNumber: String(i),
-          floor: 'Ground',
-          hotelId: hotel.id,
-          status: RoomStatus.AVAILABLE,
-        });
+        const num = String(i);
+        if (!existingNumbers.has(num)) {
+          rooms.push({
+            roomNumber: num,
+            floor: 'Ground',
+            hotelId: hotel.id,
+            status: RoomStatus.AVAILABLE,
+          });
+        }
       }
-      await this.roomRepository.save(this.roomRepository.create(rooms));
+      if (rooms.length > 0) {
+        await this.roomRepository.save(this.roomRepository.create(rooms));
+      }
     }
 
     return hotel;
