@@ -60,6 +60,11 @@ export class PlatformHotelsController {
     return this.platformService.updateBranding(id, data);
   }
 
+  @Post(':id/reprovision-schema')
+  async reprovisionSchema(@Param('id') id: string) {
+    return this.platformService.reprovisionHotelSchema(id);
+  }
+
   @Delete(':id')
   async deleteHotel(@Param('id') id: string) {
     return this.platformService.deleteHotel(id);
