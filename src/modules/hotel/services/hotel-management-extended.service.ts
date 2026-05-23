@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { AuditLog } from '../../../database/entities/audit-log.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Invoice } from '../../../database/entities/invoice.entity';
+import { SubscriptionPlan, SubscriptionStatus } from '../../../database/entities/global/subscriptions.entity';
 
 @Injectable()
 export class HotelManagementExtendedService {
@@ -18,6 +19,7 @@ export class HotelManagementExtendedService {
     private bookingRepo: Repository<Booking>,
     @InjectRepository(Invoice)
     private invoiceRepo: Repository<Invoice>,
+    private dataSource: DataSource,
   ) {}
 
   async updateInfo(id: string, data: any) {
@@ -48,7 +50,30 @@ export class HotelManagementExtendedService {
     const hotel = await this.hotelRepo.findOne({ where: { id } });
     if (!hotel) return null;
     hotel.subscription = { ...(hotel.subscription || {}), ...(subscription || {}) };
-    return this.hotelRepo.save(hotel);
+    await this.hotelRepo.save(hotel);
+
+    // Also update the actual global.subscriptions record
+    const plan = subscription?.plan;
+    if (plan && [SubscriptionPlan.BASIC, SubscriptionPlan.PROFESSIONAL, SubscriptionPlan.ENTERPRISE].includes(plan)) {
+      const existing = await this.dataSource.query(
+        `SELECT * FROM global.subscriptions WHERE "hotelId" = $1 AND status = 'ACTIVE' ORDER BY "createdAt" DESC LIMIT 1`,
+        [id],
+      );
+      if (existing.length > 0) {
+        await this.dataSource.query(
+          `UPDATE global.subscriptions SET plan = $1, price = $2, status = $3, "updatedAt" = NOW() WHERE id = $4`,
+          [plan, subscription.price ?? existing[0].price, subscription.status ?? existing[0].status, existing[0].id],
+        );
+      } else {
+        await this.dataSource.query(
+          `INSERT INTO global.subscriptions (id, "hotelId", plan, status, price, "startDate", "createdAt", "updatedAt")
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW(), NOW())`,
+          [id, plan, subscription.status || SubscriptionStatus.ACTIVE, subscription.price ?? 0],
+        );
+      }
+    }
+
+    return hotel;
   }
 
   async getPerformance(id: string, days = 30) {

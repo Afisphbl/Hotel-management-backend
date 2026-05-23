@@ -126,6 +126,16 @@ export class PlatformService {
           ? 'Pro'
           : rawPlan.charAt(0) + rawPlan.slice(1).toLowerCase();
 
+      let totalRooms = hotel.rooms;
+      try {
+        const dbRooms = (await this.dataSource.query(
+          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+        )) as Array<{ count: string }>;
+        totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
+      } catch {
+        // Fallback to the stored value on the global hotel record.
+      }
+
       enrichedHotels.push({
         id: hotel.id,
         name: hotel.name,
@@ -138,8 +148,8 @@ export class PlatformService {
         email: hotel.ownerEmail,
         ownerEmail: hotel.ownerEmail,
         plan: planLabel,
-        rooms: hotel.rooms,
-        totalRooms: hotel.rooms,
+        rooms: totalRooms,
+        totalRooms,
       });
     }
 

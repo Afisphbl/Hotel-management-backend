@@ -1072,12 +1072,13 @@ async function bootstrap() {
         for (let i = 1; i <= hc.roomsPerType; i++) {
           const roomNumber = `${roomPrefix}-${String(typeIdx + 1).padStart(2, '0')}${String(i).padStart(2, '0')}`;
           const floor = floorNames[typeIdx] || 'Upper';
-          let room = await roomRepo.findOne({ where: { roomNumber } });
+          let room = await roomRepo.findOne({ where: { roomNumber, hotelId: hotel.id } });
           if (!room) {
             room = await roomRepo.save(
               roomRepo.create({
                 roomNumber,
                 floor,
+                hotelId: hotel.id,
                 roomTypeId: savedRoomTypes[rt.name].id,
                 status: RoomStatus.AVAILABLE,
               }),

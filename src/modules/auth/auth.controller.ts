@@ -96,7 +96,15 @@ export class AuthController {
         : 'desktop',
     };
 
-    return this.authService.login(user, hotelId, metadata);
+    const result = await this.authService.login(user, hotelId, metadata);
+    const tokenPayload = JSON.parse(
+      Buffer.from(result.access_token.split('.')[1], 'base64url').toString(),
+    );
+    console.log('=== LOGIN ===', {
+      ...tokenPayload,
+      access_token: result.access_token.slice(0, 20) + '...',
+    });
+    return result;
   }
 
   @Post('setup-2fa')

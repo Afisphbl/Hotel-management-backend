@@ -19,11 +19,20 @@ export class Room extends BaseEntity {
   floor: string;
 
   @Column()
+  hotelId: string;
+
+  @Column({ nullable: true })
   roomTypeId: string;
 
   @ManyToOne(() => RoomType)
   @JoinColumn({ name: 'roomTypeId' })
   roomType: RoomType;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
+  basePrice: number;
+
+  @Column({ type: 'int', nullable: true })
+  baseCapacity: number;
 
   @Column({
     type: 'enum',

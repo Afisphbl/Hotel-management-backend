@@ -35,6 +35,7 @@ export class RoomsController {
 
   @Get()
   async findAll(
+    @Request() req: any,
     @Query()
     query: PaginationDto & {
       status?: RoomStatus;
@@ -42,17 +43,21 @@ export class RoomsController {
       roomTypeId?: string;
     },
   ) {
-    const result = await this.roomsService.findAll(query);
+    const hotelId = req.user.hotel_id;
+    const result = await this.roomsService.findAll(hotelId, query);
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
   @Get('availability')
   async getAvailability(
+    @Request() req: any,
     @Query('roomTypeId') roomTypeId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    const hotelId = req.user.hotel_id;
     const result = await this.roomsService.getAvailability(
+      hotelId,
       roomTypeId,
       startDate,
       endDate,
@@ -60,9 +65,17 @@ export class RoomsController {
     return success(result);
   }
 
+  @Get('summary')
+  async getSummary(@Request() req: any) {
+    const hotelId = req.user.hotel_id;
+    const summary = await this.roomsService.getSummary(hotelId);
+    return success(summary);
+  }
+
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    const room = await this.roomsService.findById(id);
+  async findById(@Param('id') id: string, @Request() req: any) {
+    const hotelId = req.user.hotel_id;
+    const room = await this.roomsService.findById(id, hotelId);
     return success(room);
   }
 
@@ -70,14 +83,16 @@ export class RoomsController {
   @UseGuards(PlanLimitGuard)
   @PlanLimit('rooms')
   async create(@Body() data: any, @Request() req: any) {
-    const room = await this.roomsService.create(data);
-    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
+    const hotelId = req.user.hotel_id;
+    const room = await this.roomsService.create(data, hotelId);
+    await this.tenantQuotaService.syncQuotaSnapshot(hotelId);
     return success(room);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const room = await this.roomsService.update(id, data);
+  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+    const hotelId = req.user.hotel_id;
+    const room = await this.roomsService.update(id, data, hotelId);
     return success(room);
   }
 
@@ -85,15 +100,18 @@ export class RoomsController {
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: RoomStatus,
+    @Request() req: any,
   ) {
-    const room = await this.roomsService.updateStatus(id, status);
+    const hotelId = req.user.hotel_id;
+    const room = await this.roomsService.updateStatus(id, status, hotelId);
     return success(room);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req: any) {
-    await this.roomsService.remove(id);
-    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
+    const hotelId = req.user.hotel_id;
+    await this.roomsService.remove(id, hotelId);
+    await this.tenantQuotaService.syncQuotaSnapshot(hotelId);
     return success({ deleted: true });
   }
 }
