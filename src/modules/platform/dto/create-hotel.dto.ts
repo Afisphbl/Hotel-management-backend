@@ -1,7 +1,9 @@
 import {
+  Allow,
   IsArray,
   IsEmail,
   IsEnum,
+  IsBoolean,
   IsOptional,
   IsString,
   MaxLength,
@@ -57,6 +59,41 @@ export class CreateHotelDto {
   timezone?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  region?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  legalName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  website?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  billingCycle?: string;
+
+  @IsOptional()
   @IsEnum(SubscriptionPlan)
   plan?: SubscriptionPlan | string;
 
@@ -81,4 +118,24 @@ export class CreateHotelDto {
   @IsString()
   @MaxLength(50)
   accentColor?: string;
+
+  @IsOptional()
+  @Allow()
+  branding?: Record<string, unknown>;
+
+  @IsOptional()
+  @Allow()
+  settings?: Record<string, unknown>;
+
+  @IsOptional()
+  @Allow()
+  paymentMethods?: Record<string, unknown> | unknown[];
+
+  @IsOptional()
+  @Allow()
+  cancellationPolicy?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
+  maintenanceMode?: boolean;
 }

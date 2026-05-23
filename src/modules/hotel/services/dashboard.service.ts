@@ -61,6 +61,12 @@ export class DashboardService {
       this.roomRepository.count({ where: { status: RoomStatus.MAINTENANCE } }),
     ]);
 
+    const hotels = await this.hotelRepository.find();
+    const storedRoomTotal = hotels.reduce((sum, hotel) => sum + (hotel.rooms || 0), 0);
+    const resolvedTotalRooms = totalRooms > 0 ? totalRooms : storedRoomTotal;
+    const resolvedAvailableRooms =
+      totalRooms > 0 ? availableRooms : storedRoomTotal;
+
     // Booking metrics
     const [
       todayCheckIns,
@@ -181,7 +187,10 @@ export class DashboardService {
     ]);
 
     // Calculate occupancy rate
-    const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+    const occupancyRate =
+      resolvedTotalRooms > 0
+        ? Math.round((occupiedRooms / resolvedTotalRooms) * 100)
+        : 0;
     const monthlyProfit = monthlyRevenue ? Number(monthlyRevenue.revenue) * 0.7 : 0; // Assuming 30% profit margin
 
     // Generate trend data for charts
@@ -200,8 +209,8 @@ export class DashboardService {
     return {
       // Core metrics
       occupancy: occupancyRate,
-      totalRooms,
-      availableRooms,
+      totalRooms: resolvedTotalRooms,
+      availableRooms: resolvedAvailableRooms,
       occupiedRooms,
       dirtyRooms,
       maintenanceRooms,
