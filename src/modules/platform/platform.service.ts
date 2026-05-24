@@ -38,6 +38,7 @@ import { PasswordPolicyService } from '../../common/services/password-policy.ser
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { CreateHotelDto } from './dto/create-hotel.dto';
 import { PaginatedResult } from '../../common/pagination/pagination.interface';
+import { assertSafeSchemaName } from '../../common/tenant/tenant-utils';
 
 @Injectable()
 export class PlatformService {
@@ -129,7 +130,7 @@ export class PlatformService {
       let totalRooms = hotel.rooms;
       try {
         const dbRooms = (await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+          `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(hotel.schemaName)}"."rooms"`,
         )) as Array<{ count: string }>;
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
@@ -197,7 +198,7 @@ export class PlatformService {
       let totalRooms = hotel.rooms;
       try {
         const dbRooms = (await this.dataSource.query(
-          `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+          `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(hotel.schemaName)}"."rooms"`,
         )) as Array<{ count: string }>;
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
@@ -262,7 +263,7 @@ export class PlatformService {
     let totalRooms = hotel.rooms;
     try {
       const dbRooms = (await this.dataSource.query(
-        `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
+        `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(hotel.schemaName)}"."rooms"`,
       )) as Array<{ count: string }>;
       totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
@@ -507,8 +508,9 @@ export class PlatformService {
       }
 
       // 2. Create the Physical Schema and provision all tenant tables
-      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
-      await this.provisionTenantSchema(queryRunner, schemaName);
+      const safeSchemaName = assertSafeSchemaName(schemaName);
+      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${safeSchemaName}"`);
+      await this.provisionTenantSchema(queryRunner, safeSchemaName);
 
       // 3. Auto-generate rooms if rooms count provided
       const roomCount = data.rooms || 0;
@@ -519,7 +521,7 @@ export class PlatformService {
           for (let num = 1; num <= 10 && roomsCreated < roomCount; num++) {
             const roomNumber = `${floor}${String(num).padStart(2, '0')}`;
             await queryRunner.query(
-              `INSERT INTO "${schemaName}"."rooms" ("roomNumber", floor, "hotelId", status) VALUES ($1, $2, $3, 'available')`,
+              `INSERT INTO "${safeSchemaName}"."rooms" ("roomNumber", floor, "hotelId", status) VALUES ($1, $2, $3, 'available')`,
               [roomNumber, String(floor), hotelId],
             );
             roomsCreated++;
@@ -552,12 +554,13 @@ export class PlatformService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     try {
-      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${hotel.schemaName}"`);
-      await this.provisionTenantSchema(queryRunner, hotel.schemaName);
+      const safeSchemaName = assertSafeSchemaName(hotel.schemaName);
+      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${safeSchemaName}"`);
+      await this.provisionTenantSchema(queryRunner, safeSchemaName);
 
       // Seed rooms if table is empty and hotel has a rooms count
       const existing = await queryRunner.query(
-        `SELECT COUNT(*)::int AS count FROM "${hotel.schemaName}"."rooms"`,
+        `SELECT COUNT(*)::int AS count FROM "${safeSchemaName}"."rooms"`,
       );
       const existingCount = Number(existing[0]?.count ?? 0);
       const roomCount = hotel.rooms || 0;
@@ -568,7 +571,7 @@ export class PlatformService {
           for (let num = 1; num <= 10 && roomsCreated < roomCount; num++) {
             const roomNumber = `${floor}${String(num).padStart(2, '0')}`;
             await queryRunner.query(
-              `INSERT INTO "${hotel.schemaName}"."rooms" ("roomNumber", floor, "hotelId", status) VALUES ($1, $2, $3, 'available')`,
+              `INSERT INTO "${safeSchemaName}"."rooms" ("roomNumber", floor, "hotelId", status) VALUES ($1, $2, $3, 'available')`,
               [roomNumber, String(floor), hotelId],
             );
             roomsCreated++;
@@ -584,7 +587,7 @@ export class PlatformService {
   }
 
   private async provisionTenantSchema(queryRunner: any, schemaName: string): Promise<void> {
-    const s = schemaName;
+    const s = assertSafeSchemaName(schemaName);
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "${s}"."room_types" (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1126,7 +1129,7 @@ export class PlatformService {
     // Drop tenant-specific schema cleanly
     try {
       await this.dataSource.query(
-        `DROP SCHEMA IF EXISTS "${hotel.schemaName}" CASCADE`,
+        `DROP SCHEMA IF EXISTS "${assertSafeSchemaName(hotel.schemaName)}" CASCADE`,
       );
     } catch {
       /* schema may not exist */
@@ -1254,7 +1257,7 @@ export class PlatformService {
       hotels.map(async (h) => {
         try {
           const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+            `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(h.schemaName)}"."bookings"`,
           )) as unknown as Array<{ count: string }>;
           return parseInt(countRes[0]?.count || '0', 10);
         } catch {
@@ -1421,7 +1424,7 @@ export class PlatformService {
       try {
         const rows = (await this.dataSource.query(
           `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
-           FROM "${schemaName}"."invoices"
+           FROM "${assertSafeSchemaName(schemaName)}"."invoices"
            WHERE ${statusClause}`,
         )) as Array<{ revenue: string }>;
         return Number(rows[0]?.revenue ?? 0);

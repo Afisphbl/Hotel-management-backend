@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { assertSafeSchemaName } from '../tenant/tenant-utils';
 import { DataSource, Repository, MoreThan } from 'typeorm';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
 import { TenantQuota } from '../../database/entities/global/tenant-quota.entity';
@@ -460,7 +461,7 @@ export class TenantQuotaService {
   }
 
   private async getUsage(hotel: Hotel): Promise<TenantQuotaUsage> {
-    const schemaName = this.assertSafeSchemaName(hotel.schemaName);
+    const schemaName = assertSafeSchemaName(hotel.schemaName);
     let roomCount = 0;
     let accessCount = 0;
     let staffCount = 0;
@@ -540,13 +541,5 @@ export class TenantQuotaService {
 
     quota.currentStorageMb = Number(hotel.storageUsedMb ?? 0);
     await quotaRepository.save(quota);
-  }
-
-  private assertSafeSchemaName(schemaName: string): string {
-    if (!/^[a-zA-Z0-9_]+$/.test(schemaName)) {
-      throw new ForbiddenException('Invalid tenant schema');
-    }
-
-    return schemaName;
   }
 }
