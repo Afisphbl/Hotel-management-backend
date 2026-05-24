@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { assertSafeSchemaName } from '../../../common/tenant/tenant-utils';
 import { Repository, DataSource } from 'typeorm';
 import {
   AnalyticsSnapshot,
@@ -69,7 +70,7 @@ export class AnalyticsService {
       hotels.map(async (h) => {
         try {
           const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
+            `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(h.schemaName)}"."bookings"`,
           )) as unknown as Array<{ count: string }>;
           return parseInt(countRes[0]?.count || '0', 10);
         } catch (err) {
@@ -175,7 +176,7 @@ export class AnalyticsService {
           hotels.map(async (h) => {
             try {
               const countRes = (await this.dataSource.query(
-                `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"
+                `SELECT COUNT(*) as count FROM "${assertSafeSchemaName(h.schemaName)}"."bookings"
                  WHERE "createdAt" BETWEEN $1 AND $2`,
                 [startOfMonth, endOfMonth],
               )) as unknown as Array<{ count: string }>;

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { assertSafeSchemaName } from '../../../common/tenant/tenant-utils';
 import { Repository, DataSource } from 'typeorm';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
@@ -16,7 +17,7 @@ export class RoomsService {
   private async getSchema(hotelId: string): Promise<string> {
     const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
     if (!hotel?.schemaName) throw new NotFoundException('Hotel schema not found');
-    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+    return assertSafeSchemaName(hotel.schemaName);
   }
 
   private mapRow(r: any): Room {
@@ -145,7 +146,7 @@ export class RoomsService {
 
   async getSummary(hotelId: string) {
     const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
-    const s = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? null;
+    const s = hotel?.schemaName ? assertSafeSchemaName(hotel.schemaName) : null;
 
     const result: Record<string, number> = { total: 0, available: 0, occupied: 0, dirty: 0, maintenance: 0, out_of_order: 0 };
 
