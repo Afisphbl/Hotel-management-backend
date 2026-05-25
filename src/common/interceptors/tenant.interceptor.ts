@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable, from, switchMap, finalize } from 'rxjs';
 import { DataSource } from 'typeorm';
+import { assertSafeSchemaName } from '../tenant/tenant-utils';
 
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
@@ -36,6 +37,8 @@ export class TenantInterceptor implements NestInterceptor {
   }
 
   private async setupQueryRunner(request: any, schema: string): Promise<void> {
+    // Validate schema name to prevent SQL injection as it cannot be parameterized
+    assertSafeSchemaName(schema);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.query(`SET search_path TO "${schema}", public`);
