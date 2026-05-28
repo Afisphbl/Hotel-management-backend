@@ -68,6 +68,38 @@ export class AuthService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  async generateMfaToken(userId: string): Promise<string> {
+    return this.jwtService.signAsync(
+      { sub: userId, purpose: 'mfa' },
+      {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        expiresIn: '5m',
+      },
+    );
+  }
+
+  async verifyMfaToken(token: string): Promise<string> {
+    try {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        purpose: string;
+      }>(token, {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      });
+
+      if (payload.purpose !== 'mfa') {
+        throw new UnauthorizedException('Invalid token purpose');
+      }
+
+      return payload.sub;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     const [user, platformUser] = await Promise.all([
       this.userRepository.findOne({
