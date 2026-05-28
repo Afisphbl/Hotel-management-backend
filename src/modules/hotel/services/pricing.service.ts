@@ -1,163 +1,180 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual, Between } from 'typeorm';
+import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { RoomType } from '../../../database/entities/room-type.entity';
-
-export class RatePlan {
-  id: string;
-  name: string;
-  roomTypeId: string;
-  baseMultiplier: number;
-  isActive: boolean;
-  startDate?: Date;
-  endDate?: Date;
-}
-
-export class SeasonalRate {
-  id: string;
-  roomTypeId: string;
-  name: string;
-  price: number;
-  startDate: Date;
-  endDate: Date;
-  priority: number;
-}
-
-export class Promotion {
-  id: string;
-  roomTypeId: string;
-  name: string;
-  discountType: 'percentage' | 'fixed';
-  discountValue: number;
-  code?: string;
-  startDate: Date;
-  endDate: Date;
-  minNights?: number;
-}
-
-export class PriceOverride {
-  id: string;
-  roomTypeId: string;
-  date: Date;
-  price: number;
-  reason?: string;
-}
-
-export class WeekdayRule {
-  id: string;
-  roomTypeId: string;
-  dayOfWeek: number;
-  multiplier: number;
-  label?: string;
-}
+import { PriceOverride } from '../../../database/entities/price-override.entity';
+import { Promotion } from '../../../database/entities/promotion.entity';
+import { SeasonalRate } from '../../../database/entities/seasonal-rate.entity';
+import { RatePlan } from '../../../database/entities/rate-plan.entity';
 
 @Injectable()
 export class PricingService {
   constructor(
     @InjectRepository(RoomType)
-    private roomTypeRepository: Repository<RoomType>,
+    private roomTypeRepo: Repository<RoomType>,
+    @InjectRepository(PriceOverride)
+    private overrideRepo: Repository<PriceOverride>,
+    @InjectRepository(Promotion)
+    private promotionRepo: Repository<Promotion>,
+    @InjectRepository(SeasonalRate)
+    private seasonalRepo: Repository<SeasonalRate>,
+    @InjectRepository(RatePlan)
+    private ratePlanRepo: Repository<RatePlan>,
   ) {}
+
+  // ─── Calculate Price ────────────────────────────────────────────────────────
 
   async calculatePrice(
     roomTypeId: string,
     date: Date,
-    _overrides?: any,
+    overrides?: { promotionCode?: string },
   ): Promise<number> {
-    const roomType = await this.roomTypeRepository.findOneBy({
-      id: roomTypeId,
-    });
+    const dateStr = date.toISOString().split('T')[0];
+
+    const override = await this.overrideRepo.findOne({ where: { roomTypeId, date: dateStr } });
+    if (override) return Math.max(0, Number(override.price));
+
+    const roomType = await this.roomTypeRepo.findOneBy({ id: roomTypeId });
     if (!roomType) return 0;
 
-    const basePrice = Number(roomType.basePrice);
+    let price = Number(roomType.basePrice);
 
-    // Priority 1: Price Override (highest)
-    const override = await this.findOverride(roomTypeId, date);
-    if (override) return Number(override.price);
-
-    // Priority 2: Promotion (with code matching if specified)
-    const promotion = await this.findPromotion(roomTypeId, date);
-    if (promotion) {
-      if (promotion.discountType === 'percentage') {
-        return (
-          Math.round(basePrice * (1 - promotion.discountValue / 100) * 100) /
-          100
-        );
-      }
-      return Math.max(0, basePrice - promotion.discountValue);
+    const ratePlan = await this.ratePlanRepo.findOne({ where: { roomTypeId, isActive: true } });
+    if (ratePlan) {
+      const isWeekend = [0, 6].includes(date.getUTCDay());
+      const adj = isWeekend ? Number(ratePlan.weekendAdjustment) : Number(ratePlan.weekdayAdjustment);
+      if (adj !== 0) price = price + price * (adj / 100);
     }
 
-    // Priority 3: Seasonal Rate
-    const seasonal = await this.findSeasonalRate(roomTypeId, date);
-    if (seasonal) return Number(seasonal.price);
+    const seasonal = await this.seasonalRepo.findOne({
+      where: {
+        roomTypeId,
+        isActive: true,
+        startDate: LessThanOrEqual(dateStr),
+        endDate: MoreThanOrEqual(dateStr),
+      },
+      order: { priority: 'DESC' },
+    });
+    if (seasonal) {
+      if (seasonal.fixedPrice) price = Number(seasonal.fixedPrice);
+      else if (seasonal.multiplier) price = price * Number(seasonal.multiplier);
+    }
 
-    // Priority 4: Weekday Rule
-    const weekday = await this.findWeekdayRule(roomTypeId, date);
-    if (weekday) return Math.round(basePrice * weekday.multiplier * 100) / 100;
+    const promo = await this.promotionRepo.findOne({
+      where: {
+        ...(overrides?.promotionCode ? { code: overrides.promotionCode } : { roomTypeId }),
+        isActive: true,
+        startDate: LessThanOrEqual(dateStr),
+        endDate: MoreThanOrEqual(dateStr),
+      },
+    });
+    if (promo) {
+      price = promo.discountType === 'percentage'
+        ? price - price * (Number(promo.discountValue) / 100)
+        : price - Number(promo.discountValue);
+    }
 
-    // Priority 5: Base Rate (fallback)
-    return basePrice;
+    return Math.max(0, Math.round(price * 100) / 100);
   }
 
-  private async findOverride(
-    roomTypeId: string,
-    date: Date,
-  ): Promise<PriceOverride | null> {
-    return null;
+  // ─── Price Overrides ────────────────────────────────────────────────────────
+
+  async listOverrides(roomTypeId?: string): Promise<PriceOverride[]> {
+    return this.overrideRepo.find({
+      where: roomTypeId ? { roomTypeId } : {},
+      relations: ['roomType'],
+      order: { date: 'ASC' },
+    });
   }
 
-  private async findPromotion(
-    roomTypeId: string,
-    date: Date,
-  ): Promise<Promotion | null> {
-    return null;
-  }
-
-  private async findSeasonalRate(
-    roomTypeId: string,
-    date: Date,
-  ): Promise<SeasonalRate | null> {
-    return null;
-  }
-
-  private async findWeekdayRule(
-    roomTypeId: string,
-    date: Date,
-  ): Promise<WeekdayRule | null> {
-    return null;
-  }
-
-  // Price override CRUD
   async createOverride(data: Partial<PriceOverride>): Promise<PriceOverride> {
-    return data as PriceOverride;
+    return this.overrideRepo.save(this.overrideRepo.create(data));
   }
 
-  async deleteOverride(id: string): Promise<void> {}
+  async deleteOverride(id: string): Promise<void> {
+    const entity = await this.overrideRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Price override not found');
+    await this.overrideRepo.remove(entity);
+  }
 
-  // Promotion CRUD
+  // ─── Promotions ─────────────────────────────────────────────────────────────
+
+  async listPromotions(roomTypeId?: string): Promise<Promotion[]> {
+    return this.promotionRepo.find({
+      where: roomTypeId ? { roomTypeId } : {},
+      relations: ['roomType'],
+      order: { startDate: 'DESC' },
+    });
+  }
+
   async createPromotion(data: Partial<Promotion>): Promise<Promotion> {
-    return data as Promotion;
+    return this.promotionRepo.save(this.promotionRepo.create(data));
   }
 
-  async updatePromotion(
-    id: string,
-    data: Partial<Promotion>,
-  ): Promise<Promotion | null> {
-    return null;
+  async updatePromotion(id: string, data: Partial<Promotion>): Promise<Promotion> {
+    const entity = await this.promotionRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Promotion not found');
+    Object.assign(entity, data);
+    return this.promotionRepo.save(entity);
   }
 
-  async deletePromotion(id: string): Promise<void> {}
+  async deletePromotion(id: string): Promise<void> {
+    const entity = await this.promotionRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Promotion not found');
+    await this.promotionRepo.remove(entity);
+  }
 
-  // Seasonal Rate CRUD
+  // ─── Seasonal Rates ─────────────────────────────────────────────────────────
+
+  async listSeasonalRates(roomTypeId?: string): Promise<SeasonalRate[]> {
+    return this.seasonalRepo.find({
+      where: roomTypeId ? { roomTypeId } : {},
+      relations: ['roomType'],
+      order: { startDate: 'ASC' },
+    });
+  }
+
   async createSeasonalRate(data: Partial<SeasonalRate>): Promise<SeasonalRate> {
-    return data as SeasonalRate;
+    return this.seasonalRepo.save(this.seasonalRepo.create(data));
   }
 
-  async deleteSeasonalRate(id: string): Promise<void> {}
-
-  // Weekday Rule CRUD
-  async createWeekdayRule(data: Partial<WeekdayRule>): Promise<WeekdayRule> {
-    return data as WeekdayRule;
+  async updateSeasonalRate(id: string, data: Partial<SeasonalRate>): Promise<SeasonalRate> {
+    const entity = await this.seasonalRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Seasonal rate not found');
+    Object.assign(entity, data);
+    return this.seasonalRepo.save(entity);
   }
 
-  async deleteWeekdayRule(id: string): Promise<void> {}
+  async deleteSeasonalRate(id: string): Promise<void> {
+    const entity = await this.seasonalRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Seasonal rate not found');
+    await this.seasonalRepo.remove(entity);
+  }
+
+  // ─── Rate Plans ─────────────────────────────────────────────────────────────
+
+  async listRatePlans(roomTypeId?: string): Promise<RatePlan[]> {
+    return this.ratePlanRepo.find({
+      where: roomTypeId ? { roomTypeId } : {},
+      relations: ['roomType'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async createRatePlan(data: Partial<RatePlan>): Promise<RatePlan> {
+    return this.ratePlanRepo.save(this.ratePlanRepo.create(data));
+  }
+
+  async updateRatePlan(id: string, data: Partial<RatePlan>): Promise<RatePlan> {
+    const entity = await this.ratePlanRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Rate plan not found');
+    Object.assign(entity, data);
+    return this.ratePlanRepo.save(entity);
+  }
+
+  async deleteRatePlan(id: string): Promise<void> {
+    const entity = await this.ratePlanRepo.findOneBy({ id });
+    if (!entity) throw new NotFoundException('Rate plan not found');
+    await this.ratePlanRepo.remove(entity);
+  }
 }
