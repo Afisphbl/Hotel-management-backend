@@ -45,6 +45,8 @@ export class AuthService {
       relations: ['role'],
     });
 
+    console.log(user);
+
     if (!user) {
       return null;
     }
