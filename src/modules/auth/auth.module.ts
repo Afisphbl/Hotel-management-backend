@@ -40,7 +40,7 @@ import { RedisService } from '../redis/redis.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        sortOptions: {
+        signOptions: {
           expiresIn: config.get('JWT_EXPIRATION'),
         },
       }),
