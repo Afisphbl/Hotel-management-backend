@@ -19,11 +19,18 @@ import { Payment } from '../../database/entities/payment.entity';
 import { Refund } from '../../database/entities/refund.entity';
 import { TaxRule } from '../../database/entities/tax-rule.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { User } from '../../database/entities/user.entity';
+import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
+import { Role } from '../../database/entities/role.entity';
+import { RolePermission } from '../../database/entities/role-permission.entity';
+import { Permission } from '../../database/entities/permission.entity';
 import { HotelOwnerDashboardController } from './controllers/hotel-owner-dashboard.controller';
 import { HotelManagementController } from './controllers/hotel-management.controller';
 import { HotelManagementService } from './services/hotel-management.service';
 import { HotelManagementExtendedController } from './controllers/hotel-management-extended.controller';
 import { HotelManagementExtendedService } from './services/hotel-management-extended.service';
+import { HotelOwnerStaffController } from './controllers/hotel-owner-staff.controller';
+import { HotelOwnerStaffService } from './services/hotel-owner-staff.service';
 
 import { RoomsController } from './controllers/rooms.controller';
 import { RoomTypesController } from './controllers/room-types.controller';
@@ -72,6 +79,11 @@ const entities = [
   Refund,
   TaxRule,
   Hotel,
+  User,
+  HotelUserAccess,
+  Role,
+  RolePermission,
+  Permission,
 ];
 
 const controllers = [
@@ -89,6 +101,7 @@ const controllers = [
   HotelOwnerDashboardController,
   HotelManagementController,
   HotelManagementExtendedController,
+  HotelOwnerStaffController,
   PricingController,
 ];
 
@@ -107,6 +120,7 @@ const services = [
   DashboardService,
   HotelManagementService,
   HotelManagementExtendedService,
+  HotelOwnerStaffService,
 ];
 
 @Module({

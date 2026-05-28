@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../../database/entities/user.entity';
 import { Role } from '../../database/entities/role.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
@@ -25,6 +26,7 @@ import { RedisService } from '../redis/redis.service';
     TypeOrmModule.forFeature([
       User,
       Role,
+      Hotel,
       HotelUserAccess,
       RolePermission,
       Permission,

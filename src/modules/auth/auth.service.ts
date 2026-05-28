@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, In, LessThan } from 'typeorm';
 import { User, UserScope } from '../../database/entities/user.entity';
-import { Hotel } from '../../database/entities/hotel.entity';
+import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { Role } from '../../database/entities/role.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
@@ -36,6 +36,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Hotel)
+    private hotelRepository: Repository<Hotel>,
     @InjectRepository(HotelUserAccess)
     private accessRepository: Repository<HotelUserAccess>,
     @InjectRepository(Role)
@@ -191,6 +193,16 @@ export class AuthService {
     const resolvedRoleId = userWithRole?.role?.id ?? user.role?.id;
 
     if (hotelId) {
+      const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+      if (!hotel) {
+        throw new UnauthorizedException('Hotel not found');
+      }
+      if (hotel.status !== HotelStatus.ACTIVE) {
+        throw new UnauthorizedException(
+          `Hotel is ${hotel.status === HotelStatus.SUSPENDED ? 'suspended' : 'inactive'}. Please contact support.`,
+        );
+      }
+
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
       if (user.scope === UserScope.PLATFORM && isImpersonating) {
         roleName = 'SUPPORT_ADMIN';
@@ -231,6 +243,14 @@ export class AuthService {
       });
 
       if (hotelAccess) {
+        const resolvedHotelId = sessionHotelId ?? hotelAccess.hotelId;
+        const hotel = await this.hotelRepository.findOne({ where: { id: resolvedHotelId } });
+        if (hotel && hotel.status !== HotelStatus.ACTIVE) {
+          throw new UnauthorizedException(
+            `Hotel is ${hotel.status === HotelStatus.SUSPENDED ? 'suspended' : 'inactive'}. Please contact support.`,
+          );
+        }
+
         // Load role explicitly by roleId (entity stores roleId as plain column)
         const hotelRole = hotelAccess.roleId
           ? await this.roleRepository.findOne({
@@ -243,7 +263,7 @@ export class AuthService {
           roleName = 'HOTEL_OWNER';
           dashboardRoute = '/hotel/owner/dashboard';
           sessionScope = UserScope.HOTEL;
-          sessionHotelId = sessionHotelId ?? hotelAccess.hotelId;
+          sessionHotelId = resolvedHotelId;
           permissions = await this.getHierarchicalPermissions(
             hotelAccess.roleId,
           );
