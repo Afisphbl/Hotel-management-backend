@@ -26,35 +26,33 @@ export class PricingService {
     hotelId: string,
     roomTypeId: string,
     date: Date,
-  ): Promise<{ price: number; reason: string | null; type: string | null }> {
+  ): Promise<{ price: number; reason: string | null; type: string | null; factors: string[] }> {
     const s = await this.getSchema(hotelId);
     const d = date.toISOString().split('T')[0];
+    const factors: string[] = [];
 
-    // 1. Price override (Highest priority)
+    // 1. Base Price or Override
+    let price = 0;
     const [ov] = await this.dataSource.query(
       `SELECT price, reason FROM "${s}"."price_overrides" WHERE "roomTypeId"=$1 AND date=$2 AND "deletedAt" IS NULL LIMIT 1`,
       [roomTypeId, d],
     );
+
     if (ov) {
-      return {
-        price: Math.max(0, Number(ov.price)),
-        reason: ov.reason || 'Price Override',
-        type: 'override',
-      };
+      price = Number(ov.price);
+      factors.push('Override');
+    } else {
+      const [rt] = await this.dataSource.query(
+        `SELECT "basePrice" FROM "${s}"."room_types" WHERE id=$1 AND "deletedAt" IS NULL`,
+        [roomTypeId],
+      );
+      if (!rt) return { price: 0, reason: null, type: null, factors: [] };
+      price = Number(rt.basePrice);
     }
 
-    // 2. Base price
-    const [rt] = await this.dataSource.query(
-      `SELECT "basePrice" FROM "${s}"."room_types" WHERE id=$1 AND "deletedAt" IS NULL`,
-      [roomTypeId],
-    );
-    if (!rt) return { price: 0, reason: null, type: null };
-    const basePrice = Number(rt.basePrice);
-    let price = basePrice;
-    let currentReason: string | null = null;
-    let currentType: string | null = null;
+    let currentType: string | null = ov ? 'override' : null;
 
-    // 3. Rate plan (Weekday/Weekend)
+    // 2. Rate plan (Weekday/Weekend) - Multiplier
     const [rp] = await this.dataSource.query(
       `SELECT name, "weekdayAdjustment","weekendAdjustment" FROM "${s}"."rate_plans" WHERE "roomTypeId"=$1 AND "isActive"=true AND "deletedAt" IS NULL LIMIT 1`,
       [roomTypeId],
@@ -64,44 +62,52 @@ export class PricingService {
       const adj = isWeekend
         ? Number(rp.weekendAdjustment)
         : Number(rp.weekdayAdjustment);
-      if (adj) {
+      if (adj !== 0) {
         price += price * (adj / 100);
-        currentReason = `${rp.name} (${adj > 0 ? '+' : ''}${adj}%)`;
-        currentType = 'rate_plan';
+        factors.push(adj > 0 ? 'Rate Plan (+)' : 'Rate Plan (-)');
+        if (!currentType) currentType = 'rate_plan';
       }
     }
 
-    // 4. Seasonal rate
+    // 3. Seasonal rate
     const [sr] = await this.dataSource.query(
       `SELECT name, "fixedPrice", multiplier FROM "${s}"."seasonal_rates" WHERE "roomTypeId"=$1 AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL ORDER BY priority DESC LIMIT 1`,
       [roomTypeId, d],
     );
     if (sr) {
-      price = sr.fixedPrice
-        ? Number(sr.fixedPrice)
-        : price * Number(sr.multiplier);
-      currentReason = sr.name;
-      currentType = 'seasonal';
+      if (sr.fixedPrice) {
+        price = Number(sr.fixedPrice);
+        factors.push('Seasonal (Fixed)');
+      } else if (sr.multiplier) {
+        price *= Number(sr.multiplier);
+        factors.push('Seasonal (Mult)');
+      }
+      if (!currentType || currentType === 'rate_plan') currentType = 'seasonal';
     }
 
-    // 5. Promotion (Lowest priority)
+    // 4. Promotion
     const [pr] = await this.dataSource.query(
       `SELECT name, "discountType","discountValue" FROM "${s}"."promotions" WHERE "roomTypeId"=$1 AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL LIMIT 1`,
       [roomTypeId, d],
     );
     if (pr) {
+      const oldPrice = price;
       price =
         pr.discountType === 'percentage'
           ? price - price * (Number(pr.discountValue) / 100)
           : price - Number(pr.discountValue);
-      currentReason = pr.name;
-      currentType = 'promotion';
+      
+      if (price !== oldPrice) {
+        factors.push('Promotion');
+        currentType = 'promotion';
+      }
     }
 
     return {
       price: Math.max(0, Math.round(price * 100) / 100),
-      reason: currentReason,
+      reason: factors.join(' + '),
       type: currentType,
+      factors,
     };
   }
 

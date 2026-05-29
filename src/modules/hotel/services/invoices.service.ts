@@ -32,14 +32,14 @@ export class InvoicesService {
       limit: options.limit,
       where,
       order: { createdAt: 'DESC' },
-      relations: ['booking'],
+      relations: ['booking', 'booking.guest'],
     });
   }
 
   async findById(id: string): Promise<Invoice> {
     const invoice = await this.invoiceRepository.findOne({
       where: { id },
-      relations: ['booking'],
+      relations: ['booking', 'booking.guest'],
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;

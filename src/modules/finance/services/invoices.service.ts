@@ -41,14 +41,14 @@ export class InvoicesService {
       limit: query.limit,
       where,
       order: { createdAt: 'DESC' },
-      relations: ['booking'],
+      relations: ['booking', 'booking.guest'],
     });
   }
 
   async findById(id: string): Promise<Invoice> {
     const invoice = await this.invoiceRepository.findOne({
       where: { id },
-      relations: ['booking'],
+      relations: ['booking', 'booking.guest'],
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
@@ -76,7 +76,7 @@ export class InvoicesService {
       const taxRules = await this.taxRuleRepository.find({
         where: { isActive: true },
       });
-      subtotal = Number(booking.totalPrice) || dto.amount || 0;
+      subtotal = dto.amount ?? (Number(booking.totalPrice) || 0);
       for (const rule of taxRules) {
         if (rule.application === TaxApplication.PERCENTAGE) {
           taxTotal += subtotal * (Number(rule.rate) / 100);
