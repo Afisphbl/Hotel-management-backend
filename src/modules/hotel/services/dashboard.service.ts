@@ -356,7 +356,8 @@ export class DashboardService {
                 Math.max(
                   1,
                   Math.round(
-                    (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) /
+                    (now.getTime() -
+                      new Date(now.getFullYear(), 0, 1).getTime()) /
                       (1000 * 60 * 60 * 24),
                   ),
                 )),
@@ -371,9 +372,7 @@ export class DashboardService {
         totalGuests,
         newGuests: guestsLast6Months,
         returningGuests: Math.max(0, totalGuests - guestsLast6Months),
-        averageStay: Number(
-          Number(avgStayResult?.avgStay || 0).toFixed(1),
-        ),
+        averageStay: Number(Number(avgStayResult?.avgStay || 0).toFixed(1)),
       },
       financialMetrics: {
         totalRevenue: Number(totalRevenueResult?.revenue || 0),
@@ -390,10 +389,7 @@ export class DashboardService {
   ): Promise<{ month: string; revenue: number }[]> {
     const rows = await this.invoiceRepository
       .createQueryBuilder('invoice')
-      .select(
-        `TO_CHAR(invoice."updatedAt", 'YYYY-MM')`,
-        'monthKey',
-      )
+      .select(`TO_CHAR(invoice."updatedAt", 'YYYY-MM')`, 'monthKey')
       .addSelect('COALESCE(SUM(invoice.amount), 0)', 'revenue')
       .where('invoice.status = :status', { status: InvoiceStatus.PAID })
       .andWhere('invoice."updatedAt" BETWEEN :start AND :end', {
@@ -405,8 +401,18 @@ export class DashboardService {
       .getRawMany();
 
     const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return rows.map((r) => {
       const monthIndex = parseInt(r.monthKey.split('-')[1], 10) - 1;
