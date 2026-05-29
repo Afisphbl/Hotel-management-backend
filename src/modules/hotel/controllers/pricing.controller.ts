@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { PricingService } from '../services/pricing.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -24,101 +14,90 @@ import { success } from '../common/response.interceptor';
 export class PricingController {
   constructor(private pricingService: PricingService) {}
 
-  // ─── Price Overrides ────────────────────────────────────────────────────────
+  private hotelId(req: any): string {
+    return req.user.hotel_id || req.user.hotelId;
+  }
 
+  // ─── Overrides ──────────────────────────────────────────────────────────────
   @Get('overrides')
-  async listOverrides(@Query('roomTypeId') roomTypeId?: string) {
-    const result = await this.pricingService.listOverrides(roomTypeId);
-    return success(result);
+  async listOverrides(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
+    return success(await this.pricingService.listOverrides(this.hotelId(req), roomTypeId));
   }
 
   @Post('overrides')
-  async createOverride(@Body() data: any) {
-    const result = await this.pricingService.createOverride(data);
-    return success(result);
+  async createOverride(@Request() req: any, @Body() data: any) {
+    return success(await this.pricingService.createOverride(this.hotelId(req), data));
   }
 
   @Delete('overrides/:id')
-  async deleteOverride(@Param('id') id: string) {
-    await this.pricingService.deleteOverride(id);
+  async deleteOverride(@Request() req: any, @Param('id') id: string) {
+    await this.pricingService.deleteOverride(this.hotelId(req), id);
     return success({ deleted: true });
   }
 
   // ─── Promotions ─────────────────────────────────────────────────────────────
-
   @Get('promotions')
-  async listPromotions(@Query('roomTypeId') roomTypeId?: string) {
-    const result = await this.pricingService.listPromotions(roomTypeId);
-    return success(result);
+  async listPromotions(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
+    return success(await this.pricingService.listPromotions(this.hotelId(req), roomTypeId));
   }
 
   @Post('promotions')
-  async createPromotion(@Body() data: any) {
-    const result = await this.pricingService.createPromotion(data);
-    return success(result);
+  async createPromotion(@Request() req: any, @Body() data: any) {
+    return success(await this.pricingService.createPromotion(this.hotelId(req), data));
   }
 
   @Patch('promotions/:id')
-  async updatePromotion(@Param('id') id: string, @Body() data: any) {
-    const result = await this.pricingService.updatePromotion(id, data);
-    return success(result);
+  async updatePromotion(@Request() req: any, @Param('id') id: string, @Body() data: any) {
+    return success(await this.pricingService.updatePromotion(this.hotelId(req), id, data));
   }
 
   @Delete('promotions/:id')
-  async deletePromotion(@Param('id') id: string) {
-    await this.pricingService.deletePromotion(id);
+  async deletePromotion(@Request() req: any, @Param('id') id: string) {
+    await this.pricingService.deletePromotion(this.hotelId(req), id);
     return success({ deleted: true });
   }
 
   // ─── Seasonal Rates ─────────────────────────────────────────────────────────
-
   @Get('seasonal-rates')
-  async listSeasonalRates(@Query('roomTypeId') roomTypeId?: string) {
-    const result = await this.pricingService.listSeasonalRates(roomTypeId);
-    return success(result);
+  async listSeasonalRates(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
+    return success(await this.pricingService.listSeasonalRates(this.hotelId(req), roomTypeId));
   }
 
   @Post('seasonal-rates')
-  async createSeasonalRate(@Body() data: any) {
-    const result = await this.pricingService.createSeasonalRate(data);
-    return success(result);
+  async createSeasonalRate(@Request() req: any, @Body() data: any) {
+    return success(await this.pricingService.createSeasonalRate(this.hotelId(req), data));
   }
 
   @Patch('seasonal-rates/:id')
-  async updateSeasonalRate(@Param('id') id: string, @Body() data: any) {
-    const result = await this.pricingService.updateSeasonalRate(id, data);
-    return success(result);
+  async updateSeasonalRate(@Request() req: any, @Param('id') id: string, @Body() data: any) {
+    return success(await this.pricingService.updateSeasonalRate(this.hotelId(req), id, data));
   }
 
   @Delete('seasonal-rates/:id')
-  async deleteSeasonalRate(@Param('id') id: string) {
-    await this.pricingService.deleteSeasonalRate(id);
+  async deleteSeasonalRate(@Request() req: any, @Param('id') id: string) {
+    await this.pricingService.deleteSeasonalRate(this.hotelId(req), id);
     return success({ deleted: true });
   }
 
   // ─── Rate Plans ─────────────────────────────────────────────────────────────
-
   @Get('rate-plans')
-  async listRatePlans(@Query('roomTypeId') roomTypeId?: string) {
-    const result = await this.pricingService.listRatePlans(roomTypeId);
-    return success(result);
+  async listRatePlans(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
+    return success(await this.pricingService.listRatePlans(this.hotelId(req), roomTypeId));
   }
 
   @Post('rate-plans')
-  async createRatePlan(@Body() data: any) {
-    const result = await this.pricingService.createRatePlan(data);
-    return success(result);
+  async createRatePlan(@Request() req: any, @Body() data: any) {
+    return success(await this.pricingService.createRatePlan(this.hotelId(req), data));
   }
 
   @Patch('rate-plans/:id')
-  async updateRatePlan(@Param('id') id: string, @Body() data: any) {
-    const result = await this.pricingService.updateRatePlan(id, data);
-    return success(result);
+  async updateRatePlan(@Request() req: any, @Param('id') id: string, @Body() data: any) {
+    return success(await this.pricingService.updateRatePlan(this.hotelId(req), id, data));
   }
 
   @Delete('rate-plans/:id')
-  async deleteRatePlan(@Param('id') id: string) {
-    await this.pricingService.deleteRatePlan(id);
+  async deleteRatePlan(@Request() req: any, @Param('id') id: string) {
+    await this.pricingService.deleteRatePlan(this.hotelId(req), id);
     return success({ deleted: true });
   }
 }

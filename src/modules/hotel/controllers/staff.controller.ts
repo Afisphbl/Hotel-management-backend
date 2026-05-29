@@ -1,20 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { StaffService } from '../services/staff.service';
-import {
-  StaffRole,
-  StaffStatus,
-} from '../../../database/entities/staff.entity';
+import { StaffRole, StaffStatus } from '../../../database/entities/staff.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -36,44 +22,39 @@ export class StaffController {
     private readonly tenantQuotaService: TenantQuotaService,
   ) {}
 
+  private hotelId(req: any): string {
+    return req.user.hotel_id || req.user.hotelId;
+  }
+
   @Get()
-  async findAll(
-    @Query()
-    query: PaginationDto & {
-      role?: StaffRole;
-      status?: StaffStatus;
-      department?: string;
-    },
-  ) {
-    const result = await this.staffService.findAll(query);
+  async findAll(@Request() req: any, @Query() query: PaginationDto & { role?: StaffRole; status?: StaffStatus; department?: string }) {
+    const result = await this.staffService.findAll(this.hotelId(req), query);
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    const staff = await this.staffService.findById(id);
-    return success(staff);
+  async findById(@Param('id') id: string, @Request() req: any) {
+    return success(await this.staffService.findById(id, this.hotelId(req)));
   }
 
   @Post()
   @UseGuards(PlanLimitGuard)
   @PlanLimit('users')
   async create(@Body() data: any, @Request() req: any) {
-    const staff = await this.staffService.create(data);
-    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
+    const staff = await this.staffService.create(data, this.hotelId(req));
+    await this.tenantQuotaService.syncQuotaSnapshot(this.hotelId(req));
     return success(staff);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const staff = await this.staffService.update(id, data);
-    return success(staff);
+  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+    return success(await this.staffService.update(id, data, this.hotelId(req)));
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req: any) {
-    await this.staffService.remove(id);
-    await this.tenantQuotaService.syncQuotaSnapshot(req.user.hotel_id);
+    await this.staffService.remove(id, this.hotelId(req));
+    await this.tenantQuotaService.syncQuotaSnapshot(this.hotelId(req));
     return success({ deleted: true });
   }
 }

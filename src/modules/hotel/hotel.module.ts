@@ -19,10 +19,6 @@ import { Payment } from '../../database/entities/payment.entity';
 import { Refund } from '../../database/entities/refund.entity';
 import { TaxRule } from '../../database/entities/tax-rule.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
-import { PriceOverride } from '../../database/entities/price-override.entity';
-import { Promotion } from '../../database/entities/promotion.entity';
-import { SeasonalRate } from '../../database/entities/seasonal-rate.entity';
-import { RatePlan } from '../../database/entities/rate-plan.entity';
 import { User } from '../../database/entities/user.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { Role } from '../../database/entities/role.entity';
@@ -88,10 +84,6 @@ const entities = [
   Role,
   RolePermission,
   Permission,
-  PriceOverride,
-  Promotion,
-  SeasonalRate,
-  RatePlan,
 ];
 
 const controllers = [
