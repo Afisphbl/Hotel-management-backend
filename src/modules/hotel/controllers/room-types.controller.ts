@@ -32,7 +32,10 @@ export class RoomTypesController {
 
   @Get()
   async findAll(@Request() req: any, @Query() query: PaginationDto) {
-    const result = await this.roomTypesService.findAll(this.hotelId(req), query);
+    const result = await this.roomTypesService.findAll(
+      this.hotelId(req),
+      query,
+    );
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
