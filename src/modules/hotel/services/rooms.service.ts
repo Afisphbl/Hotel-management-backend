@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { PaginatedResult } from '../common/pagination.helper';
+import { PricingService } from './pricing.service';
 
 @Injectable()
 export class RoomsService {
@@ -11,6 +12,8 @@ export class RoomsService {
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
     private dataSource: DataSource,
+    @Inject(forwardRef(() => PricingService))
+    private pricingService: PricingService,
   ) {}
 
   private async getSchema(hotelId: string): Promise<string> {
@@ -36,6 +39,9 @@ export class RoomsService {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       deletedAt: r.deletedAt,
+      effectivePrice: r.effectivePrice,
+      pricingReason: r.pricingReason,
+      pricingType: r.pricingType,
     });
     if (r.rt_id) {
       (room as any).roomType = {
@@ -96,9 +102,36 @@ export class RoomsService {
       ),
     ]);
 
+    // Enhance rows with dynamic pricing info
+    const today = new Date();
+    const roomTypePriceCache = new Map<string, any>();
+
+    const enhancedRows = await Promise.all(
+      rows.map(async (row: any) => {
+        if (!row.roomTypeId) return row;
+
+        if (!roomTypePriceCache.has(row.roomTypeId)) {
+          const info = await this.pricingService.getEffectivePriceInfo(
+            hotelId,
+            row.roomTypeId,
+            today,
+          );
+          roomTypePriceCache.set(row.roomTypeId, info);
+        }
+
+        const pricing = roomTypePriceCache.get(row.roomTypeId);
+        return {
+          ...row,
+          effectivePrice: pricing.price,
+          pricingReason: pricing.reason,
+          pricingType: pricing.type,
+        };
+      }),
+    );
+
     const total = Number(countResult[0]?.count ?? 0);
     return {
-      items: rows.map((r: any) => this.mapRow(r)),
+      items: enhancedRows.map((r: any) => this.mapRow(r)),
       total,
       page,
       limit,

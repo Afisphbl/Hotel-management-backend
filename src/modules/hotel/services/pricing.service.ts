@@ -20,7 +20,90 @@ export class PricingService {
     return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
   }
 
-  // ─── Calculate Price ────────────────────────────────────────────────────────
+  // ─── Calculate Price with Details ──────────────────────────────────────────
+
+  async getEffectivePriceInfo(
+    hotelId: string,
+    roomTypeId: string,
+    date: Date,
+  ): Promise<{ price: number; reason: string | null; type: string | null }> {
+    const s = await this.getSchema(hotelId);
+    const d = date.toISOString().split('T')[0];
+
+    // 1. Price override (Highest priority)
+    const [ov] = await this.dataSource.query(
+      `SELECT price, reason FROM "${s}"."price_overrides" WHERE "roomTypeId"=$1 AND date=$2 AND "deletedAt" IS NULL LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (ov) {
+      return {
+        price: Math.max(0, Number(ov.price)),
+        reason: ov.reason || 'Price Override',
+        type: 'override',
+      };
+    }
+
+    // 2. Base price
+    const [rt] = await this.dataSource.query(
+      `SELECT "basePrice" FROM "${s}"."room_types" WHERE id=$1 AND "deletedAt" IS NULL`,
+      [roomTypeId],
+    );
+    if (!rt) return { price: 0, reason: null, type: null };
+    const basePrice = Number(rt.basePrice);
+    let price = basePrice;
+    let currentReason: string | null = null;
+    let currentType: string | null = null;
+
+    // 3. Rate plan (Weekday/Weekend)
+    const [rp] = await this.dataSource.query(
+      `SELECT name, "weekdayAdjustment","weekendAdjustment" FROM "${s}"."rate_plans" WHERE "roomTypeId"=$1 AND "isActive"=true AND "deletedAt" IS NULL LIMIT 1`,
+      [roomTypeId],
+    );
+    if (rp) {
+      const isWeekend = [0, 6].includes(date.getUTCDay());
+      const adj = isWeekend
+        ? Number(rp.weekendAdjustment)
+        : Number(rp.weekdayAdjustment);
+      if (adj) {
+        price += price * (adj / 100);
+        currentReason = `${rp.name} (${adj > 0 ? '+' : ''}${adj}%)`;
+        currentType = 'rate_plan';
+      }
+    }
+
+    // 4. Seasonal rate
+    const [sr] = await this.dataSource.query(
+      `SELECT name, "fixedPrice", multiplier FROM "${s}"."seasonal_rates" WHERE "roomTypeId"=$1 AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL ORDER BY priority DESC LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (sr) {
+      price = sr.fixedPrice
+        ? Number(sr.fixedPrice)
+        : price * Number(sr.multiplier);
+      currentReason = sr.name;
+      currentType = 'seasonal';
+    }
+
+    // 5. Promotion (Lowest priority)
+    const [pr] = await this.dataSource.query(
+      `SELECT name, "discountType","discountValue" FROM "${s}"."promotions" WHERE "roomTypeId"=$1 AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (pr) {
+      price =
+        pr.discountType === 'percentage'
+          ? price - price * (Number(pr.discountValue) / 100)
+          : price - Number(pr.discountValue);
+      currentReason = pr.name;
+      currentType = 'promotion';
+    }
+
+    return {
+      price: Math.max(0, Math.round(price * 100) / 100),
+      reason: currentReason,
+      type: currentType,
+    };
+  }
 
   async calculatePrice(
     hotelId: string,
