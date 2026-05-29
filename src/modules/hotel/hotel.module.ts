@@ -25,6 +25,7 @@ import { Role } from '../../database/entities/role.entity';
 import { RolePermission } from '../../database/entities/role-permission.entity';
 import { Permission } from '../../database/entities/permission.entity';
 import { HotelOwnerDashboardController } from './controllers/hotel-owner-dashboard.controller';
+import { HotelOwnerReportsController } from './controllers/hotel-owner-reports.controller';
 import { HotelManagementController } from './controllers/hotel-management.controller';
 import { HotelManagementService } from './services/hotel-management.service';
 import { HotelManagementExtendedController } from './controllers/hotel-management-extended.controller';
@@ -102,6 +103,7 @@ const controllers = [
   HotelManagementController,
   HotelManagementExtendedController,
   HotelOwnerStaffController,
+  HotelOwnerReportsController,
   PricingController,
 ];
 

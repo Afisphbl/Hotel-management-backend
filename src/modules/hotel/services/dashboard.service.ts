@@ -278,6 +278,145 @@ export class DashboardService {
     };
   }
 
+  async getReports() {
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const totalRooms = await this.roomRepository.count();
+    const occupiedRooms = await this.roomRepository.count({
+      where: { status: RoomStatus.OCCUPIED },
+    });
+    const occupancyRate =
+      totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+    const [
+      revenueByMonth,
+      occupancyTrend,
+      totalRevenueResult,
+      bookingStatsResult,
+      avgStayResult,
+      totalGuests,
+      guestsLast6Months,
+    ] = await Promise.all([
+      this.getRevenueByMonth(sixMonthsAgo, now),
+      this.generateOccupancyTrend(thirtyDaysAgo, now),
+      this.invoiceRepository
+        .createQueryBuilder('invoice')
+        .select('COALESCE(SUM(invoice.amount), 0)', 'revenue')
+        .where('invoice.status = :status', { status: InvoiceStatus.PAID })
+        .getRawOne(),
+      this.bookingRepository
+        .createQueryBuilder('booking')
+        .select('COALESCE(SUM(booking.totalPrice), 0)', 'revenue')
+        .addSelect('COUNT(*)', 'count')
+        .addSelect(
+          `COALESCE(SUM(EXTRACT(EPOCH FROM (booking."checkOut" - booking."checkIn")) / 86400), 0)`,
+          'nights',
+        )
+        .where('booking.status IN (:...statuses)', {
+          statuses: [
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN,
+            BookingStatus.CHECKED_OUT,
+          ],
+        })
+        .getRawOne(),
+      this.bookingRepository
+        .createQueryBuilder('booking')
+        .select(
+          `COALESCE(AVG(EXTRACT(EPOCH FROM (booking."checkOut" - booking."checkIn")) / 86400), 0)`,
+          'avgStay',
+        )
+        .where('booking.status IN (:...statuses)', {
+          statuses: [
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN,
+            BookingStatus.CHECKED_OUT,
+          ],
+        })
+        .getRawOne(),
+      this.guestRepository.count(),
+      this.guestRepository.count({
+        where: { createdAt: Between(sixMonthsAgo, now) },
+      }),
+    ]);
+
+    const totalBookingRevenue = Number(bookingStatsResult?.revenue || 0);
+    const totalNights = Number(bookingStatsResult?.nights || 0);
+    const avgDailyRate =
+      totalNights > 0 ? Math.round(totalBookingRevenue / totalNights) : 0;
+    const revenuePAR =
+      totalRooms > 0
+        ? Math.round(
+            totalBookingRevenue /
+              (totalRooms *
+                Math.max(
+                  1,
+                  Math.round(
+                    (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) /
+                      (1000 * 60 * 60 * 24),
+                  ),
+                )),
+          )
+        : 0;
+
+    return {
+      revenueByMonth,
+      occupancyTrend,
+      bookingSource: [],
+      guestStatistics: {
+        totalGuests,
+        newGuests: guestsLast6Months,
+        returningGuests: Math.max(0, totalGuests - guestsLast6Months),
+        averageStay: Number(
+          Number(avgStayResult?.avgStay || 0).toFixed(1),
+        ),
+      },
+      financialMetrics: {
+        totalRevenue: Number(totalRevenueResult?.revenue || 0),
+        averageDailyRate: avgDailyRate,
+        revenuePAR,
+        occupancyRate,
+      },
+    };
+  }
+
+  private async getRevenueByMonth(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{ month: string; revenue: number }[]> {
+    const rows = await this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .select(
+        `TO_CHAR(invoice."updatedAt", 'YYYY-MM')`,
+        'monthKey',
+      )
+      .addSelect('COALESCE(SUM(invoice.amount), 0)', 'revenue')
+      .where('invoice.status = :status', { status: InvoiceStatus.PAID })
+      .andWhere('invoice."updatedAt" BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      })
+      .groupBy('monthKey')
+      .orderBy('monthKey', 'ASC')
+      .getRawMany();
+
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return rows.map((r) => {
+      const monthIndex = parseInt(r.monthKey.split('-')[1], 10) - 1;
+      return {
+        month: monthNames[monthIndex] || r.monthKey,
+        revenue: Number(r.revenue),
+      };
+    });
+  }
+
   private async generateOccupancyTrend(
     startDate: Date,
     endDate: Date,
