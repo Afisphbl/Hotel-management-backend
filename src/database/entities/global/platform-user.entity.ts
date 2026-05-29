@@ -29,7 +29,7 @@ export enum UserRole {
   MAINTENANCE_STAFF = 'MAINTENANCE_STAFF',
 }
 
-@Entity('platform_users')
+@Entity({ name: 'platform_users', schema: 'global' })
 export class PlatformUser {
   @PrimaryGeneratedColumn('uuid')
   id: string;

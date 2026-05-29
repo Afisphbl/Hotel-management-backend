@@ -128,9 +128,9 @@ export class PlatformService {
 
       let totalRooms = hotel.rooms;
       try {
-        const dbRooms = (await this.dataSource.query(
+        const dbRooms = await this.dataSource.query(
           `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-        )) as Array<{ count: string }>;
+        );
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
         // Fallback to the stored value on the global hotel record.
@@ -196,9 +196,9 @@ export class PlatformService {
       // 3. Resolve current room count from the tenant database when available
       let totalRooms = hotel.rooms;
       try {
-        const dbRooms = (await this.dataSource.query(
+        const dbRooms = await this.dataSource.query(
           `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-        )) as Array<{ count: string }>;
+        );
         totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
       } catch {
         // Fallback to the stored value on the global hotel record.
@@ -246,10 +246,10 @@ export class PlatformService {
     let phone: string | null = null;
     if (email) {
       try {
-        const ownerUser = (await this.dataSource.query(
+        const ownerUser = await this.dataSource.query(
           `SELECT phone FROM global.users WHERE email = $1 LIMIT 1`,
           [email],
-        )) as Array<{ phone: string | null }>;
+        );
         if (ownerUser && ownerUser.length > 0 && ownerUser[0].phone) {
           phone = ownerUser[0].phone;
         }
@@ -261,9 +261,9 @@ export class PlatformService {
     // 3. Query count of rooms inside tenant schema
     let totalRooms = hotel.rooms;
     try {
-      const dbRooms = (await this.dataSource.query(
+      const dbRooms = await this.dataSource.query(
         `SELECT COUNT(*) as count FROM "${hotel.schemaName}"."rooms"`,
-      )) as Array<{ count: string }>;
+      );
       totalRooms = parseInt(dbRooms[0]?.count || String(hotel.rooms), 10);
     } catch {
       // Fallback
@@ -272,10 +272,10 @@ export class PlatformService {
     // 4. Query count of users linked to this hotel from global
     let activeUsers: number | null = null;
     try {
-      const dbUsers = (await this.dataSource.query(
+      const dbUsers = await this.dataSource.query(
         `SELECT COUNT(*) as count FROM global.hotel_user_access WHERE "hotelId" = $1`,
         [hotel.id],
-      )) as Array<{ count: string }>;
+      );
       const count = parseInt(dbUsers[0]?.count || '0', 10);
       activeUsers = count > 0 ? count : null;
     } catch {
@@ -515,7 +515,11 @@ export class PlatformService {
       if (roomCount > 0) {
         const floorsNeeded = Math.ceil(roomCount / 10);
         let roomsCreated = 0;
-        for (let floor = 1; floor <= floorsNeeded && roomsCreated < roomCount; floor++) {
+        for (
+          let floor = 1;
+          floor <= floorsNeeded && roomsCreated < roomCount;
+          floor++
+        ) {
           for (let num = 1; num <= 10 && roomsCreated < roomCount; num++) {
             const roomNumber = `${floor}${String(num).padStart(2, '0')}`;
             await queryRunner.query(
@@ -545,14 +549,19 @@ export class PlatformService {
   }
 
   async reprovisionHotelSchema(hotelId: string) {
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
-    if (!hotel.schemaName) throw new InternalServerErrorException('Hotel has no schema name');
+    if (!hotel.schemaName)
+      throw new InternalServerErrorException('Hotel has no schema name');
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     try {
-      await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "${hotel.schemaName}"`);
+      await queryRunner.query(
+        `CREATE SCHEMA IF NOT EXISTS "${hotel.schemaName}"`,
+      );
       await this.provisionTenantSchema(queryRunner, hotel.schemaName);
 
       // Seed rooms if table is empty and hotel has a rooms count
@@ -564,7 +573,11 @@ export class PlatformService {
       if (existingCount === 0 && roomCount > 0) {
         const floorsNeeded = Math.ceil(roomCount / 10);
         let roomsCreated = 0;
-        for (let floor = 1; floor <= floorsNeeded && roomsCreated < roomCount; floor++) {
+        for (
+          let floor = 1;
+          floor <= floorsNeeded && roomsCreated < roomCount;
+          floor++
+        ) {
           for (let num = 1; num <= 10 && roomsCreated < roomCount; num++) {
             const roomNumber = `${floor}${String(num).padStart(2, '0')}`;
             await queryRunner.query(
@@ -577,13 +590,20 @@ export class PlatformService {
         await this.hotelRepository.update(hotelId, { rooms: roomsCreated });
       }
 
-      return { success: true, schemaName: hotel.schemaName, roomsSeeded: existingCount === 0 ? roomCount : 0 };
+      return {
+        success: true,
+        schemaName: hotel.schemaName,
+        roomsSeeded: existingCount === 0 ? roomCount : 0,
+      };
     } finally {
       await queryRunner.release();
     }
   }
 
-  private async provisionTenantSchema(queryRunner: any, schemaName: string): Promise<void> {
+  private async provisionTenantSchema(
+    queryRunner: any,
+    schemaName: string,
+  ): Promise<void> {
     const s = schemaName;
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "${s}"."room_types" (
@@ -1005,7 +1025,7 @@ export class PlatformService {
     featureId: string,
     enabled: boolean,
   ) {
-    let flag = await this.featureFlagRepository.findOne({
+    const flag = await this.featureFlagRepository.findOne({
       where: { id: featureId },
       relations: ['hotel'],
     });
@@ -1039,7 +1059,7 @@ export class PlatformService {
     const isGlobalFlag = !flag.hotel;
 
     if (isGlobalFlag) {
-      let override = await this.featureFlagRepository.findOne({
+      const override = await this.featureFlagRepository.findOne({
         where: { name: flag.name, hotel: { id: hotelId } },
       });
       if (override) {
@@ -1055,7 +1075,7 @@ export class PlatformService {
         status: enabled
           ? FeatureFlagStatus.ENABLED
           : FeatureFlagStatus.DISABLED,
-        hotel: { id: hotelId } as any,
+        hotel: { id: hotelId },
         rolloutStrategy: flag.rolloutStrategy,
         rolloutPercentage: flag.rolloutPercentage,
       });
@@ -1244,7 +1264,7 @@ export class PlatformService {
       .where('sub.status = :status', { status: SubscriptionStatus.ACTIVE })
       .getRawOne();
 
-    const mrr = Number((mrrResult as any)?.mrr || 0);
+    const mrr = Number(mrrResult?.mrr || 0);
 
     const hotels = await this.hotelRepository.find({
       where: { status: HotelStatus.ACTIVE },
@@ -1419,11 +1439,11 @@ export class PlatformService {
       statusClause: string,
     ) => {
       try {
-        const rows = (await this.dataSource.query(
+        const rows = await this.dataSource.query(
           `SELECT COALESCE(SUM(amount), 0)::numeric AS revenue
            FROM "${schemaName}"."invoices"
            WHERE ${statusClause}`,
-        )) as Array<{ revenue: string }>;
+        );
         return Number(rows[0]?.revenue ?? 0);
       } catch {
         return 0;

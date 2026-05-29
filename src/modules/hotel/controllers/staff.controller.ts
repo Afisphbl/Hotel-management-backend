@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { StaffService } from '../services/staff.service';
-import { StaffRole, StaffStatus } from '../../../database/entities/staff.entity';
+import {
+  StaffRole,
+  StaffStatus,
+} from '../../../database/entities/staff.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -27,7 +41,15 @@ export class StaffController {
   }
 
   @Get()
-  async findAll(@Request() req: any, @Query() query: PaginationDto & { role?: StaffRole; status?: StaffStatus; department?: string }) {
+  async findAll(
+    @Request() req: any,
+    @Query()
+    query: PaginationDto & {
+      role?: StaffRole;
+      status?: StaffStatus;
+      department?: string;
+    },
+  ) {
     const result = await this.staffService.findAll(this.hotelId(req), query);
     return paginated(result.items, result.total, result.page, result.limit);
   }
@@ -47,7 +69,11 @@ export class StaffController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() data: any,
+    @Request() req: any,
+  ) {
     return success(await this.staffService.update(id, data, this.hotelId(req)));
   }
 

@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export const S3_CLIENT = 'S3_CLIENT';
@@ -66,7 +70,10 @@ export class StorageService {
   getPublicUrl(key: string): string {
     const endpoint = this.configService.get<string>('S3_ENDPOINT');
     const region = this.configService.get<string>('S3_REGION', 'us-east-1');
-    const forcePathStyle = this.configService.get<boolean>('S3_FORCE_PATH_STYLE', true);
+    const forcePathStyle = this.configService.get<boolean>(
+      'S3_FORCE_PATH_STYLE',
+      true,
+    );
 
     if (forcePathStyle && endpoint) {
       return `${endpoint.replace(/\/+$/, '')}/${this.bucket}/${key}`;

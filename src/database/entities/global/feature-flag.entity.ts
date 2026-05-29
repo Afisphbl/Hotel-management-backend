@@ -37,7 +37,7 @@ export enum FeatureFlagEvaluationOperator {
   MATCHES = 'matches',
 }
 
-@Entity('feature_flags')
+@Entity({ name: 'feature_flags', schema: 'global' })
 @Index(['status', 'rolloutStrategy'])
 export class FeatureFlag {
   @PrimaryGeneratedColumn('uuid')

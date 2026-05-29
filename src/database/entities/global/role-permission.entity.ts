@@ -9,7 +9,7 @@ import {
 import { Role } from './role.entity';
 import { Permission } from './permission.entity';
 
-@Entity('role_permissions')
+@Entity({ name: 'role_permissions', schema: 'global' })
 export class RolePermission {
   @PrimaryGeneratedColumn('uuid')
   id: string;

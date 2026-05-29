@@ -28,7 +28,7 @@ export enum AuditResource {
   PERMISSION = 'PERMISSION',
 }
 
-@Entity('audit_logs')
+@Entity({ name: 'audit_logs', schema: 'global' })
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;

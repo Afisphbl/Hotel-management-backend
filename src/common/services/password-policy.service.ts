@@ -99,7 +99,9 @@ export class PasswordPolicyService {
     const policy = await this.getPolicy();
     const suffix = '!Aa1';
     const length = Math.max(policy.minLength, 16);
-    const randomPart = randomBytes(length).toString('base64url').slice(0, length);
+    const randomPart = randomBytes(length)
+      .toString('base64url')
+      .slice(0, length);
     return `${randomPart}${suffix}`;
   }
 }

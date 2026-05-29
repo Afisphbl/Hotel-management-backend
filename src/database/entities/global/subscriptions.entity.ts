@@ -21,7 +21,7 @@ export enum SubscriptionPlan {
   ENTERPRISE = 'ENTERPRISE',
 }
 
-@Entity('subscriptions')
+@Entity({ name: 'subscriptions', schema: 'global' })
 export class Subscription {
   @PrimaryGeneratedColumn('uuid')
   id: string;

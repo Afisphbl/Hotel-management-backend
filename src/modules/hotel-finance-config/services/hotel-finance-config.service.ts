@@ -1,24 +1,36 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { UpdateHotelFinanceConfigDto } from '../dto/hotel-finance-config.dto';
-import { TaxRule } from '../../../database/entities/tax-rule.entity';
 
 @Injectable()
 export class HotelFinanceConfigService {
   constructor(
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
-    @InjectRepository(TaxRule)
-    private taxRuleRepository: Repository<TaxRule>,
+    private dataSource: DataSource,
   ) {}
 
+  private async getSchema(hotelId: string): Promise<string> {
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
+    if (!hotel?.schemaName)
+      throw new NotFoundException('Hotel schema not found');
+    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+  }
+
   async getConfig(hotelId: string) {
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
 
-    const taxes = await this.taxRuleRepository.find();
+    const s = await this.getSchema(hotelId);
+    const taxes = await this.dataSource.query(
+      `SELECT * FROM "${s}"."tax_rules" WHERE "deletedAt" IS NULL`,
+    );
 
     return {
       bankAccounts: hotel.settings?.finance?.bankAccounts || [],
@@ -38,7 +50,9 @@ export class HotelFinanceConfigService {
   }
 
   async updateConfig(hotelId: string, dto: UpdateHotelFinanceConfigDto) {
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
 
     if (!hotel.settings) hotel.settings = {};
@@ -71,21 +85,69 @@ export class HotelFinanceConfigService {
   }
 
   // Tax management helpers
-  async addTaxRule(dto: any) {
-    const rule = this.taxRuleRepository.create(dto);
-    return this.taxRuleRepository.save(rule);
+  async addTaxRule(hotelId: string, dto: any) {
+    const s = await this.getSchema(hotelId);
+    const rows = await this.dataSource.query(
+      `INSERT INTO "${s}"."tax_rules" (name, type, rate, application, "isActive", "validFrom", "validTo", description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [
+        dto.name,
+        dto.type,
+        dto.rate,
+        dto.application ?? 'percentage',
+        dto.isActive ?? true,
+        dto.validFrom ?? null,
+        dto.validTo ?? null,
+        dto.description ?? null,
+      ],
+    );
+    return rows[0];
   }
 
-  async updateTaxRule(id: string, dto: any) {
-    const rule = await this.taxRuleRepository.findOneBy({ id });
-    if (!rule) throw new NotFoundException('Tax rule not found');
-    Object.assign(rule, dto);
-    return this.taxRuleRepository.save(rule);
+  async updateTaxRule(hotelId: string, id: string, dto: any) {
+    const s = await this.getSchema(hotelId);
+    const allowed = [
+      'name',
+      'type',
+      'rate',
+      'application',
+      'isActive',
+      'validFrom',
+      'validTo',
+      'description',
+    ];
+    const fields: string[] = [];
+    const params: any[] = [];
+    for (const key of allowed) {
+      if (dto[key] !== undefined) {
+        params.push(dto[key]);
+        fields.push(`"${key}" = $${params.length}`);
+      }
+    }
+    if (!fields.length) {
+      const rows = await this.dataSource.query(
+        `SELECT * FROM "${s}"."tax_rules" WHERE id = $1 AND "deletedAt" IS NULL`,
+        [id],
+      );
+      if (!rows.length) throw new NotFoundException('Tax rule not found');
+      return rows[0];
+    }
+    params.push(id);
+    const rows = await this.dataSource.query(
+      `UPDATE "${s}"."tax_rules" SET ${fields.join(', ')}, "updatedAt" = NOW() WHERE id = $${params.length} AND "deletedAt" IS NULL RETURNING *`,
+      params,
+    );
+    if (!rows.length) throw new NotFoundException('Tax rule not found');
+    return rows[0];
   }
 
-  async removeTaxRule(id: string) {
-    const rule = await this.taxRuleRepository.findOneBy({ id });
-    if (!rule) throw new NotFoundException('Tax rule not found');
-    return this.taxRuleRepository.remove(rule);
+  async removeTaxRule(hotelId: string, id: string) {
+    const s = await this.getSchema(hotelId);
+    const rows = await this.dataSource.query(
+      `UPDATE "${s}"."tax_rules" SET "deletedAt" = NOW() WHERE id = $1 AND "deletedAt" IS NULL RETURNING *`,
+      [id],
+    );
+    if (!rows.length) throw new NotFoundException('Tax rule not found');
+    return { deleted: true };
   }
 }

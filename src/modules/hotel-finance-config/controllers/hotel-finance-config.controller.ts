@@ -30,24 +30,34 @@ export class HotelFinanceConfigController {
   }
 
   @Patch()
-  async updateConfig(@Request() req: any, @Body() dto: UpdateHotelFinanceConfigDto) {
+  async updateConfig(
+    @Request() req: any,
+    @Body() dto: UpdateHotelFinanceConfigDto,
+  ) {
     const hotelId = req.user.hotelId || req.user.hotel_id;
     return await this.configService.updateConfig(hotelId, dto);
   }
 
   // Tax Management Endpoints (specific for this config module)
   @Post('taxes')
-  async addTaxRule(@Body() dto: any) {
-    return await this.configService.addTaxRule(dto);
+  async addTaxRule(@Request() req: any, @Body() dto: any) {
+    const hotelId = req.user.hotelId || req.user.hotel_id;
+    return await this.configService.addTaxRule(hotelId, dto);
   }
 
   @Patch('taxes/:id')
-  async updateTaxRule(@Param('id') id: string, @Body() dto: any) {
-    return await this.configService.updateTaxRule(id, dto);
+  async updateTaxRule(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: any,
+  ) {
+    const hotelId = req.user.hotelId || req.user.hotel_id;
+    return await this.configService.updateTaxRule(hotelId, id, dto);
   }
 
   @Delete('taxes/:id')
-  async removeTaxRule(@Param('id') id: string) {
-    return await this.configService.removeTaxRule(id);
+  async removeTaxRule(@Request() req: any, @Param('id') id: string) {
+    const hotelId = req.user.hotelId || req.user.hotel_id;
+    return await this.configService.removeTaxRule(hotelId, id);
   }
 }

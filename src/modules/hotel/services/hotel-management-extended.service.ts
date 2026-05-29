@@ -5,7 +5,10 @@ import { Hotel } from '../../../database/entities/hotel.entity';
 import { AuditLog } from '../../../database/entities/audit-log.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Invoice } from '../../../database/entities/invoice.entity';
-import { SubscriptionPlan, SubscriptionStatus } from '../../../database/entities/global/subscriptions.entity';
+import {
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from '../../../database/entities/global/subscriptions.entity';
 
 @Injectable()
 export class HotelManagementExtendedService {
@@ -42,19 +45,30 @@ export class HotelManagementExtendedService {
     if (!hotel) return null;
     if (payload.timezone) hotel.timezone = payload.timezone;
     if (payload.currency) hotel.currency = payload.currency;
-    if (payload.taxes) hotel.settings = { ...(hotel.settings || {}), taxes: payload.taxes };
+    if (payload.taxes)
+      hotel.settings = { ...(hotel.settings || {}), taxes: payload.taxes };
     return this.hotelRepo.save(hotel);
   }
 
   async updateSubscription(id: string, subscription: any) {
     const hotel = await this.hotelRepo.findOne({ where: { id } });
     if (!hotel) return null;
-    hotel.subscription = { ...(hotel.subscription || {}), ...(subscription || {}) };
+    hotel.subscription = {
+      ...(hotel.subscription || {}),
+      ...(subscription || {}),
+    };
     await this.hotelRepo.save(hotel);
 
     // Also update the actual global.subscriptions record
     const plan = subscription?.plan;
-    if (plan && [SubscriptionPlan.BASIC, SubscriptionPlan.PROFESSIONAL, SubscriptionPlan.ENTERPRISE].includes(plan)) {
+    if (
+      plan &&
+      [
+        SubscriptionPlan.BASIC,
+        SubscriptionPlan.PROFESSIONAL,
+        SubscriptionPlan.ENTERPRISE,
+      ].includes(plan)
+    ) {
       const existing = await this.dataSource.query(
         `SELECT * FROM global.subscriptions WHERE "hotelId" = $1 AND status = 'ACTIVE' ORDER BY "createdAt" DESC LIMIT 1`,
         [id],
@@ -62,13 +76,23 @@ export class HotelManagementExtendedService {
       if (existing.length > 0) {
         await this.dataSource.query(
           `UPDATE global.subscriptions SET plan = $1, price = $2, status = $3, "updatedAt" = NOW() WHERE id = $4`,
-          [plan, subscription.price ?? existing[0].price, subscription.status ?? existing[0].status, existing[0].id],
+          [
+            plan,
+            subscription.price ?? existing[0].price,
+            subscription.status ?? existing[0].status,
+            existing[0].id,
+          ],
         );
       } else {
         await this.dataSource.query(
           `INSERT INTO global.subscriptions (id, "hotelId", plan, status, price, "startDate", "createdAt", "updatedAt")
            VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW(), NOW(), NOW())`,
-          [id, plan, subscription.status || SubscriptionStatus.ACTIVE, subscription.price ?? 0],
+          [
+            id,
+            plan,
+            subscription.status || SubscriptionStatus.ACTIVE,
+            subscription.price ?? 0,
+          ],
         );
       }
     }
@@ -79,7 +103,9 @@ export class HotelManagementExtendedService {
   async getPerformance(id: string, days = 30) {
     // Lightweight tenant-agnostic metrics: count bookings and paid invoices in last `days`
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const bookings = await this.bookingRepo.count({ where: { hotelId: id, createdAt: { $gte: since } } as any }).catch(() => 0);
+    const bookings = await this.bookingRepo
+      .count({ where: { hotelId: id, createdAt: { $gte: since } } as any })
+      .catch(() => 0);
     const revenueResult = await this.invoiceRepo
       .createQueryBuilder('invoice')
       .select('COALESCE(SUM(invoice.amount), 0)', 'revenue')
@@ -120,7 +146,11 @@ export class HotelManagementExtendedService {
   }
 
   async getAuditLogs(id: string, limit = 50) {
-    return this.auditLogRepo.find({ where: { hotelId: id }, order: { createdAt: 'DESC' }, take: limit });
+    return this.auditLogRepo.find({
+      where: { hotelId: id },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
   }
 
   async setNotifications(id: string, notifications: any) {

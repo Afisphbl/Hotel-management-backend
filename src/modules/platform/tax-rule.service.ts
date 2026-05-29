@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -15,7 +19,11 @@ export class TaxRuleService {
     private taxRuleRepository: Repository<PlatformTaxRule>,
   ) {}
 
-  async findAll(filter?: { country?: string; status?: TaxRuleStatus; type?: PlatformTaxType }): Promise<PlatformTaxRule[]> {
+  async findAll(filter?: {
+    country?: string;
+    status?: TaxRuleStatus;
+    type?: PlatformTaxType;
+  }): Promise<PlatformTaxRule[]> {
     const where: any = {};
     if (filter?.country) where.country = filter.country;
     if (filter?.status) where.status = filter.status;
@@ -31,16 +39,21 @@ export class TaxRuleService {
 
   async create(data: Partial<PlatformTaxRule>): Promise<PlatformTaxRule> {
     const existing = await this.taxRuleRepository.findOne({
-      where: { name: data.name, country: data.country ?? null as any },
+      where: { name: data.name, country: data.country ?? (null as any) },
     });
     if (existing) {
-      throw new ConflictException('Tax rule with this name already exists in the specified country');
+      throw new ConflictException(
+        'Tax rule with this name already exists in the specified country',
+      );
     }
     const rule = this.taxRuleRepository.create(data);
     return this.taxRuleRepository.save(rule);
   }
 
-  async update(id: string, data: Partial<PlatformTaxRule>): Promise<PlatformTaxRule> {
+  async update(
+    id: string,
+    data: Partial<PlatformTaxRule>,
+  ): Promise<PlatformTaxRule> {
     const rule = await this.findById(id);
     Object.assign(rule, data);
     return this.taxRuleRepository.save(rule);
@@ -51,7 +64,10 @@ export class TaxRuleService {
     await this.taxRuleRepository.remove(rule);
   }
 
-  async getApplicableTaxes(country: string, region?: string): Promise<PlatformTaxRule[]> {
+  async getApplicableTaxes(
+    country: string,
+    region?: string,
+  ): Promise<PlatformTaxRule[]> {
     const where: any[] = [{ country, status: TaxRuleStatus.ACTIVE }];
     if (region) {
       where.push({ country, region, status: TaxRuleStatus.ACTIVE });

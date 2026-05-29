@@ -93,7 +93,11 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     WorkersModule,
     HotelFinanceConfigModule,
   ],
-  providers: [RateLimitMiddleware, MaintenanceMiddleware, SecurityHeadersMiddleware],
+  providers: [
+    RateLimitMiddleware,
+    MaintenanceMiddleware,
+    SecurityHeadersMiddleware,
+  ],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {

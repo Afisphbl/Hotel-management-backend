@@ -1,10 +1,25 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
 import { UserManagementService } from './user-management.service';
-import { UserStatus, UserRole } from '../../database/entities/global/platform-user.entity';
+import {
+  UserStatus,
+  UserRole,
+} from '../../database/entities/global/platform-user.entity';
 
 @Controller('platform/users')
 @UseGuards(JwtAuthGuard, ScopeGuard)
@@ -46,7 +61,11 @@ export class PlatformUsersManagementController {
   @Post(':id/deactivate')
   @HttpCode(HttpStatus.OK)
   async deactivate(@Param('id') id: string, @Body('reason') reason?: string) {
-    return this.userManagementService.deactivateUser(id, reason, 'platform_admin');
+    return this.userManagementService.deactivateUser(
+      id,
+      reason,
+      'platform_admin',
+    );
   }
 
   @Post(':id/activate')
@@ -70,8 +89,15 @@ export class PlatformUsersManagementController {
 
   @Post(':id/change-password')
   @HttpCode(HttpStatus.OK)
-  async changePassword(@Param('id') id: string, @Body() data: { currentPassword: string; newPassword: string }) {
-    await this.userManagementService.changePassword(id, data.currentPassword, data.newPassword);
+  async changePassword(
+    @Param('id') id: string,
+    @Body() data: { currentPassword: string; newPassword: string },
+  ) {
+    await this.userManagementService.changePassword(
+      id,
+      data.currentPassword,
+      data.newPassword,
+    );
     return { success: true };
   }
 

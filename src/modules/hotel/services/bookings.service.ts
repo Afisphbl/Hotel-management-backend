@@ -168,6 +168,7 @@ export class BookingsService {
 
         for (const date of dates) {
           const price = await this.pricingService.calculatePrice(
+            room.hotelId,
             room.roomTypeId,
             new Date(date),
           );

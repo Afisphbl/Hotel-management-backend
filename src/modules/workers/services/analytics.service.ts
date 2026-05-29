@@ -93,7 +93,9 @@ export class AnalyticsService {
 
     const hotelsGrowth =
       previousHotels > 0
-        ? Math.round(((totalHotels - previousHotels) / previousHotels) * 10000) / 100
+        ? Math.round(
+            ((totalHotels - previousHotels) / previousHotels) * 10000,
+          ) / 100
         : 0;
 
     const mrrGrowth =

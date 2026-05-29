@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { PricingService } from '../services/pricing.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -20,13 +31,20 @@ export class PricingController {
 
   // ─── Overrides ──────────────────────────────────────────────────────────────
   @Get('overrides')
-  async listOverrides(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
-    return success(await this.pricingService.listOverrides(this.hotelId(req), roomTypeId));
+  async listOverrides(
+    @Request() req: any,
+    @Query('roomTypeId') roomTypeId?: string,
+  ) {
+    return success(
+      await this.pricingService.listOverrides(this.hotelId(req), roomTypeId),
+    );
   }
 
   @Post('overrides')
   async createOverride(@Request() req: any, @Body() data: any) {
-    return success(await this.pricingService.createOverride(this.hotelId(req), data));
+    return success(
+      await this.pricingService.createOverride(this.hotelId(req), data),
+    );
   }
 
   @Delete('overrides/:id')
@@ -37,18 +55,31 @@ export class PricingController {
 
   // ─── Promotions ─────────────────────────────────────────────────────────────
   @Get('promotions')
-  async listPromotions(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
-    return success(await this.pricingService.listPromotions(this.hotelId(req), roomTypeId));
+  async listPromotions(
+    @Request() req: any,
+    @Query('roomTypeId') roomTypeId?: string,
+  ) {
+    return success(
+      await this.pricingService.listPromotions(this.hotelId(req), roomTypeId),
+    );
   }
 
   @Post('promotions')
   async createPromotion(@Request() req: any, @Body() data: any) {
-    return success(await this.pricingService.createPromotion(this.hotelId(req), data));
+    return success(
+      await this.pricingService.createPromotion(this.hotelId(req), data),
+    );
   }
 
   @Patch('promotions/:id')
-  async updatePromotion(@Request() req: any, @Param('id') id: string, @Body() data: any) {
-    return success(await this.pricingService.updatePromotion(this.hotelId(req), id, data));
+  async updatePromotion(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    return success(
+      await this.pricingService.updatePromotion(this.hotelId(req), id, data),
+    );
   }
 
   @Delete('promotions/:id')
@@ -59,18 +90,34 @@ export class PricingController {
 
   // ─── Seasonal Rates ─────────────────────────────────────────────────────────
   @Get('seasonal-rates')
-  async listSeasonalRates(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
-    return success(await this.pricingService.listSeasonalRates(this.hotelId(req), roomTypeId));
+  async listSeasonalRates(
+    @Request() req: any,
+    @Query('roomTypeId') roomTypeId?: string,
+  ) {
+    return success(
+      await this.pricingService.listSeasonalRates(
+        this.hotelId(req),
+        roomTypeId,
+      ),
+    );
   }
 
   @Post('seasonal-rates')
   async createSeasonalRate(@Request() req: any, @Body() data: any) {
-    return success(await this.pricingService.createSeasonalRate(this.hotelId(req), data));
+    return success(
+      await this.pricingService.createSeasonalRate(this.hotelId(req), data),
+    );
   }
 
   @Patch('seasonal-rates/:id')
-  async updateSeasonalRate(@Request() req: any, @Param('id') id: string, @Body() data: any) {
-    return success(await this.pricingService.updateSeasonalRate(this.hotelId(req), id, data));
+  async updateSeasonalRate(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    return success(
+      await this.pricingService.updateSeasonalRate(this.hotelId(req), id, data),
+    );
   }
 
   @Delete('seasonal-rates/:id')
@@ -81,18 +128,31 @@ export class PricingController {
 
   // ─── Rate Plans ─────────────────────────────────────────────────────────────
   @Get('rate-plans')
-  async listRatePlans(@Request() req: any, @Query('roomTypeId') roomTypeId?: string) {
-    return success(await this.pricingService.listRatePlans(this.hotelId(req), roomTypeId));
+  async listRatePlans(
+    @Request() req: any,
+    @Query('roomTypeId') roomTypeId?: string,
+  ) {
+    return success(
+      await this.pricingService.listRatePlans(this.hotelId(req), roomTypeId),
+    );
   }
 
   @Post('rate-plans')
   async createRatePlan(@Request() req: any, @Body() data: any) {
-    return success(await this.pricingService.createRatePlan(this.hotelId(req), data));
+    return success(
+      await this.pricingService.createRatePlan(this.hotelId(req), data),
+    );
   }
 
   @Patch('rate-plans/:id')
-  async updateRatePlan(@Request() req: any, @Param('id') id: string, @Body() data: any) {
-    return success(await this.pricingService.updateRatePlan(this.hotelId(req), id, data));
+  async updateRatePlan(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    return success(
+      await this.pricingService.updateRatePlan(this.hotelId(req), id, data),
+    );
   }
 
   @Delete('rate-plans/:id')

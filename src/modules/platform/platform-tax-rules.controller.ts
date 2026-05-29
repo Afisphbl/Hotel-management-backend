@@ -1,10 +1,23 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
 import { TaxRuleService } from './tax-rule.service';
-import { PlatformTaxType, TaxRuleStatus } from '../../database/entities/global/platform-tax-rule.entity';
+import {
+  PlatformTaxType,
+  TaxRuleStatus,
+} from '../../database/entities/global/platform-tax-rule.entity';
 
 @Controller('platform/tax-rules')
 @UseGuards(JwtAuthGuard, ScopeGuard)
@@ -43,7 +56,10 @@ export class PlatformTaxRulesController {
   }
 
   @Get('applicable/:country')
-  async getApplicable(@Param('country') country: string, @Query('region') region?: string) {
+  async getApplicable(
+    @Param('country') country: string,
+    @Query('region') region?: string,
+  ) {
     return this.taxRuleService.getApplicableTaxes(country, region);
   }
 }

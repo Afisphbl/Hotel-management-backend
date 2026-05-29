@@ -78,7 +78,6 @@ class TenantSearchPathService implements OnModuleInit {
           username: dbConfig.username,
           password: dbConfig.password,
           database: dbConfig.database,
-          schema: 'global',
           entities: [__dirname + '/entities/*.entity{.ts,.js}'],
           autoLoadEntities: true,
           synchronize: configService.getOrThrow<boolean>('DB_SYNCHRONIZE'),

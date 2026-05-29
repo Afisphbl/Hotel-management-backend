@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { HotelOwnerStaffService } from '../services/hotel-owner-staff.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
@@ -40,7 +51,9 @@ export class HotelOwnerStaffController {
 
   @Get('roles')
   async getRoles(@Request() req: any) {
-    const roles = await this.ownerStaffService.getAvailableRoles(req.user.hotel_id);
+    const roles = await this.ownerStaffService.getAvailableRoles(
+      req.user.hotel_id,
+    );
     return success(roles);
   }
 
@@ -51,7 +64,17 @@ export class HotelOwnerStaffController {
   }
 
   @Post('invite')
-  async invite(@Request() req: any, @Body() data: { email: string; firstName: string; lastName: string; roleId: string; notes?: string }) {
+  async invite(
+    @Request() req: any,
+    @Body()
+    data: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      roleId: string;
+      notes?: string;
+    },
+  ) {
     const result = await this.ownerStaffService.invite(req.user.hotel_id, data);
     return success(result);
   }
@@ -62,7 +85,11 @@ export class HotelOwnerStaffController {
     @Param('id') id: string,
     @Body('roleId') roleId: string,
   ) {
-    const result = await this.ownerStaffService.updateRole(id, req.user.hotel_id, roleId);
+    const result = await this.ownerStaffService.updateRole(
+      id,
+      req.user.hotel_id,
+      roleId,
+    );
     return success(result);
   }
 
@@ -72,7 +99,11 @@ export class HotelOwnerStaffController {
     @Param('id') id: string,
     @Body('status') status: HotelAccessStatus,
   ) {
-    const result = await this.ownerStaffService.updateStatus(id, req.user.hotel_id, status);
+    const result = await this.ownerStaffService.updateStatus(
+      id,
+      req.user.hotel_id,
+      status,
+    );
     return success(result);
   }
 

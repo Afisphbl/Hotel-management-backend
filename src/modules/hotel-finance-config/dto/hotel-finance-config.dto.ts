@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsArray, IsBoolean, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class BankAccountDto {
@@ -26,19 +33,27 @@ export class InvoiceSettingsDto {
 }
 
 export class UpdateHotelFinanceConfigDto {
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => BankAccountDto)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BankAccountDto)
   bankAccounts?: BankAccountDto[];
 
-  @IsOptional() @IsObject()
+  @IsOptional()
+  @IsObject()
   gateways?: {
     chapa?: GatewayConfigDto;
     stripe?: GatewayConfigDto;
     paypal?: GatewayConfigDto;
   };
 
-  @IsOptional() @IsArray() @IsString({ each: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   acceptedPaymentMethods?: string[];
 
-  @IsOptional() @ValidateNested() @Type(() => InvoiceSettingsDto)
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InvoiceSettingsDto)
   invoiceSettings?: InvoiceSettingsDto;
 }

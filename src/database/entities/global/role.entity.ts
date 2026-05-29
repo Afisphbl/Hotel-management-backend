@@ -14,7 +14,7 @@ export enum RoleScope {
   HOTEL = 'HOTEL',
 }
 
-@Entity('roles')
+@Entity({ name: 'roles', schema: 'global' })
 export class Role {
   @PrimaryGeneratedColumn('uuid')
   id: string;

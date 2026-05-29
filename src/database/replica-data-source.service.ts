@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { getTenantSchema } from '../common/tenant/tenant-context';
@@ -28,13 +33,22 @@ export class ReplicaDataSourceService implements OnModuleInit, OnModuleDestroy {
   private async initializeReplicas(): Promise<void> {
     const replicaHosts = this.configService.get<string>('DB_REPLICA_HOSTS');
     if (!replicaHosts) {
-      this.logger.log('No read replicas configured, using primary for all queries');
+      this.logger.log(
+        'No read replicas configured, using primary for all queries',
+      );
       return;
     }
 
-    const hosts = replicaHosts.split(',').map(h => h.trim()).filter(Boolean);
-    const ports = (this.configService.get<string>('DB_REPLICA_PORTS') || '5432').split(',').map(p => parseInt(p.trim(), 10));
-    const weights = (this.configService.get<string>('DB_REPLICA_WEIGHTS') || '').split(',').map(w => parseInt(w.trim(), 10));
+    const hosts = replicaHosts
+      .split(',')
+      .map((h) => h.trim())
+      .filter(Boolean);
+    const ports = (this.configService.get<string>('DB_REPLICA_PORTS') || '5432')
+      .split(',')
+      .map((p) => parseInt(p.trim(), 10));
+    const weights = (this.configService.get<string>('DB_REPLICA_WEIGHTS') || '')
+      .split(',')
+      .map((w) => parseInt(w.trim(), 10));
 
     for (let i = 0; i < hosts.length; i++) {
       try {
@@ -45,7 +59,6 @@ export class ReplicaDataSourceService implements OnModuleInit, OnModuleDestroy {
           username: this.configService.getOrThrow<string>('DB_USERNAME'),
           password: this.configService.getOrThrow<string>('DB_PASSWORD'),
           database: this.configService.getOrThrow<string>('DB_NAME'),
-          schema: 'global',
           synchronize: false,
           logging: this.configService.get<boolean>('DB_LOGGING', false),
           ssl: this.configService.get<boolean>('DB_SSL')
@@ -59,9 +72,13 @@ export class ReplicaDataSourceService implements OnModuleInit, OnModuleDestroy {
 
         const replica = await replicaDs.initialize();
         this.replicas.push(replica);
-        this.logger.log(`Read replica connected: ${hosts[i]}:${ports[i] || 5432}`);
+        this.logger.log(
+          `Read replica connected: ${hosts[i]}:${ports[i] || 5432}`,
+        );
       } catch (err) {
-        this.logger.error(`Failed to connect read replica ${hosts[i]}: ${err.message}`);
+        this.logger.error(
+          `Failed to connect read replica ${hosts[i]}: ${err.message}`,
+        );
       }
     }
 
@@ -91,7 +108,9 @@ export class ReplicaDataSourceService implements OnModuleInit, OnModuleDestroy {
       try {
         await replica.destroy();
       } catch (err) {
-        this.logger.error(`Error destroying replica connection: ${err.message}`);
+        this.logger.error(
+          `Error destroying replica connection: ${err.message}`,
+        );
       }
     }
   }

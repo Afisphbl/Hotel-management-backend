@@ -67,7 +67,9 @@ export class AuthController {
 
     if (loginDto.domain && !hotelId) {
       // Find hotel by subdomain if domain is provided
-      const hotel = await this.authService.findHotelBySubdomain(loginDto.domain);
+      const hotel = await this.authService.findHotelBySubdomain(
+        loginDto.domain,
+      );
       if (hotel) {
         hotelId = hotel.id;
       }
@@ -117,15 +119,24 @@ export class AuthController {
   @Post('activate-2fa')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async activate2fa(@Body() body: { secret: string; code: string }, @Request() req: any) {
-    return this.authService.verify2FASetup(req.user.userId, body.secret, body.code);
+  async activate2fa(
+    @Body() body: { secret: string; code: string },
+    @Request() req: any,
+  ) {
+    return this.authService.verify2FASetup(
+      req.user.userId,
+      body.secret,
+      body.code,
+    );
   }
 
   @Post('verify-2fa')
   @HttpCode(HttpStatus.OK)
   async verify2fa(@Body() dto: Verify2faDto, @Request() req: any) {
     // This is used for the second step of login if requires_2fa was returned
-    const user = await this.authService.findUserById(dto.userId || dto.tempToken || '');
+    const user = await this.authService.findUserById(
+      dto.userId || dto.tempToken || '',
+    );
     if (!user) throw new UnauthorizedException('User not found');
 
     await this.authService.verify2FACode(user.id, dto.code);
@@ -145,7 +156,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async impersonate(@Body() dto: ImpersonateDto, @Request() req: any) {
     const user = req.user;
-    
+
     const metadata = {
       userAgent: req.headers['user-agent'],
       ipAddress: req.ip,

@@ -193,7 +193,9 @@ export class AuthService {
     const resolvedRoleId = userWithRole?.role?.id ?? user.role?.id;
 
     if (hotelId) {
-      const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+      const hotel = await this.hotelRepository.findOne({
+        where: { id: hotelId },
+      });
       if (!hotel) {
         throw new UnauthorizedException('Hotel not found');
       }
@@ -244,7 +246,9 @@ export class AuthService {
 
       if (hotelAccess) {
         const resolvedHotelId = sessionHotelId ?? hotelAccess.hotelId;
-        const hotel = await this.hotelRepository.findOne({ where: { id: resolvedHotelId } });
+        const hotel = await this.hotelRepository.findOne({
+          where: { id: resolvedHotelId },
+        });
         if (hotel && hotel.status !== HotelStatus.ACTIVE) {
           throw new UnauthorizedException(
             `Hotel is ${hotel.status === HotelStatus.SUSPENDED ? 'suspended' : 'inactive'}. Please contact support.`,

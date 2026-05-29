@@ -90,7 +90,11 @@ export class RoomsController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() data: any,
+    @Request() req: any,
+  ) {
     const hotelId = req.user.hotel_id;
     const room = await this.roomsService.update(id, data, hotelId);
     return success(room);

@@ -1,8 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from '../../../database/entities/user.entity';
-import { HotelUserAccess, HotelAccessStatus } from '../../../database/entities/hotel-user-access.entity';
+import {
+  HotelUserAccess,
+  HotelAccessStatus,
+} from '../../../database/entities/hotel-user-access.entity';
 import { Role } from '../../../database/entities/role.entity';
 import { RolePermission } from '../../../database/entities/role-permission.entity';
 import { Permission } from '../../../database/entities/permission.entity';
@@ -25,7 +33,10 @@ export class HotelOwnerStaffService {
     private permissionRepository: Repository<Permission>,
   ) {}
 
-  async findAll(hotelId: string, options: { page?: number; limit?: number; status?: string }) {
+  async findAll(
+    hotelId: string,
+    options: { page?: number; limit?: number; status?: string },
+  ) {
     const page = options.page || 1;
     const limit = options.limit || 10;
     const skip = (page - 1) * limit;
@@ -42,19 +53,24 @@ export class HotelOwnerStaffService {
       order: { grantedAt: 'DESC' },
     });
 
-    const userIds = accessRecords.map(a => a.userId);
+    const userIds = accessRecords.map((a) => a.userId);
     const users = userIds.length
-      ? await this.userRepository.find({ where: { id: In(userIds) }, relations: ['role'] })
+      ? await this.userRepository.find({
+          where: { id: In(userIds) },
+          relations: ['role'],
+        })
       : [];
-    const userMap = new Map(users.map(u => [u.id, u]));
+    const userMap = new Map(users.map((u) => [u.id, u]));
 
-    const roleIds = [...new Set(accessRecords.map(a => a.roleId).filter(Boolean))];
+    const roleIds = [
+      ...new Set(accessRecords.map((a) => a.roleId).filter(Boolean)),
+    ];
     const roles = roleIds.length
       ? await this.roleRepository.find({ where: { id: In(roleIds) } })
       : [];
-    const roleMap = new Map(roles.map(r => [r.id, r]));
+    const roleMap = new Map(roles.map((r) => [r.id, r]));
 
-    const items = accessRecords.map(access => {
+    const items = accessRecords.map((access) => {
       const user = userMap.get(access.userId);
       const role = access.roleId ? roleMap.get(access.roleId) : null;
       return {
@@ -93,26 +109,45 @@ export class HotelOwnerStaffService {
   async getSummary(hotelId: string) {
     const allAccess = await this.accessRepository.find({ where: { hotelId } });
     const total = allAccess.length;
-    const active = allAccess.filter(a => a.status === HotelAccessStatus.ACTIVE).length;
-    const pending = allAccess.filter(a => a.status === HotelAccessStatus.PENDING).length;
-    const inactive = allAccess.filter(a => a.status === HotelAccessStatus.INACTIVE).length;
+    const active = allAccess.filter(
+      (a) => a.status === HotelAccessStatus.ACTIVE,
+    ).length;
+    const pending = allAccess.filter(
+      (a) => a.status === HotelAccessStatus.PENDING,
+    ).length;
+    const inactive = allAccess.filter(
+      (a) => a.status === HotelAccessStatus.INACTIVE,
+    ).length;
 
-    const roleIds = [...new Set(allAccess.map(a => a.roleId).filter(Boolean))];
+    const roleIds = [
+      ...new Set(allAccess.map((a) => a.roleId).filter(Boolean)),
+    ];
     const roles = roleIds.length
       ? await this.roleRepository.find({ where: { id: In(roleIds) } })
       : [];
 
-    const distribution = roles.map(role => ({
+    const distribution = roles.map((role) => ({
       roleId: role.id,
       roleName: role.name,
-      count: allAccess.filter(a => a.roleId === role.id).length,
+      count: allAccess.filter((a) => a.roleId === role.id).length,
     }));
 
     return { total, active, pending, inactive, distribution };
   }
 
-  async invite(hotelId: string, data: { email: string; firstName: string; lastName: string; roleId: string; notes?: string }) {
-    const existingUser = await this.userRepository.findOne({ where: { email: data.email } });
+  async invite(
+    hotelId: string,
+    data: {
+      email: string;
+      firstName: string;
+      lastName: string;
+      roleId: string;
+      notes?: string;
+    },
+  ) {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: data.email },
+    });
 
     let userId: string;
     if (existingUser) {
@@ -139,7 +174,9 @@ export class HotelOwnerStaffService {
       userId = saved.id;
     }
 
-    const role = await this.roleRepository.findOne({ where: { id: data.roleId } });
+    const role = await this.roleRepository.findOne({
+      where: { id: data.roleId },
+    });
     if (!role) {
       throw new BadRequestException('Role not found');
     }
@@ -158,7 +195,9 @@ export class HotelOwnerStaffService {
   }
 
   async updateRole(accessId: string, hotelId: string, roleId: string) {
-    const access = await this.accessRepository.findOne({ where: { id: accessId, hotelId } });
+    const access = await this.accessRepository.findOne({
+      where: { id: accessId, hotelId },
+    });
     if (!access) throw new NotFoundException('Staff access record not found');
 
     const role = await this.roleRepository.findOne({ where: { id: roleId } });
@@ -169,8 +208,14 @@ export class HotelOwnerStaffService {
     return { roleId, roleName: role.name };
   }
 
-  async updateStatus(accessId: string, hotelId: string, status: HotelAccessStatus) {
-    const access = await this.accessRepository.findOne({ where: { id: accessId, hotelId } });
+  async updateStatus(
+    accessId: string,
+    hotelId: string,
+    status: HotelAccessStatus,
+  ) {
+    const access = await this.accessRepository.findOne({
+      where: { id: accessId, hotelId },
+    });
     if (!access) throw new NotFoundException('Staff access record not found');
 
     access.status = status;
@@ -189,7 +234,9 @@ export class HotelOwnerStaffService {
   }
 
   async remove(accessId: string, hotelId: string) {
-    const access = await this.accessRepository.findOne({ where: { id: accessId, hotelId } });
+    const access = await this.accessRepository.findOne({
+      where: { id: accessId, hotelId },
+    });
     if (!access) throw new NotFoundException('Staff access record not found');
 
     access.status = HotelAccessStatus.INACTIVE;

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
@@ -29,20 +39,35 @@ export class PlatformConsentController {
   @Post('consents')
   @HttpCode(HttpStatus.CREATED)
   async recordConsent(
-    @Body() data: { userId: string; hotelId?: string; type: ConsentType; granted: boolean; ipAddress?: string; userAgent?: string; policyVersion?: string },
+    @Body()
+    data: {
+      userId: string;
+      hotelId?: string;
+      type: ConsentType;
+      granted: boolean;
+      ipAddress?: string;
+      userAgent?: string;
+      policyVersion?: string;
+    },
   ) {
     return this.consentService.recordConsent(data);
   }
 
   @Post('consents/:userId/revoke/:type')
   @HttpCode(HttpStatus.OK)
-  async revokeConsent(@Param('userId') userId: string, @Param('type') type: ConsentType) {
+  async revokeConsent(
+    @Param('userId') userId: string,
+    @Param('type') type: ConsentType,
+  ) {
     await this.consentService.revokeConsent(userId, type);
     return { success: true };
   }
 
   @Get('consents/:userId/check/:type')
-  async checkConsent(@Param('userId') userId: string, @Param('type') type: ConsentType) {
+  async checkConsent(
+    @Param('userId') userId: string,
+    @Param('type') type: ConsentType,
+  ) {
     const granted = await this.consentService.hasConsent(userId, type);
     return { userId, type, granted };
   }
