@@ -15,6 +15,8 @@ import { Role } from '../../../database/entities/role.entity';
 import { RolePermission } from '../../../database/entities/role-permission.entity';
 import { Permission } from '../../../database/entities/permission.entity';
 import * as bcrypt from 'bcrypt';
+import { StaffService } from './staff.service';
+import { StaffRole } from '../../../database/entities/staff.entity';
 
 @Injectable()
 export class HotelOwnerStaffService {
@@ -31,6 +33,7 @@ export class HotelOwnerStaffService {
     private rolePermissionRepository: Repository<RolePermission>,
     @InjectRepository(Permission)
     private permissionRepository: Repository<Permission>,
+    private staffService: StaffService,
   ) {}
 
   async findAll(
@@ -190,6 +193,35 @@ export class HotelOwnerStaffService {
       notes: data.notes || undefined,
     });
     await this.accessRepository.save(access);
+
+    // Sync to tenant-specific staff table
+    try {
+      // Map system roles to StaffRole enum if possible
+      let staffRole = StaffRole.FRONT_DESK;
+      const roleName = role.name.toLowerCase();
+      if (roleName.includes('housekeeping')) {
+        staffRole = roleName.includes('supervisor')
+          ? StaffRole.HOUSEKEEPING_SUPERVISOR
+          : StaffRole.HOUSEKEEPING_STAFF;
+      } else if (roleName.includes('maintenance')) {
+        staffRole = StaffRole.MAINTENANCE_STAFF;
+      }
+
+      await this.staffService.create(
+        {
+          userId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          role: staffRole,
+          status: 'active',
+        },
+        hotelId,
+      );
+    } catch (e) {
+      this.logger.error(`Failed to sync staff to tenant schema: ${e.message}`);
+      // Don't fail the whole invite if sync fails (schema might not be ready)
+    }
 
     return { userId, accessId: access.id, roleName: role.name };
   }

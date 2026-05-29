@@ -1,45 +1,124 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { RoomType } from '../../../database/entities/room-type.entity';
-import { paginate, PaginatedResult } from '../common/pagination.helper';
+import { Hotel } from '../../../database/entities/hotel.entity';
 
 @Injectable()
 export class RoomTypesService {
   constructor(
-    @InjectRepository(RoomType)
-    private roomTypeRepository: Repository<RoomType>,
+    @InjectRepository(Hotel)
+    private hotelRepository: Repository<Hotel>,
+    private dataSource: DataSource,
   ) {}
 
-  async findAll(options: {
-    page?: number;
-    limit?: number;
-  }): Promise<PaginatedResult<RoomType>> {
-    return paginate<RoomType>(this.roomTypeRepository, {
-      page: options.page,
-      limit: options.limit,
-      order: { name: 'ASC' },
+  private async getSchema(hotelId: string): Promise<string> {
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
     });
+    if (!hotel?.schemaName)
+      throw new NotFoundException('Hotel schema not found');
+    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
   }
 
-  async findById(id: string): Promise<RoomType> {
-    const type = await this.roomTypeRepository.findOneBy({ id });
-    if (!type) throw new NotFoundException('Room type not found');
-    return type;
+  async findAll(
+    hotelId: string,
+    options: {
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    const s = await this.getSchema(hotelId);
+    const page = options.page || 1;
+    const limit = options.limit || 20;
+    const offset = (page - 1) * limit;
+
+    const [rows, countResult] = await Promise.all([
+      this.dataSource.query(
+        `SELECT * FROM "${s}"."room_types" WHERE "deletedAt" IS NULL ORDER BY name ASC LIMIT ${limit} OFFSET ${offset}`,
+      ),
+      this.dataSource.query(
+        `SELECT COUNT(*)::int AS count FROM "${s}"."room_types" WHERE "deletedAt" IS NULL`,
+      ),
+    ]);
+
+    const total = Number(countResult[0]?.count ?? 0);
+    return {
+      items: rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async create(data: Partial<RoomType>): Promise<RoomType> {
-    return this.roomTypeRepository.save(this.roomTypeRepository.create(data));
+  async findById(id: string, hotelId: string): Promise<RoomType> {
+    const s = await this.getSchema(hotelId);
+    const rows = await this.dataSource.query(
+      `SELECT * FROM "${s}"."room_types" WHERE id = $1 AND "deletedAt" IS NULL`,
+      [id],
+    );
+    if (!rows.length) throw new NotFoundException('Room type not found');
+    return rows[0];
   }
 
-  async update(id: string, data: Partial<RoomType>): Promise<RoomType> {
-    const type = await this.findById(id);
-    Object.assign(type, data);
-    return this.roomTypeRepository.save(type);
+  async create(data: Partial<RoomType>, hotelId: string): Promise<RoomType> {
+    const s = await this.getSchema(hotelId);
+    const rows = await this.dataSource.query(
+      `INSERT INTO "${s}"."room_types" (name, description, "baseCapacity", "maxExtraBeds", "basePrice")
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [
+        data.name,
+        data.description ?? null,
+        data.baseCapacity,
+        data.maxExtraBeds ?? 0,
+        data.basePrice,
+      ],
+    );
+    return rows[0];
   }
 
-  async remove(id: string): Promise<void> {
-    const type = await this.findById(id);
-    await this.roomTypeRepository.softRemove(type);
+  async update(
+    id: string,
+    data: Partial<RoomType>,
+    hotelId: string,
+  ): Promise<RoomType> {
+    const s = await this.getSchema(hotelId);
+    const fields: string[] = [];
+    const params: any[] = [];
+    const allowed = [
+      'name',
+      'description',
+      'baseCapacity',
+      'maxExtraBeds',
+      'basePrice',
+    ];
+
+    for (const key of allowed) {
+      if ((data as any)[key] !== undefined) {
+        params.push((data as any)[key]);
+        fields.push(`"${key}" = $${params.length}`);
+      }
+    }
+
+    if (!fields.length) return this.findById(id, hotelId);
+
+    params.push(id);
+    const rows = await this.dataSource.query(
+      `UPDATE "${s}"."room_types" SET ${fields.join(', ')}, "updatedAt" = NOW() 
+       WHERE id = $${params.length} AND "deletedAt" IS NULL RETURNING *`,
+      params,
+    );
+
+    if (!rows.length) throw new NotFoundException('Room type not found');
+    return rows[0];
+  }
+
+  async remove(id: string, hotelId: string): Promise<void> {
+    const s = await this.getSchema(hotelId);
+    await this.dataSource.query(
+      `UPDATE "${s}"."room_types" SET "deletedAt" = NOW() WHERE id = $1 AND "deletedAt" IS NULL`,
+      [id],
+    );
   }
 }
