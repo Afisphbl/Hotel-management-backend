@@ -153,6 +153,7 @@ export class HotelOwnerStaffService {
     });
 
     let userId: string;
+    let tempPassword: string | undefined;
     if (existingUser) {
       const existingAccess = await this.accessRepository.findOne({
         where: { userId: existingUser.id, hotelId },
@@ -162,7 +163,7 @@ export class HotelOwnerStaffService {
       }
       userId = existingUser.id;
     } else {
-      const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
+      tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const user = this.userRepository.create({
         email: data.email,
@@ -223,7 +224,7 @@ export class HotelOwnerStaffService {
       // Don't fail the whole invite if sync fails (schema might not be ready)
     }
 
-    return { userId, accessId: access.id, roleName: role.name };
+    return { userId, accessId: access.id, roleName: role.name, tempPassword };
   }
 
   async updateRole(accessId: string, hotelId: string, roleId: string) {

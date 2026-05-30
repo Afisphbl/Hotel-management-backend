@@ -30,6 +30,12 @@ export class HotelManagementController {
     return success(hotels);
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    const hotel = await this.hotelManagementService.findOne(id);
+    return success(hotel);
+  }
+
   @Post()
   async create(@Body() data: any, @Request() req: any) {
     data.ownerEmail = req.user?.email;

@@ -18,6 +18,10 @@ export class HotelManagementService {
     return this.hotelRepository.find({ where: { ownerEmail } });
   }
 
+  async findOne(id: string) {
+    return this.hotelRepository.findOne({ where: { id } });
+  }
+
   async create(data: any) {
     const hotel = new Hotel();
     hotel.name = data.name;
