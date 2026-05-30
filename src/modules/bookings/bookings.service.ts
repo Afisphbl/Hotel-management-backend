@@ -22,6 +22,7 @@ import {
 import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Room } from '../../database/entities/room.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 import { PricingService } from './pricing.service';
 import {
   AuditLog,
@@ -51,11 +52,23 @@ export class BookingsService {
     private guestRepository: Repository<Guest>,
     @InjectRepository(Room)
     private roomRepository: Repository<Room>,
+    @InjectRepository(Hotel)
+    private hotelRepository: Repository<Hotel>,
     @InjectRepository(AuditLog)
     private auditLogRepository: Repository<AuditLog>,
     private pricingService: PricingService,
     @InjectQueue('hold-expiry') private holdExpiryQueue: Queue,
   ) {}
+
+  private schemaCache = new Map<string, string>();
+
+  private async getSchema(hotelId: string): Promise<string> {
+    if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
+    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+    this.schemaCache.set(hotelId, schema);
+    return schema;
+  }
 
   async calculatePricePreview(dto: {
     roomIds: string[];
@@ -64,7 +77,7 @@ export class BookingsService {
   }): Promise<{
     total: number;
     nights: number;
-    rooms: { roomId: string; roomNumber: string; total: number; nights: { date: string; price: number }[] }[];
+    rooms: { roomId: string; roomNumber: string; roomType: { id: string; name: string } | null; total: number; nights: { date: string; price: number }[] }[];
   }> {
     const rooms = await this.roomRepository.find({
       where: dto.roomIds.map((id) => ({ id })),
@@ -76,7 +89,7 @@ export class BookingsService {
 
     const dates = this.getDatesBetween(dto.checkIn, dto.checkOut);
     let total = 0;
-    const roomBreakdowns = [];
+    const roomBreakdowns: { roomId: string; roomNumber: string; roomType: { id: string; name: string } | null; total: number; nights: { date: string; price: number }[] }[] = [];
 
     for (const room of rooms) {
       const nightPrices: { date: string; price: number }[] = [];
@@ -103,6 +116,7 @@ export class BookingsService {
   }
 
   async findAll(query: {
+    hotelId: string;
     page?: number;
     limit?: number;
     status?: BookingStatus;
@@ -110,40 +124,93 @@ export class BookingsService {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
-  }): Promise<PaginatedResult<Booking>> {
-    const qb = this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.guest', 'guest')
-      .leftJoinAndSelect('booking.bookingRooms', 'bookingRooms')
-      .leftJoinAndSelect('bookingRooms.room', 'room')
-      .leftJoinAndSelect('room.roomType', 'roomType')
-      .orderBy('booking.createdAt', 'DESC');
+  }): Promise<PaginatedResult<any>> {
+    const s = await this.getSchema(query.hotelId);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const offset = (page - 1) * limit;
 
-    if (query.status)
-      qb.andWhere('booking.status = :status', { status: query.status });
-    if (query.guestId)
-      qb.andWhere('booking.guestId = :guestId', { guestId: query.guestId });
-    if (query.dateFrom)
-      qb.andWhere('booking.checkIn >= :dateFrom', { dateFrom: query.dateFrom });
-    if (query.dateTo)
-      qb.andWhere('booking.checkOut <= :dateTo', { dateTo: query.dateTo });
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let i = 1;
+
+    if (query.status) { conditions.push(`b.status = $${i++}`); params.push(query.status); }
+    if (query.guestId) { conditions.push(`b."guestId" = $${i++}`); params.push(query.guestId); }
+    if (query.dateFrom) { conditions.push(`b."checkIn" >= $${i++}`); params.push(query.dateFrom); }
+    if (query.dateTo) { conditions.push(`b."checkOut" <= $${i++}`); params.push(query.dateTo); }
     if (query.search) {
-      qb.andWhere(
-        '(LOWER(guest.firstName) LIKE LOWER(:search) OR LOWER(guest.lastName) LIKE LOWER(:search) OR LOWER(guest.email) LIKE LOWER(:search) OR LOWER(booking.id) LIKE LOWER(:search))',
-        { search: `%${query.search}%` },
-      );
+      conditions.push(`(LOWER(g."firstName") LIKE LOWER($${i}) OR LOWER(g."lastName") LIKE LOWER($${i}) OR LOWER(g.email) LIKE LOWER($${i}) OR LOWER(b.id::text) LIKE LOWER($${i}))`);
+      params.push(`%${query.search}%`); i++;
     }
 
-    return this.paginateQuery(qb, query.page, query.limit);
+    const andCond = conditions.length ? 'AND ' + conditions.join(' AND ') : '';
+
+    const rows = await this.dataSource.query(
+      `SELECT b.id, b."guestId", b."checkIn", b."checkOut", b.status, b."totalPrice",
+        b.source, b.notes, b."createdAt", b."updatedAt", b."priceSnapshot",
+        g."firstName", g."lastName", g.email, g.phone,
+        json_agg(json_build_object(
+          'id', br.id, 'roomId', br."roomId", 'roomTypeId', br."roomTypeId", 'price', br.price, 'nightPrices', br."nightPrices",
+          'room', json_build_object('id', r.id, 'roomNumber', r."roomNumber", 'floor', r.floor,
+            'roomType', json_build_object('id', rt.id, 'name', rt.name))
+        )) FILTER (WHERE br.id IS NOT NULL) AS "bookingRooms"
+      FROM "${s}".bookings b
+      LEFT JOIN "${s}".guests g ON g.id = b."guestId"
+      LEFT JOIN "${s}".booking_rooms br ON br."bookingId" = b.id AND br."deletedAt" IS NULL
+      LEFT JOIN "${s}".rooms r ON r.id = br."roomId"
+      LEFT JOIN "${s}".room_types rt ON rt.id = COALESCE(br."roomTypeId", r."roomTypeId")
+      GROUP BY b.id, g."firstName", g."lastName", g.email, g.phone
+      ORDER BY b."createdAt" DESC LIMIT $${i++} OFFSET $${i++}`,
+      [...params, limit, offset],
+    );
+
+    const [{ count }] = await this.dataSource.query(
+      `SELECT COUNT(DISTINCT b.id) as count FROM "${s}".bookings b
+       LEFT JOIN "${s}".guests g ON g.id = b."guestId"
+       WHERE b."deletedAt" IS NULL ${andCond}`,
+      params,
+    );
+
+    const items = rows.map((r: any) => ({
+      id: r.id, guestId: r.guestId, checkIn: r.checkIn, checkOut: r.checkOut,
+      status: r.status, totalPrice: r.totalPrice, source: r.source, notes: r.notes,
+      createdAt: r.createdAt, updatedAt: r.updatedAt, priceSnapshot: r.priceSnapshot,
+      guest: { firstName: r.firstName, lastName: r.lastName, email: r.email, phone: r.phone },
+      bookingRooms: r.bookingRooms ?? [],
+    }));
+
+    return { items, total: Number(count), page, limit, totalPages: Math.ceil(Number(count) / limit) };
   }
 
-  async findById(id: string): Promise<Booking> {
-    const booking = await this.bookingRepository.findOne({
-      where: { id },
-      relations: ['guest', 'bookingRooms', 'bookingRooms.room', 'bookingRooms.room.roomType'],
-    });
-    if (!booking) throw new NotFoundException('Booking not found');
-    return booking;
+  async findById(id: string, hotelId: string): Promise<any> {
+    const s = await this.getSchema(hotelId);
+      const rows = await this.dataSource.query(
+        `SELECT b.id, b."guestId", b."checkIn", b."checkOut", b.status, b."totalPrice",
+          b.source, b.notes, b."createdAt", b."updatedAt", b."priceSnapshot",
+          g."firstName", g."lastName", g.email, g.phone,
+          json_agg(json_build_object(
+            'id', br.id, 'roomId', br."roomId", 'roomTypeId', br."roomTypeId", 'price', br.price, 'nightPrices', br."nightPrices",
+            'room', json_build_object('id', r.id, 'roomNumber', r."roomNumber", 'floor', r.floor,
+              'roomType', json_build_object('id', rt.id, 'name', rt.name))
+          )) FILTER (WHERE br.id IS NOT NULL) AS "bookingRooms"
+        FROM "${s}".bookings b
+        LEFT JOIN "${s}".guests g ON g.id = b."guestId"
+        LEFT JOIN "${s}".booking_rooms br ON br."bookingId" = b.id AND br."deletedAt" IS NULL
+        LEFT JOIN "${s}".rooms r ON r.id = br."roomId"
+        LEFT JOIN "${s}".room_types rt ON rt.id = COALESCE(br."roomTypeId", r."roomTypeId")
+        WHERE b.id = $1 AND b."deletedAt" IS NULL
+        GROUP BY b.id, g."firstName", g."lastName", g.email, g.phone`,
+        [id],
+      );
+    if (!rows.length) throw new NotFoundException('Booking not found');
+    const r = rows[0];
+    return {
+      id: r.id, guestId: r.guestId, checkIn: r.checkIn, checkOut: r.checkOut,
+      status: r.status, totalPrice: r.totalPrice, source: r.source, notes: r.notes,
+      createdAt: r.createdAt, updatedAt: r.updatedAt, priceSnapshot: r.priceSnapshot,
+      guest: { firstName: r.firstName, lastName: r.lastName, email: r.email, phone: r.phone },
+      bookingRooms: r.bookingRooms ?? [],
+    };
   }
 
   async createBooking(createDto: {
@@ -268,6 +335,7 @@ export class BookingsService {
         const bookingRoom = queryRunner.manager.create(BookingRoom, {
           bookingId: savedBooking.id,
           roomId: br.room.id,
+          roomTypeId: br.room.roomTypeId,
           price: br.nightPrices.reduce((s, n) => s + n.price, 0),
           nightPrices: br.nightPrices,
         });
@@ -307,6 +375,189 @@ export class BookingsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async updateBooking(
+    id: string,
+    dto: {
+      notes?: string;
+      source?: string;
+      checkIn?: string;
+      checkOut?: string;
+      roomIds?: string[];
+    },
+    hotelId: string,
+    userId?: string,
+  ): Promise<any> {
+    const booking = await this.bookingRepository.findOne({ where: { id }, relations: ['bookingRooms'] });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const editableStatuses = [BookingStatus.PENDING, BookingStatus.HOLD, BookingStatus.CONFIRMED];
+    if (!editableStatuses.includes(booking.status)) {
+      throw new BadRequestException('Booking cannot be edited in its current status');
+    }
+
+    const hasDateChange = dto.checkIn || dto.checkOut;
+    const hasRoomChange = dto.roomIds !== undefined;
+
+    if (hasDateChange || hasRoomChange) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        const newCheckIn = dto.checkIn ? new Date(dto.checkIn) : booking.checkIn;
+        const newCheckOut = dto.checkOut ? new Date(dto.checkOut) : booking.checkOut;
+        const newRoomIds = dto.roomIds ?? (booking.bookingRooms?.map((br) => br.roomId) ?? []);
+
+        if (newCheckOut <= newCheckIn) {
+          throw new BadRequestException('Check-out must be after check-in');
+        }
+
+        const rooms = await queryRunner.manager.find(Room, {
+          where: newRoomIds.map((rid) => ({ id: rid })),
+          relations: ['roomType'],
+        });
+        if (rooms.length !== newRoomIds.length) {
+          throw new NotFoundException('One or more rooms not found');
+        }
+
+        const dates = this.getDatesBetween(
+          newCheckIn.toISOString().split('T')[0],
+          newCheckOut.toISOString().split('T')[0],
+        );
+
+        for (const room of rooms) {
+          const conflictingNights = await queryRunner.manager
+            .createQueryBuilder(RoomNight, 'rn')
+            .setLock('pessimistic_write')
+            .where('rn.roomId = :roomId AND rn.date IN (:...dates)', {
+              roomId: room.id,
+              dates,
+            })
+            .andWhere('rn.status IN (:...statuses)', {
+              statuses: [RoomNightStatus.HELD, RoomNightStatus.BOOKED],
+            })
+            .andWhere('(rn."bookingId" IS NULL OR rn."bookingId" != :bookingId)', {
+              bookingId: id,
+            })
+            .getMany();
+
+          if (conflictingNights.length > 0) {
+            throw new ConflictException(
+              `Room ${room.roomNumber} is not available for selected dates`,
+            );
+          }
+        }
+
+        // Delete old room_nights and booking_rooms
+        await queryRunner.manager.delete(RoomNight, { bookingId: id });
+        await queryRunner.manager.delete(BookingRoom, { bookingId: id });
+
+        // Calculate new prices and create records
+        let total = 0;
+        const allRoomNights: RoomNight[] = [];
+        const bookingRoomsData: {
+          room: Room;
+          nightPrices: { date: string; price: number }[];
+        }[] = [];
+
+        for (const room of rooms) {
+          const nightPrices: { date: string; price: number }[] = [];
+
+          for (const date of dates) {
+            const price = await this.pricingService.calculatePrice(
+              hotelId,
+              room.roomTypeId,
+              new Date(date),
+              { roomBasePrice: room.basePrice },
+            );
+            total += price;
+            nightPrices.push({ date, price });
+
+            const rn = queryRunner.manager.create(RoomNight, {
+              roomId: room.id,
+              date,
+              bookingId: id,
+              status:
+                booking.status === BookingStatus.CONFIRMED
+                  ? RoomNightStatus.BOOKED
+                  : RoomNightStatus.HELD,
+              price,
+            });
+            allRoomNights.push(rn);
+          }
+          bookingRoomsData.push({ room, nightPrices });
+        }
+
+        await queryRunner.manager.save(allRoomNights);
+
+        for (const br of bookingRoomsData) {
+          const bookingRoom = queryRunner.manager.create(BookingRoom, {
+            bookingId: id,
+            roomId: br.room.id,
+            roomTypeId: br.room.roomTypeId,
+            price: br.nightPrices.reduce((s, n) => s + n.price, 0),
+            nightPrices: br.nightPrices,
+          });
+          await queryRunner.manager.save(bookingRoom);
+        }
+
+        booking.checkIn = newCheckIn;
+        booking.checkOut = newCheckOut;
+        booking.totalPrice = total;
+        booking.priceSnapshot = {
+          rooms: bookingRoomsData.map((br) => ({
+            roomTypeId: br.room.roomTypeId,
+            roomNumber: br.room.roomNumber,
+            nights: br.nightPrices,
+          })),
+          pricingDate: new Date().toISOString(),
+        };
+
+        if (dto.notes !== undefined) booking.notes = dto.notes;
+        if (dto.source !== undefined) booking.source = dto.source;
+
+        await queryRunner.manager.save(booking);
+
+        if (userId) {
+          const audit = queryRunner.manager.create(AuditLog, {
+            userId,
+            action: AuditAction.BOOKING_UPDATE,
+            resourceType: AuditResource.BOOKING,
+            resourceId: id,
+            newValues: { checkIn: newCheckIn, checkOut: newCheckOut, roomIds: newRoomIds, totalPrice: total },
+            performedBy: userId,
+          });
+          await queryRunner.manager.save(audit);
+        }
+
+        await queryRunner.commitTransaction();
+      } catch (err) {
+        await queryRunner.rollbackTransaction();
+        throw err;
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      // Only notes/source changed
+      if (dto.notes !== undefined) booking.notes = dto.notes;
+      if (dto.source !== undefined) booking.source = dto.source;
+      await this.bookingRepository.save(booking);
+
+      if (userId) {
+        await this.auditLogRepository.save({
+          userId,
+          action: AuditAction.BOOKING_UPDATE,
+          resourceType: AuditResource.BOOKING,
+          resourceId: id,
+          newValues: dto,
+          performedBy: userId,
+        });
+      }
+    }
+
+    return this.findById(id, hotelId);
   }
 
   async confirm(

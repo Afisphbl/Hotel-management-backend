@@ -16,6 +16,12 @@ export class Guest extends BaseEntity {
   phone: string; // PII
 
   @Column({ nullable: true })
+  nationality: string;
+
+  @Column({ default: false })
+  isVip: boolean;
+
+  @Column({ nullable: true })
   documentType: string; // PII
 
   @Column({ nullable: true })
@@ -31,6 +37,8 @@ export class Guest extends BaseEntity {
       firstName: this.firstName,
       lastName: this.lastName,
       email: this.email,
+      nationality: this.nationality,
+      isVip: this.isVip,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
@@ -44,6 +52,8 @@ export class Guest extends BaseEntity {
       lastName: this.lastName,
       email: this.email,
       phone: this.phone,
+      nationality: this.nationality,
+      isVip: this.isVip,
       documentType: this.documentType,
       documentNumber: this.documentNumber,
       metadata: this.metadata,

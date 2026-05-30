@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, MoreThanOrEqual } from 'typeorm';
 import { Guest } from '../../../database/entities/guest.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 
@@ -9,6 +9,9 @@ export class GuestSearchOptions {
   limit?: number;
   search?: string;
   email?: string;
+  isVip?: boolean;
+  nationality?: string;
+  recent?: boolean;
 }
 
 @Injectable()
@@ -19,21 +22,47 @@ export class GuestsService {
   ) {}
 
   async findAll(options: GuestSearchOptions): Promise<PaginatedResult<Guest>> {
-    const where: any = {};
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = [];
 
     if (options.search) {
-      where.firstName = Like(`%${options.search}%`);
-    }
-    if (options.email) {
-      where.email = options.email;
+      const searchPattern = Like(`%${options.search}%`);
+      where.push({ firstName: searchPattern });
+      where.push({ lastName: searchPattern });
+      where.push({ email: searchPattern });
+    } else {
+      where.push({});
     }
 
-    return paginate<Guest>(this.guestRepository, {
-      page: options.page,
-      limit: options.limit,
-      where,
+    // Apply other filters to each OR condition
+    for (const condition of where) {
+      if (options.email) condition.email = options.email;
+      if (options.isVip !== undefined) condition.isVip = options.isVip;
+      if (options.nationality) condition.nationality = options.nationality;
+      if (options.recent) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        condition.createdAt = MoreThanOrEqual(thirtyDaysAgo);
+      }
+    }
+
+    const [items, total] = await this.guestRepository.findAndCount({
+      where: where.length > 1 ? where : where[0],
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string): Promise<Guest> {

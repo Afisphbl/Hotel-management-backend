@@ -29,9 +29,21 @@ export class GuestsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationDto & { search?: string; email?: string },
+    @Query()
+    query: PaginationDto & {
+      search?: string;
+      email?: string;
+      isVip?: string;
+      nationality?: string;
+      recent?: string;
+    },
   ) {
-    const result = await this.guestsService.findAll(query);
+    const options = {
+      ...query,
+      isVip: query.isVip === 'true' ? true : query.isVip === 'false' ? false : undefined,
+      recent: query.recent === 'true',
+    };
+    const result = await this.guestsService.findAll(options);
     return paginated(result.items, result.total, result.page, result.limit);
   }
 

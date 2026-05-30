@@ -15,6 +15,9 @@ export class BookingRoom extends BaseEntity {
   @Column()
   roomId: string;
 
+  @Column({ nullable: true })
+  roomTypeId: string;
+
   @ManyToOne(() => Room)
   @JoinColumn({ name: 'roomId' })
   room: Room;

@@ -641,6 +641,8 @@ export class PlatformService {
         "lastName" VARCHAR NOT NULL,
         email VARCHAR NOT NULL UNIQUE,
         phone VARCHAR,
+        "nationality" VARCHAR,
+        "isVip" BOOLEAN DEFAULT FALSE,
         "documentType" VARCHAR,
         "documentNumber" VARCHAR,
         metadata JSONB,

@@ -53,6 +53,29 @@ export class CancelBookingDto {
   reason?: string;
 }
 
+export class UpdateBookingDto {
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkIn?: string;
+
+  @IsOptional()
+  @IsDateString()
+  checkOut?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  roomIds?: string[];
+}
+
 export class QueryBookingsDto {
   @IsOptional()
   page?: number;

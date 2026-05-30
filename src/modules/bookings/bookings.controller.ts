@@ -24,6 +24,7 @@ import {
   ConfirmBookingDto,
   CancelBookingDto,
   QueryBookingsDto,
+  UpdateBookingDto,
 } from './dto/create-booking.dto';
 
 @Controller('hotel/bookings')
@@ -33,8 +34,10 @@ export class BookingsController {
   constructor(private bookingsService: BookingsService) {}
 
   @Get()
-  async findAll(@Query() query: QueryBookingsDto) {
+  async findAll(@Query() query: QueryBookingsDto, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
     const result = await this.bookingsService.findAll({
+      hotelId,
       page: query.page,
       limit: query.limit,
       status: query.status as BookingStatus,
@@ -65,8 +68,9 @@ export class BookingsController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    const booking = await this.bookingsService.findById(id);
+  async findById(@Param('id') id: string, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const booking = await this.bookingsService.findById(id, hotelId);
     return { success: true, data: booking };
   }
 
@@ -124,6 +128,17 @@ export class BookingsController {
   @Post(':id/checkout')
   async checkout(@Param('id') id: string, @Request() req: any) {
     const booking = await this.bookingsService.checkout(id, req.user.userId);
+    return { success: true, data: booking };
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateBookingDto,
+    @Request() req: any,
+  ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const booking = await this.bookingsService.updateBooking(id, dto, hotelId, req.user.userId);
     return { success: true, data: booking };
   }
 

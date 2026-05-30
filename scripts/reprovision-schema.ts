@@ -40,7 +40,8 @@ async function main() {
       UNIQUE("hotelId", "roomNumber"))`,
     `CREATE TABLE IF NOT EXISTS "${s}"."guests" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "firstName" VARCHAR NOT NULL, "lastName" VARCHAR NOT NULL,
-      email VARCHAR NOT NULL UNIQUE, phone VARCHAR, "documentType" VARCHAR, "documentNumber" VARCHAR, metadata JSONB,
+      email VARCHAR NOT NULL UNIQUE, phone VARCHAR, "nationality" VARCHAR, "isVip" BOOLEAN DEFAULT FALSE,
+      "documentType" VARCHAR, "documentNumber" VARCHAR, metadata JSONB,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,
     `CREATE TABLE IF NOT EXISTS "${s}"."bookings" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "guestId" UUID NOT NULL REFERENCES "${s}"."guests"(id),
