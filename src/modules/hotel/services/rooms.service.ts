@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { validateSchemaName } from '../../../common/utils/security.utils';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { PaginatedResult } from '../common/pagination.helper';
@@ -22,7 +23,7 @@ export class RoomsService {
     });
     if (!hotel?.schemaName)
       throw new NotFoundException('Hotel schema not found');
-    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+    return validateSchemaName(hotel.schemaName);
   }
 
   private mapRow(r: any): Room {
@@ -271,7 +272,7 @@ export class RoomsService {
     const hotel = await this.hotelRepository.findOne({
       where: { id: hotelId },
     });
-    const s = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? null;
+    const s = hotel?.schemaName ? validateSchemaName(hotel.schemaName) : null;
 
     const result: Record<string, number> = {
       total: 0,

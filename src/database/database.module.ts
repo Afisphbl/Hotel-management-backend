@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Client } from 'pg';
 import { getTenantSchema } from '../common/tenant/tenant-context';
+import { validateSchemaName } from '../common/utils/security.utils';
 import { ReplicaDataSourceService } from './replica-data-source.service';
 
 @Injectable()
@@ -32,7 +33,7 @@ class TenantSearchPathService implements OnModuleInit {
       queryRunner.query = async (...queryArgs: any[]) => {
         if (!initialized) {
           initialized = true;
-          const schema = getTenantSchema().replace(/"/g, '');
+          const schema = validateSchemaName(getTenantSchema());
           await originalQuery(`SET search_path TO "${schema}", global, public`);
         }
         return originalQuery(...queryArgs);

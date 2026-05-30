@@ -11,6 +11,7 @@ import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entit
 import { Payment, PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
+import { validateSchemaName } from '../../../common/utils/security.utils';
 import { NotificationService } from '../services/notification.service';
 
 export interface OutboxHandlers {
@@ -59,9 +60,15 @@ export class OutboxRelayProcessor extends WorkerHost {
             dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           });
 
-          const hotel = await this.hotelRepository.findOneBy({ id: payload.hotelId });
-          const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
-          console.log(`[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`);
+          const hotel = await this.hotelRepository.findOneBy({
+            id: payload.hotelId,
+          });
+          const schema = hotel?.schemaName
+            ? validateSchemaName(hotel.schemaName)
+            : 'public';
+          console.log(
+            `[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`,
+          );
 
           const qr = this.dataSource.createQueryRunner();
           await qr.connect();
