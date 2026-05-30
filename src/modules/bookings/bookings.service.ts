@@ -23,6 +23,7 @@ import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Room } from '../../database/entities/room.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { validateSchemaName } from '../../common/utils/security.utils';
 import { PricingService } from './pricing.service';
 import {
   AuditLog,
@@ -66,7 +67,9 @@ export class BookingsService {
   private async getSchema(hotelId: string): Promise<string> {
     if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
     const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
-    const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+    const schema = hotel?.schemaName
+      ? validateSchemaName(hotel.schemaName)
+      : 'public';
     this.schemaCache.set(hotelId, schema);
     return schema;
   }
