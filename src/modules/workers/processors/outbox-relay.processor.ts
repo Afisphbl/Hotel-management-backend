@@ -8,6 +8,7 @@ import {
   OutboxStatus,
 } from '../../../database/entities/outbox-event.entity';
 import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import { Payment, PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { NotificationService } from '../services/notification.service';
@@ -66,9 +67,21 @@ export class OutboxRelayProcessor extends WorkerHost {
           await qr.connect();
           try {
             await qr.query(`SET search_path TO "${schema}", global, public`);
-            const saved = await qr.manager.save(invoice);
-            console.log(`[BOOKING_CREATED Handler] Invoice SAVED successfully, id: ${saved.id}, amount: ${saved.amount}`);
-            this.logger.log(`Invoice ${saved.id} created for booking ${payload.bookingId}`);
+            const savedInvoice = await qr.manager.save(invoice);
+            const payment = qr.manager.create(Payment, {
+              invoiceId: savedInvoice.id,
+              bookingId: payload.bookingId,
+              amount: payload.totalPrice ?? 0,
+              fee: 0,
+              netAmount: payload.totalPrice ?? 0,
+              currency: 'ETB',
+              method: PaymentMethod.CASH,
+              status: PaymentStatus.PENDING,
+              description: `Auto-created payment for booking ${payload.bookingId}`,
+            });
+            const savedPayment = await qr.manager.save(payment);
+            console.log(`[BOOKING_CREATED Handler] Invoice ${savedInvoice.id} + Payment ${savedPayment.id} created`);
+            this.logger.log(`Invoice ${savedInvoice.id} and Payment ${savedPayment.id} created for booking ${payload.bookingId}`);
           } finally {
             await qr.release();
           }

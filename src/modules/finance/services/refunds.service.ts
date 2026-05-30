@@ -85,7 +85,6 @@ export class RefundsService {
 
       const payment = await queryRunner.manager.findOne(Payment, {
         where: { id: dto.paymentId },
-        relations: ['invoice'],
         lock: { mode: 'pessimistic_write' },
       });
       if (!payment) throw new NotFoundException('Payment not found');
@@ -139,14 +138,14 @@ export class RefundsService {
       });
       await queryRunner.manager.save(ledger);
 
-      // 4. Update payment status
-      const newTotal = refundedSoFar + dto.amount;
-      if (newTotal >= Number(payment.amount)) {
-        payment.status = PaymentStatus.REFUNDED;
-      } else {
-        payment.status = PaymentStatus.PARTIALLY_REFUNDED;
+      // 4. Revert invoice to ISSUED if it was PAID
+      const invoice = await queryRunner.manager.findOne(Invoice, {
+        where: { id: invoiceId },
+      });
+      if (invoice && invoice.status === InvoiceStatus.PAID) {
+        invoice.status = InvoiceStatus.ISSUED;
+        await queryRunner.manager.save(invoice);
       }
-      await queryRunner.manager.save(payment);
 
       // 5. Create outbox event
       await queryRunner.manager.save(

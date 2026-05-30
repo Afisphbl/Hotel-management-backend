@@ -1,28 +1,30 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   Invoice,
   InvoiceStatus,
 } from '../../../database/entities/invoice.entity';
+import {
+  Payment,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
 import { Booking } from '../../../database/entities/booking.entity';
+import { Guest } from '../../../database/entities/guest.entity';
 import {
   TaxRule,
   TaxApplication,
 } from '../../../database/entities/tax-rule.entity';
 import { OutboxEvent } from '../../../database/entities/outbox-event.entity';
 import { CreateInvoiceDto, QueryInvoiceDto } from '../dto/invoice.dto';
-import { paginate, PaginatedResult } from '../common/pagination';
 
 @Injectable()
 export class InvoicesService {
   constructor(
     @InjectRepository(Invoice)
     private invoiceRepository: Repository<Invoice>,
+    @InjectRepository(Payment)
+    private paymentRepository: Repository<Payment>,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
     @InjectRepository(TaxRule)
@@ -31,25 +33,35 @@ export class InvoicesService {
     private outboxRepository: Repository<OutboxEvent>,
   ) {}
 
-  async findAll(query: QueryInvoiceDto): Promise<PaginatedResult<Invoice>> {
-    const where: any = {};
-    if (query.status) where.status = query.status;
-    if (query.bookingId) where.bookingId = query.bookingId;
+  async findAll(query: QueryInvoiceDto) {
+    const qb = this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
+      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"');
+    if (query.status) {
+      qb.andWhere('invoice.status = :status', { status: query.status });
+    }
+    if (query.bookingId) {
+      qb.andWhere('invoice."bookingId" = :bookingId', { bookingId: query.bookingId });
+    }
+    qb.orderBy('invoice.createdAt', 'DESC');
 
-    return paginate<Invoice>(this.invoiceRepository, {
-      page: query.page,
-      limit: query.limit,
-      where,
-      order: { createdAt: 'DESC' },
-      relations: ['booking', 'booking.guest'],
-    });
+    const page = query.page || 1;
+    const limit = query.limit || 50;
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<Invoice> {
-    const invoice = await this.invoiceRepository.findOne({
-      where: { id },
-      relations: ['booking', 'booking.guest'],
-    });
+    const invoice = await this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
+      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"')
+      .where('invoice.id = :id', { id })
+      .getOne();
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
   }
@@ -137,7 +149,21 @@ export class InvoicesService {
     const invoice = await this.findById(id);
     invoice.status = InvoiceStatus.PAID;
     invoice.paidAt = new Date();
-    return this.invoiceRepository.save(invoice);
+    const saved = await this.invoiceRepository.save(invoice);
+
+    const pendingPayments = await this.paymentRepository.findBy({
+      invoiceId: id,
+      status: PaymentStatus.PENDING,
+    });
+    for (const payment of pendingPayments) {
+      payment.status = PaymentStatus.COMPLETED;
+      payment.paidAt = new Date();
+    }
+    if (pendingPayments.length > 0) {
+      await this.paymentRepository.save(pendingPayments);
+    }
+
+    return saved;
   }
 
   async markOverdue(id: string): Promise<Invoice> {
@@ -156,6 +182,17 @@ export class InvoicesService {
     }
     invoice.status = InvoiceStatus.VOID;
     const saved = await this.invoiceRepository.save(invoice);
+
+    const pendingPayments = await this.paymentRepository.findBy({
+      invoiceId: id,
+      status: PaymentStatus.PENDING,
+    });
+    for (const payment of pendingPayments) {
+      payment.status = PaymentStatus.REFUNDED;
+    }
+    if (pendingPayments.length > 0) {
+      await this.paymentRepository.save(pendingPayments);
+    }
 
     await this.outboxRepository.save(
       this.outboxRepository.create({
