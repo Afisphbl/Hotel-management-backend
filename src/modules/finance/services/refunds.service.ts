@@ -138,13 +138,16 @@ export class RefundsService {
       });
       await queryRunner.manager.save(ledger);
 
-      // 4. Revert invoice to ISSUED if it was PAID
-      const invoice = await queryRunner.manager.findOne(Invoice, {
-        where: { id: invoiceId },
-      });
-      if (invoice && invoice.status === InvoiceStatus.PAID) {
-        invoice.status = InvoiceStatus.ISSUED;
-        await queryRunner.manager.save(invoice);
+      // 4. Revert invoice to ISSUED if it was PAID (bypass entity immutability hook)
+      if (invoiceId) {
+        const invoice = await queryRunner.manager.findOne(Invoice, {
+          where: { id: invoiceId },
+        });
+        if (invoice && invoice.status === InvoiceStatus.PAID) {
+          await queryRunner.manager.update(Invoice, invoiceId, {
+            status: InvoiceStatus.ISSUED,
+          });
+        }
       }
 
       // 5. Create outbox event
