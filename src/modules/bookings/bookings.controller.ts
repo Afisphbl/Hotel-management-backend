@@ -77,7 +77,8 @@ export class BookingsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateBookingDto, @Request() req: any) {
-    const booking = await this.bookingsService.createBooking({
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const booking = await this.bookingsService.createBooking(hotelId, {
       guestId: dto.guestId,
       roomIds: dto.roomIds,
       checkIn: dto.checkIn,

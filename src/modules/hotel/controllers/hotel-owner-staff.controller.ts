@@ -75,7 +75,12 @@ export class HotelOwnerStaffController {
       notes?: string;
     },
   ) {
-    const result = await this.ownerStaffService.invite(req.user.hotel_id, data);
+    const result = await this.ownerStaffService.invite(
+      req.user.hotel_id,
+      data,
+      req.user.sub,
+      req.user.role,
+    );
     return success(result);
   }
 
@@ -89,6 +94,8 @@ export class HotelOwnerStaffController {
       id,
       req.user.hotel_id,
       roleId,
+      req.user.sub,
+      req.user.role,
     );
     return success(result);
   }
@@ -103,13 +110,20 @@ export class HotelOwnerStaffController {
       id,
       req.user.hotel_id,
       status,
+      req.user.sub,
+      req.user.role,
     );
     return success(result);
   }
 
   @Delete(':id')
   async remove(@Request() req: any, @Param('id') id: string) {
-    const result = await this.ownerStaffService.remove(id, req.user.hotel_id);
+    const result = await this.ownerStaffService.remove(
+      id,
+      req.user.hotel_id,
+      req.user.sub,
+      req.user.role,
+    );
     return success(result);
   }
 }

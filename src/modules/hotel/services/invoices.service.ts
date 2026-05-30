@@ -6,72 +6,73 @@ import {
   InvoiceStatus,
 } from '../../../database/entities/invoice.entity';
 import { Booking } from '../../../database/entities/booking.entity';
-import { paginate, PaginatedResult } from '../common/pagination.helper';
+import { Guest } from '../../../database/entities/guest.entity';
 
 @Injectable()
 export class InvoicesService {
   constructor(
     @InjectRepository(Invoice)
     private invoiceRepository: Repository<Invoice>,
-    @InjectRepository(Booking)
-    private bookingRepository: Repository<Booking>,
   ) {}
+
+  private baseQuery() {
+    return this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
+      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"');
+  }
 
   async findAll(options: {
     page?: number;
     limit?: number;
     status?: InvoiceStatus;
     bookingId?: string;
-  }): Promise<PaginatedResult<Invoice>> {
-    const where: any = {};
-    if (options.status) where.status = options.status;
-    if (options.bookingId) where.bookingId = options.bookingId;
+  }) {
+    const qb = this.baseQuery();
+    if (options.status) {
+      qb.andWhere('invoice.status = :status', { status: options.status });
+    }
+    if (options.bookingId) {
+      qb.andWhere('invoice."bookingId" = :bookingId', {
+        bookingId: options.bookingId,
+      });
+    }
+    qb.orderBy('invoice.createdAt', 'DESC');
 
-    return paginate<Invoice>(this.invoiceRepository, {
-      page: options.page,
-      limit: options.limit,
-      where,
-      order: { createdAt: 'DESC' },
-      relations: ['booking', 'booking.guest'],
-    });
+    const page = options.page || 1;
+    const limit = options.limit || 10;
+    const skip = (page - 1) * limit;
+    qb.skip(skip).take(limit);
+
+    const [items, total] = await qb.getManyAndCount();
+    return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string): Promise<Invoice> {
-    const invoice = await this.invoiceRepository.findOne({
-      where: { id },
-      relations: ['booking', 'booking.guest'],
-    });
+    const invoice = await this.baseQuery()
+      .where('invoice.id = :id', { id })
+      .getOne();
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
   }
 
-  async createForBooking(bookingId: string): Promise<Invoice> {
-    const booking = await this.bookingRepository.findOneBy({ id: bookingId });
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    const invoice = this.invoiceRepository.create({
-      bookingId,
-      amount: Number(booking.totalPrice),
-      status: InvoiceStatus.DRAFT,
-      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    });
-    return this.invoiceRepository.save(invoice);
-  }
-
   async issue(id: string): Promise<Invoice> {
-    const invoice = await this.findById(id);
+    const invoice = await this.invoiceRepository.findOneBy({ id });
+    if (!invoice) throw new NotFoundException('Invoice not found');
     invoice.status = InvoiceStatus.ISSUED;
     return this.invoiceRepository.save(invoice);
   }
 
   async markPaid(id: string): Promise<Invoice> {
-    const invoice = await this.findById(id);
+    const invoice = await this.invoiceRepository.findOneBy({ id });
+    if (!invoice) throw new NotFoundException('Invoice not found');
     invoice.status = InvoiceStatus.PAID;
     return this.invoiceRepository.save(invoice);
   }
 
   async void(id: string): Promise<Invoice> {
-    const invoice = await this.findById(id);
+    const invoice = await this.invoiceRepository.findOneBy({ id });
+    if (!invoice) throw new NotFoundException('Invoice not found');
     invoice.status = InvoiceStatus.VOID;
     return this.invoiceRepository.save(invoice);
   }

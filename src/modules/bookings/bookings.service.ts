@@ -58,6 +58,7 @@ export class BookingsService {
     private auditLogRepository: Repository<AuditLog>,
     private pricingService: PricingService,
     @InjectQueue('hold-expiry') private holdExpiryQueue: Queue,
+    @InjectQueue('outbox-relay') private outboxRelayQueue: Queue,
   ) {}
 
   private schemaCache = new Map<string, string>();
@@ -213,7 +214,7 @@ export class BookingsService {
     };
   }
 
-  async createBooking(createDto: {
+  async createBooking(hotelId: string, createDto: {
     guestId: string;
     roomIds: string[];
     checkIn: string;
@@ -344,9 +345,10 @@ export class BookingsService {
 
       const outbox = queryRunner.manager.create(OutboxEvent, {
         type: 'BOOKING_CREATED',
-        payload: { bookingId: savedBooking.id, guestId: savedBooking.guestId },
+        payload: { bookingId: savedBooking.id, guestId: savedBooking.guestId, totalPrice: total, hotelId },
       });
       await queryRunner.manager.save(outbox);
+      const outboxEventId = outbox.id;
 
       if (createDto.userId) {
         const audit = queryRunner.manager.create(AuditLog, {
@@ -367,6 +369,17 @@ export class BookingsService {
         { bookingId: savedBooking.id },
         { delay: 15 * 60 * 1000 },
       );
+
+      console.log(`[BookingService] Enqueuing outbox-relay job for event ${outboxEventId}`);
+      try {
+        await this.outboxRelayQueue.add(
+          'outbox-relay',
+          { eventId: outboxEventId },
+        );
+        console.log(`[BookingService] outbox-relay job enqueued successfully`);
+      } catch (err) {
+        console.error(`[BookingService] Failed to enqueue outbox-relay job:`, err);
+      }
 
       return savedBooking;
     } catch (err) {

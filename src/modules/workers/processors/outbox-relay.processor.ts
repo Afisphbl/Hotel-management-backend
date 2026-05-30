@@ -1,12 +1,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, Repository, LessThan } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   OutboxEvent,
   OutboxStatus,
 } from '../../../database/entities/outbox-event.entity';
+import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
+import { Booking } from '../../../database/entities/booking.entity';
+import { Hotel } from '../../../database/entities/hotel.entity';
 import { NotificationService } from '../services/notification.service';
 
 export interface OutboxHandlers {
@@ -20,8 +23,15 @@ export class OutboxRelayProcessor extends WorkerHost {
   private handlers: OutboxHandlers;
 
   constructor(
+    @InjectDataSource() private dataSource: DataSource,
     @InjectRepository(OutboxEvent)
     private outboxRepository: Repository<OutboxEvent>,
+    @InjectRepository(Invoice)
+    private invoiceRepository: Repository<Invoice>,
+    @InjectRepository(Booking)
+    private bookingRepository: Repository<Booking>,
+    @InjectRepository(Hotel)
+    private hotelRepository: Repository<Hotel>,
     private notificationService: NotificationService,
   ) {
     super();
@@ -31,7 +41,42 @@ export class OutboxRelayProcessor extends WorkerHost {
   private registerHandlers(): void {
     this.handlers = {
       BOOKING_CREATED: async (payload) => {
-        this.logger.log(`Handling BOOKING_CREATED: ${payload.bookingId}`);
+        console.log(`[BOOKING_CREATED Handler] Starting for booking ${payload.bookingId}, totalPrice: ${payload.totalPrice}, hotelId: ${payload.hotelId}`);
+        try {
+          console.log(`[BOOKING_CREATED Handler] Checking for existing invoice, bookingId: ${payload.bookingId}`);
+          const existing = await this.invoiceRepository.findOneBy({ bookingId: payload.bookingId });
+          if (existing) {
+            console.log(`[BOOKING_CREATED Handler] Invoice already exists: ${existing.id}`);
+            this.logger.log(`Invoice already exists for booking ${payload.bookingId}`);
+            return;
+          }
+
+          const invoice = this.invoiceRepository.create({
+            bookingId: payload.bookingId,
+            amount: payload.totalPrice ?? 0,
+            status: InvoiceStatus.DRAFT,
+            dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          });
+
+          const hotel = await this.hotelRepository.findOneBy({ id: payload.hotelId });
+          const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+          console.log(`[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`);
+
+          const qr = this.dataSource.createQueryRunner();
+          await qr.connect();
+          try {
+            await qr.query(`SET search_path TO "${schema}", global, public`);
+            const saved = await qr.manager.save(invoice);
+            console.log(`[BOOKING_CREATED Handler] Invoice SAVED successfully, id: ${saved.id}, amount: ${saved.amount}`);
+            this.logger.log(`Invoice ${saved.id} created for booking ${payload.bookingId}`);
+          } finally {
+            await qr.release();
+          }
+        } catch (err) {
+          console.error(`[BOOKING_CREATED Handler] ERROR:`, err.message, err.stack);
+          this.logger.error(`Failed to create invoice for booking ${payload.bookingId}: ${err.message}`);
+          throw err;
+        }
       },
       BOOKING_CONFIRMED: async (payload) => {
         this.logger.log(`Handling BOOKING_CONFIRMED: ${payload.bookingId}`);
@@ -58,6 +103,7 @@ export class OutboxRelayProcessor extends WorkerHost {
 
   async process(job: Job<{ eventId?: string; batch?: boolean }>): Promise<any> {
     const { eventId } = job.data;
+    console.log(`[OutboxRelayProcessor] process() called, eventId: ${eventId}, jobId: ${job.id}`);
 
     if (eventId) {
       return this.processSingle(eventId);
@@ -67,11 +113,14 @@ export class OutboxRelayProcessor extends WorkerHost {
   }
 
   private async processSingle(eventId: string): Promise<void> {
+    console.log(`[OutboxRelayProcessor] processSingle() looking for event ${eventId}`);
     const event = await this.outboxRepository.findOneBy({ id: eventId });
     if (!event) {
+      console.log(`[OutboxRelayProcessor] Event ${eventId} NOT FOUND in database`);
       this.logger.warn(`Outbox event ${eventId} not found`);
       return;
     }
+    console.log(`[OutboxRelayProcessor] Found event ${eventId}, type: ${event.type}, status: ${event.status}`);
     await this.dispatch(event);
   }
 
@@ -107,6 +156,8 @@ export class OutboxRelayProcessor extends WorkerHost {
 
   private async dispatch(event: OutboxEvent): Promise<void> {
     const handler = this.handlers[event.type];
+    console.log(`[OutboxRelayProcessor] dispatch() for event ${event.id}, type: ${event.type}, hasHandler: ${!!handler}`);
+
     if (!handler) {
       this.logger.warn(`No handler registered for event type: ${event.type}`);
       event.status = OutboxStatus.PROCESSED;
@@ -117,10 +168,13 @@ export class OutboxRelayProcessor extends WorkerHost {
 
     try {
       await handler(event.payload);
+      console.log(`[OutboxRelayProcessor] Handler completed successfully for event ${event.id}`);
       event.status = OutboxStatus.PROCESSED;
       (event as any).error = null;
       await this.outboxRepository.save(event);
+      console.log(`[OutboxRelayProcessor] Event ${event.id} saved as PROCESSED`);
     } catch (err) {
+      console.error(`[OutboxRelayProcessor] Handler FAILED for event ${event.id}:`, err.message);
       event.attempts += 1;
       event.error = err.message;
 

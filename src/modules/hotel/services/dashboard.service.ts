@@ -11,6 +11,7 @@ import {
   Invoice,
   InvoiceStatus,
 } from '../../../database/entities/invoice.entity';
+import { LedgerEntry } from '../../../database/entities/ledger-entry.entity';
 import {
   Payment,
   PaymentStatus,
@@ -35,6 +36,8 @@ export class DashboardService {
     private staffRepository: Repository<Staff>,
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
+    @InjectRepository(LedgerEntry)
+    private ledgerRepository: Repository<LedgerEntry>,
   ) {}
 
   async getDashboard() {
@@ -193,9 +196,18 @@ export class DashboardService {
       resolvedTotalRooms > 0
         ? Math.round((occupiedRooms / resolvedTotalRooms) * 100)
         : 0;
-    const monthlyProfit = monthlyRevenue
-      ? Number(monthlyRevenue.revenue) * 0.7
-      : 0; // Assuming 30% profit margin
+
+    // Enhanced Profit Calculation using Ledger Entries
+    const monthProfitResult = await this.ledgerRepository
+      .createQueryBuilder('ledger')
+      .select('SUM(ledger.credit) - SUM(ledger.debit)', 'profit')
+      .where('ledger."entryDate" BETWEEN :start AND :end', {
+        start: monthStart,
+        end: monthEnd,
+      })
+      .getRawOne();
+    
+    const monthlyProfit = Number(monthProfitResult?.profit || 0);
 
     // Generate trend data for charts
     const occupancyTrend = await this.generateOccupancyTrend(monthStart, now);

@@ -43,6 +43,7 @@ import { Hotel } from '../../database/entities/hotel.entity';
     BullModule.registerQueue(
       { name: 'hold-expiry' },
       { name: 'booking-reminders' },
+      { name: 'outbox-relay' },
     ),
   ],
   controllers: [BookingsController],

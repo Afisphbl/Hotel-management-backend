@@ -1,14 +1,11 @@
 import {
   Entity,
   Column,
-  ManyToOne,
-  JoinColumn,
   Index,
   BeforeUpdate,
   AfterLoad,
 } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { Booking } from './booking.entity';
 
 export enum InvoiceStatus {
   DRAFT = 'draft',
@@ -36,10 +33,6 @@ export class Invoice extends BaseEntity {
 
   @Column()
   bookingId: string;
-
-  @ManyToOne(() => Booking)
-  @JoinColumn({ name: 'bookingId' })
-  booking: Booking;
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   amount: number;
