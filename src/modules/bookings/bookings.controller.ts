@@ -55,6 +55,15 @@ export class BookingsController {
     };
   }
 
+  @Post('calculate-price')
+  @HttpCode(HttpStatus.OK)
+  async calculatePrice(
+    @Body() dto: { roomIds: string[]; checkIn: string; checkOut: string },
+  ) {
+    const result = await this.bookingsService.calculatePricePreview(dto);
+    return { success: true, data: result };
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string) {
     const booking = await this.bookingsService.findById(id);

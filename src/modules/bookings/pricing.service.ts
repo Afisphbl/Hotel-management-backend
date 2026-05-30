@@ -1,134 +1,97 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
-import { RoomType } from '../../database/entities/room-type.entity';
-import { SeasonalRate } from '../../database/entities/seasonal-rate.entity';
-import {
-  Promotion,
-  DiscountType,
-} from '../../database/entities/promotion.entity';
-import { PriceOverride } from '../../database/entities/price-override.entity';
-import { RatePlan } from '../../database/entities/rate-plan.entity';
+import { Repository, DataSource } from 'typeorm';
+import { Hotel } from '../../database/entities/hotel.entity';
 
 @Injectable()
 export class PricingService {
   private readonly logger = new Logger(PricingService.name);
 
   constructor(
-    @InjectRepository(RoomType)
-    private roomTypeRepository: Repository<RoomType>,
-    @InjectRepository(SeasonalRate)
-    private seasonalRateRepository: Repository<SeasonalRate>,
-    @InjectRepository(Promotion)
-    private promotionRepository: Repository<Promotion>,
-    @InjectRepository(PriceOverride)
-    private priceOverrideRepository: Repository<PriceOverride>,
-    @InjectRepository(RatePlan)
-    private ratePlanRepository: Repository<RatePlan>,
+    @InjectRepository(Hotel)
+    private hotelRepository: Repository<Hotel>,
+    private dataSource: DataSource,
   ) {}
 
+  private schemaCache = new Map<string, string>();
+
+  private async getSchema(hotelId: string): Promise<string> {
+    if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
+    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+    this.schemaCache.set(hotelId, schema);
+    return schema;
+  }
+
   async calculatePrice(
+    hotelId: string,
     roomTypeId: string,
     date: Date,
-    overrides?: { promotionCode?: string },
+    opts?: { roomBasePrice?: number | null },
   ): Promise<number> {
-    // 1. Highest priority: manual price override for this room type + date
-    const override = await this.priceOverrideRepository.findOne({
-      where: { roomTypeId, date: this.toDateString(date) },
-    });
-    if (override) {
-      this.logger.debug(`PriceOverride found: ${override.price}`);
-      return Math.max(0, Number(override.price));
+    const s = await this.getSchema(hotelId);
+    const d = date.toISOString().split('T')[0];
+
+    // 1. Price override (highest priority)
+    const [ov] = await this.dataSource.query(
+      `SELECT price FROM "${s}"."price_overrides" WHERE "roomTypeId"=$1 AND date=$2 AND "deletedAt" IS NULL LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (ov) {
+      this.logger.debug(`PriceOverride found: ${ov.price}`);
+      return Math.max(0, Number(ov.price));
     }
 
-    // 2. Start with base price
-    const roomType = await this.roomTypeRepository.findOneBy({
-      id: roomTypeId,
-    });
-    if (!roomType) {
-      this.logger.warn(`RoomType ${roomTypeId} not found`);
-      return 0;
+    // 2. Base price
+    let price: number;
+    if (opts?.roomBasePrice != null) {
+      price = Number(opts.roomBasePrice);
+    } else {
+      const [rt] = await this.dataSource.query(
+        `SELECT "basePrice" FROM "${s}"."room_types" WHERE id=$1 AND "deletedAt" IS NULL LIMIT 1`,
+        [roomTypeId],
+      );
+      if (!rt) return 0;
+      price = Number(rt.basePrice);
     }
 
-    let price = Number(roomType.basePrice);
-
-    // 3. Apply RatePlan weekday/weekend adjustment
-    const ratePlan = await this.ratePlanRepository.findOne({
-      where: { roomTypeId, isActive: true },
-    });
-    if (ratePlan) {
-      const adjustment = this.isWeekend(date)
-        ? Number(ratePlan.weekendAdjustment)
-        : Number(ratePlan.weekdayAdjustment);
-      if (adjustment !== 0) {
-        price = price + price * (adjustment / 100);
-        this.logger.debug(`RatePlan adjustment: ${adjustment}% → ${price}`);
+    // 3. Rate plan weekday/weekend adjustment
+    const [rp] = await this.dataSource.query(
+      `SELECT "weekdayAdjustment","weekendAdjustment" FROM "${s}"."rate_plans" WHERE "roomTypeId"=$1 AND "isActive"=true AND "deletedAt" IS NULL LIMIT 1`,
+      [roomTypeId],
+    );
+    if (rp) {
+      const isWeekend = [0, 6].includes(date.getUTCDay());
+      const adj = isWeekend ? Number(rp.weekendAdjustment) : Number(rp.weekdayAdjustment);
+      if (adj !== 0) {
+        price += price * (adj / 100);
+        this.logger.debug(`RatePlan adjustment: ${adj}% → ${price}`);
       }
     }
 
-    // 4. Apply SeasonalRate (replaces or multiplies the price)
-    const seasonal = await this.seasonalRateRepository.findOne({
-      where: {
-        roomTypeId,
-        isActive: true,
-        startDate: LessThanOrEqual(this.toDateString(date)),
-        endDate: MoreThanOrEqual(this.toDateString(date)),
-      },
-      order: { priority: 'DESC' },
-    });
-    if (seasonal) {
-      if (seasonal.fixedPrice) {
-        price = Number(seasonal.fixedPrice);
-      } else if (seasonal.multiplier) {
-        price = price * Number(seasonal.multiplier);
-      }
-      this.logger.debug(`SeasonalRate "${seasonal.name}" applied → ${price}`);
+    // 4. Seasonal rate
+    const [sr] = await this.dataSource.query(
+      `SELECT "fixedPrice", multiplier, name FROM "${s}"."seasonal_rates" WHERE "roomTypeId"=$1 AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL ORDER BY priority DESC LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (sr) {
+      if (sr.fixedPrice) price = Number(sr.fixedPrice);
+      else if (sr.multiplier) price *= Number(sr.multiplier);
+      this.logger.debug(`SeasonalRate "${sr.name}" applied → ${price}`);
     }
 
-    // 5. Apply Promotion discount
-    const promoCode = overrides?.promotionCode;
-    const promo = promoCode
-      ? await this.promotionRepository.findOne({
-          where: {
-            code: promoCode,
-            isActive: true,
-            startDate: LessThanOrEqual(this.toDateString(date)),
-            endDate: MoreThanOrEqual(this.toDateString(date)),
-          },
-        })
-      : await this.promotionRepository.findOne({
-          where: {
-            roomTypeId: IsNull(),
-            isActive: true,
-            startDate: LessThanOrEqual(this.toDateString(date)),
-            endDate: MoreThanOrEqual(this.toDateString(date)),
-          },
-          order: { createdAt: 'DESC' },
-        });
-
-    if (promo) {
-      if (promo.discountType === DiscountType.PERCENTAGE) {
-        price = price - price * (Number(promo.discountValue) / 100);
-        this.logger.debug(
-          `Promotion "${promo.name}" ${promo.discountValue}% off → ${price}`,
-        );
-      } else {
-        price = price - Number(promo.discountValue);
-        this.logger.debug(
-          `Promotion "${promo.name}" ETB ${promo.discountValue} off → ${price}`,
-        );
-      }
+    // 5. Promotion
+    const [pr] = await this.dataSource.query(
+      `SELECT name, "discountType", "discountValue" FROM "${s}"."promotions" WHERE ("roomTypeId"=$1 OR "roomTypeId" IS NULL) AND "isActive"=true AND "startDate"<=$2 AND "endDate">=$2 AND "deletedAt" IS NULL ORDER BY "roomTypeId" DESC NULLS LAST, "createdAt" DESC LIMIT 1`,
+      [roomTypeId, d],
+    );
+    if (pr) {
+      price = pr.discountType === 'percentage'
+        ? price - price * (Number(pr.discountValue) / 100)
+        : price - Number(pr.discountValue);
+      this.logger.debug(`Promotion "${pr.name}" applied → ${price}`);
     }
 
     return Math.max(0, Math.round(price * 100) / 100);
-  }
-
-  private toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  private isWeekend(date: Date): boolean {
-    const dow = date.getUTCDay();
-    return dow === 0 || dow === 6;
   }
 }

@@ -57,6 +57,51 @@ export class BookingsService {
     @InjectQueue('hold-expiry') private holdExpiryQueue: Queue,
   ) {}
 
+  async calculatePricePreview(dto: {
+    roomIds: string[];
+    checkIn: string;
+    checkOut: string;
+  }): Promise<{
+    total: number;
+    nights: number;
+    rooms: { roomId: string; roomNumber: string; total: number; nights: { date: string; price: number }[] }[];
+  }> {
+    const rooms = await this.roomRepository.find({
+      where: dto.roomIds.map((id) => ({ id })),
+      relations: ['roomType'],
+    });
+    if (rooms.length !== dto.roomIds.length) {
+      throw new NotFoundException('One or more rooms not found');
+    }
+
+    const dates = this.getDatesBetween(dto.checkIn, dto.checkOut);
+    let total = 0;
+    const roomBreakdowns = [];
+
+    for (const room of rooms) {
+      const nightPrices: { date: string; price: number }[] = [];
+      for (const date of dates) {
+        const price = await this.pricingService.calculatePrice(
+          room.hotelId,
+          room.roomTypeId,
+          new Date(date),
+          { roomBasePrice: room.basePrice },
+        );
+        total += price;
+        nightPrices.push({ date, price });
+      }
+      roomBreakdowns.push({
+        roomId: room.id,
+        roomNumber: room.roomNumber,
+        roomType: room.roomType ? { id: room.roomType.id, name: room.roomType.name } : null,
+        total: nightPrices.reduce((s, n) => s + n.price, 0),
+        nights: nightPrices,
+      });
+    }
+
+    return { total, nights: dates.length, rooms: roomBreakdowns };
+  }
+
   async findAll(query: {
     page?: number;
     limit?: number;
@@ -71,6 +116,7 @@ export class BookingsService {
       .leftJoinAndSelect('booking.guest', 'guest')
       .leftJoinAndSelect('booking.bookingRooms', 'bookingRooms')
       .leftJoinAndSelect('bookingRooms.room', 'room')
+      .leftJoinAndSelect('room.roomType', 'roomType')
       .orderBy('booking.createdAt', 'DESC');
 
     if (query.status)
@@ -94,7 +140,7 @@ export class BookingsService {
   async findById(id: string): Promise<Booking> {
     const booking = await this.bookingRepository.findOne({
       where: { id },
-      relations: ['guest', 'bookingRooms', 'bookingRooms.room'],
+      relations: ['guest', 'bookingRooms', 'bookingRooms.room', 'bookingRooms.room.roomType'],
     });
     if (!booking) throw new NotFoundException('Booking not found');
     return booking;
@@ -171,8 +217,10 @@ export class BookingsService {
 
         for (const date of dates) {
           const price = await this.pricingService.calculatePrice(
+            room.hotelId,
             room.roomTypeId,
             new Date(date),
+            { roomBasePrice: room.basePrice },
           );
           total += price;
 

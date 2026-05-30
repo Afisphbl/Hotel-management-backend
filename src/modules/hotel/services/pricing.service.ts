@@ -208,6 +208,26 @@ export class PricingService {
     return row;
   }
 
+  async updateOverride(hotelId: string, id: string, data: any) {
+    const s = await this.getSchema(hotelId);
+    const fields: string[] = [];
+    const params: any[] = [];
+    const allowed = ['roomTypeId', 'date', 'price', 'reason'];
+    for (const k of allowed) {
+      if (data[k] !== undefined) {
+        params.push(data[k]);
+        fields.push(`"${k}" = $${params.length}`);
+      }
+    }
+    if (!fields.length) return;
+    params.push(id);
+    const [row] = await this.dataSource.query(
+      `UPDATE "${s}"."price_overrides" SET ${fields.join(', ')}, "updatedAt" = NOW() WHERE id = $${params.length} AND "deletedAt" IS NULL RETURNING *`,
+      params,
+    );
+    return row;
+  }
+
   async deleteOverride(hotelId: string, id: string) {
     const s = await this.getSchema(hotelId);
     await this.dataSource.query(

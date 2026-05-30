@@ -47,6 +47,17 @@ export class PricingController {
     );
   }
 
+  @Patch('overrides/:id')
+  async updateOverride(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    return success(
+      await this.pricingService.updateOverride(this.hotelId(req), id, data),
+    );
+  }
+
   @Delete('overrides/:id')
   async deleteOverride(@Request() req: any, @Param('id') id: string) {
     await this.pricingService.deleteOverride(this.hotelId(req), id);
