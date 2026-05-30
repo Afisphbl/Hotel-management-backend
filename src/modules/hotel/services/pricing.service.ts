@@ -26,6 +26,7 @@ export class PricingService {
     hotelId: string,
     roomTypeId: string,
     date: Date,
+    roomBasePrice?: number | null,
   ): Promise<{ price: number; reason: string | null; type: string | null; factors: string[] }> {
     const s = await this.getSchema(hotelId);
     const d = date.toISOString().split('T')[0];
@@ -41,6 +42,8 @@ export class PricingService {
     if (ov) {
       price = Number(ov.price);
       factors.push('Override');
+    } else if (roomBasePrice != null) {
+      price = Number(roomBasePrice);
     } else {
       const [rt] = await this.dataSource.query(
         `SELECT "basePrice" FROM "${s}"."room_types" WHERE id=$1 AND "deletedAt" IS NULL`,

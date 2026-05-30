@@ -41,10 +41,16 @@ export class RoomsController {
       status?: RoomStatus;
       floor?: string;
       roomTypeId?: string;
+      dateFrom?: string;
+      dateTo?: string;
     },
   ) {
     const hotelId = req.user.hotel_id;
-    const result = await this.roomsService.findAll(hotelId, query);
+    const result = await this.roomsService.findAll(hotelId, {
+      ...query,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
@@ -70,6 +76,17 @@ export class RoomsController {
     const hotelId = req.user.hotel_id;
     const summary = await this.roomsService.getSummary(hotelId);
     return success(summary);
+  }
+
+  @Get('booked-dates')
+  async getBookedDates(
+    @Request() req: any,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    const hotelId = req.user.hotel_id;
+    const dates = await this.roomsService.getFullyBookedDates(hotelId, startDate, endDate);
+    return success(dates);
   }
 
   @Get(':id')

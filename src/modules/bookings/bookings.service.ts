@@ -62,6 +62,7 @@ export class BookingsService {
     limit?: number;
     status?: BookingStatus;
     guestId?: string;
+    search?: string;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResult<Booking>> {
@@ -80,6 +81,12 @@ export class BookingsService {
       qb.andWhere('booking.checkIn >= :dateFrom', { dateFrom: query.dateFrom });
     if (query.dateTo)
       qb.andWhere('booking.checkOut <= :dateTo', { dateTo: query.dateTo });
+    if (query.search) {
+      qb.andWhere(
+        '(LOWER(guest.firstName) LIKE LOWER(:search) OR LOWER(guest.lastName) LIKE LOWER(:search) OR LOWER(guest.email) LIKE LOWER(:search) OR LOWER(booking.id) LIKE LOWER(:search))',
+        { search: `%${query.search}%` },
+      );
+    }
 
     return this.paginateQuery(qb, query.page, query.limit);
   }
@@ -99,6 +106,8 @@ export class BookingsService {
     checkIn: string;
     checkOut: string;
     idempotencyKey: string;
+    source?: string;
+    notes?: string;
     metadata?: Record<string, unknown>;
     userId?: string;
   }): Promise<Booking> {
@@ -188,6 +197,8 @@ export class BookingsService {
         status: BookingStatus.HOLD,
         totalPrice: total,
         idempotencyKey: createDto.idempotencyKey,
+        source: createDto.source || 'direct',
+        notes: createDto.notes || undefined,
         priceSnapshot: {
           rooms: bookingRoomsData.map((br) => ({
             roomTypeId: br.room.roomTypeId,
@@ -365,7 +376,7 @@ export class BookingsService {
     return this.transitionStatus(id, BookingStatus.CHECKED_OUT, userId);
   }
 
-  private async transitionStatus(
+  async transitionStatus(
     id: string,
     newStatus: BookingStatus,
     userId?: string,

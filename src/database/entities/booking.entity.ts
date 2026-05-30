@@ -44,6 +44,12 @@ export class Booking extends BaseEntity {
   @Column({ type: 'jsonb', nullable: true })
   priceSnapshot: any;
 
+  @Column({ length: 50, nullable: true })
+  source?: string;
+
+  @Column({ type: 'text', nullable: true })
+  notes?: string;
+
   @OneToMany(() => BookingRoom, (br) => br.booking)
   bookingRooms: BookingRoom[];
 }

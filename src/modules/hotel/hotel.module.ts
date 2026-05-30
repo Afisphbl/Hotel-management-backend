@@ -36,7 +36,7 @@ import { HotelOwnerStaffService } from './services/hotel-owner-staff.service';
 import { RoomsController } from './controllers/rooms.controller';
 import { RoomTypesController } from './controllers/room-types.controller';
 import { GuestsController } from './controllers/guests.controller';
-import { BookingsController } from './controllers/bookings.controller';
+
 import { HousekeepingController } from './controllers/housekeeping.controller';
 import { MaintenanceController } from './controllers/maintenance.controller';
 import { StaffController } from './controllers/staff.controller';
@@ -51,7 +51,6 @@ import { TenantQuotaService } from '../../common/services/tenant-quota.service';
 import { RoomsService } from './services/rooms.service';
 import { RoomTypesService } from './services/room-types.service';
 import { GuestsService } from './services/guests.service';
-import { BookingsService } from './services/bookings.service';
 import { PricingService } from './services/pricing.service';
 import { HousekeepingService } from './services/housekeeping.service';
 import { MaintenanceService } from './services/maintenance.service';
@@ -91,7 +90,6 @@ const controllers = [
   RoomsController,
   RoomTypesController,
   GuestsController,
-  BookingsController,
   HousekeepingController,
   MaintenanceController,
   StaffController,
@@ -111,7 +109,6 @@ const services = [
   RoomsService,
   RoomTypesService,
   GuestsService,
-  BookingsService,
   PricingService,
   HousekeepingService,
   MaintenanceService,
@@ -134,6 +131,6 @@ const services = [
   ],
   controllers,
   providers: [...services, PlanLimitGuard, TenantQuotaService],
-  exports: [BookingsService, PricingService],
+  exports: [PricingService],
 })
 export class HotelModule {}

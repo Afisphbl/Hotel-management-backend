@@ -9,6 +9,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Patch,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -38,6 +39,7 @@ export class BookingsController {
       limit: query.limit,
       status: query.status as BookingStatus,
       guestId: query.guestId,
+      search: query.search,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
     });
@@ -68,6 +70,8 @@ export class BookingsController {
       checkIn: dto.checkIn,
       checkOut: dto.checkOut,
       idempotencyKey: dto.idempotencyKey,
+      source: dto.source,
+      notes: dto.notes,
       metadata: dto.metadata,
       userId: req.user.userId,
     });
@@ -111,6 +115,20 @@ export class BookingsController {
   @Post(':id/checkout')
   async checkout(@Param('id') id: string, @Request() req: any) {
     const booking = await this.bookingsService.checkout(id, req.user.userId);
+    return { success: true, data: booking };
+  }
+
+  @Patch(':id/status')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: { status: BookingStatus },
+    @Request() req: any,
+  ) {
+    const booking = await this.bookingsService.transitionStatus(
+      id,
+      dto.status,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 }

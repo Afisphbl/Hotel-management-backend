@@ -30,6 +30,14 @@ export class CreateBookingDto {
   idempotencyKey: string;
 
   @IsOptional()
+  @IsString()
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
   metadata?: Record<string, unknown>;
 }
 
@@ -59,6 +67,10 @@ export class QueryBookingsDto {
   @IsOptional()
   @IsUUID()
   guestId?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @IsOptional()
   @IsDateString()

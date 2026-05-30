@@ -63,6 +63,8 @@ export class RoomsService {
       status?: RoomStatus;
       floor?: string;
       roomTypeId?: string;
+      dateFrom?: string;
+      dateTo?: string;
     },
   ): Promise<PaginatedResult<Room>> {
     const s = await this.getSchema(hotelId);
@@ -86,6 +88,14 @@ export class RoomsService {
       conditions.push(`"r"."roomTypeId" = $${params.length}`);
     }
 
+    if (options.dateFrom && options.dateTo) {
+      const dates = this.getDatesBetween(options.dateFrom, options.dateTo);
+      conditions.push(
+        `"r"."id" NOT IN (SELECT rn."roomId" FROM "${s}"."room_nights" rn WHERE rn.date = ANY($${params.length + 1}::date[]) AND rn.status IN ('booked', 'held'))`,
+      );
+      params.push(dates);
+    }
+
     const where = conditions.join(' AND ');
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
@@ -103,28 +113,39 @@ export class RoomsService {
     ]);
 
     // Enhance rows with dynamic pricing info
-    const today = new Date();
-    const roomTypePriceCache = new Map<string, any>();
+    const pricingDate = options.dateFrom ? new Date(options.dateFrom) : new Date();
 
     const enhancedRows = await Promise.all(
       rows.map(async (row: any) => {
-        if (!row.roomTypeId) return row;
-
-        if (!roomTypePriceCache.has(row.roomTypeId)) {
-          const info = await this.pricingService.getEffectivePriceInfo(
-            hotelId,
-            row.roomTypeId,
-            today,
-          );
-          roomTypePriceCache.set(row.roomTypeId, info);
+        if (!row.roomTypeId) {
+          // No room type — use room's own basePrice if set
+          return {
+            ...row,
+            effectivePrice: row.basePrice != null ? Number(row.basePrice) : null,
+            pricingReason: null,
+            pricingType: null,
+          };
         }
 
-        const pricing = roomTypePriceCache.get(row.roomTypeId);
+        const info = await this.pricingService.getEffectivePriceInfo(
+          hotelId,
+          row.roomTypeId,
+          pricingDate,
+          row.basePrice,
+        );
+
+        // If pricing service returned 0 with no reason (room type not found),
+        // fall back to room's basePrice or null
+        const effectivePrice =
+          info.price === 0 && !info.reason && row.basePrice != null
+            ? Number(row.basePrice)
+            : info.price;
+
         return {
           ...row,
-          effectivePrice: pricing.price,
-          pricingReason: pricing.reason,
-          pricingType: pricing.type,
+          effectivePrice,
+          pricingReason: info.reason || null,
+          pricingType: info.type,
         };
       }),
     );
@@ -299,6 +320,34 @@ export class RoomsService {
     return { ...result, plan, roomLimit };
   }
 
+  async getFullyBookedDates(
+    hotelId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<string[]> {
+    const s = await this.getSchema(hotelId);
+    const dates = this.getDatesBetween(startDate, endDate);
+    if (!dates.length) return [];
+
+    // Total bookable rooms (available or occupied, not maintenance/out-of-order)
+    const [{ count: totalRooms }] = await this.dataSource.query(
+      `SELECT COUNT(*)::int AS count FROM "${s}"."rooms" WHERE "deletedAt" IS NULL AND status != 'maintenance'`,
+    );
+    if (!totalRooms) return [];
+
+    const bookedNights: { date: string; count: number }[] = await this.dataSource.query(
+      `SELECT date, COUNT(DISTINCT "roomId")::int AS count
+       FROM "${s}"."room_nights"
+WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
+        GROUP BY date`,
+      [dates],
+    );
+
+    return bookedNights
+      .filter(n => n.count >= totalRooms)
+      .map(n => n.date);
+  }
+
   async getAvailability(
     hotelId: string,
     roomTypeId?: string,
@@ -332,7 +381,7 @@ export class RoomsService {
 
     const roomIds = rooms.map((r: Room) => r.id);
     const bookedNights = await this.dataSource.query(
-      `SELECT "roomId" FROM "${s}"."room_nights" WHERE date = ANY($1) AND status = 'booked' AND "roomId" = ANY($2)`,
+      `SELECT "roomId" FROM "${s}"."room_nights" WHERE date = ANY($1::date[]) AND status IN ('booked', 'held') AND "roomId" = ANY($2)`,
       [dates, roomIds],
     );
     const bookedRoomIds = new Set(bookedNights.map((n: any) => n.roomId));

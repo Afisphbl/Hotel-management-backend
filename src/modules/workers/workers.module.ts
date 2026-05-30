@@ -16,6 +16,7 @@ import { NotificationProcessor } from './processors/notification.processor';
 import { NotificationService } from './services/notification.service';
 import { PdfGeneratorService } from './services/pdf-generator.service';
 import { AnalyticsService } from './services/analytics.service';
+import { NotificationsController } from './controllers/notifications.controller';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AnalyticsService } from './services/analytics.service';
       { name: 'notifications' },
     ),
   ],
+  controllers: [NotificationsController],
   providers: [
     OutboxRelayProcessor,
     InvoicePdfProcessor,

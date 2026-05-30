@@ -47,6 +47,10 @@ export class GuestsService {
   }
 
   async create(data: Partial<Guest>): Promise<Guest> {
+    if (data.email) {
+      const existing = await this.findByEmail(data.email);
+      if (existing) return existing;
+    }
     return this.guestRepository.save(this.guestRepository.create(data));
   }
 
