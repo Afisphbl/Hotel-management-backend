@@ -237,6 +237,11 @@ export class AuthService {
         });
         roleName = role?.name ?? 'USER';
         permissions = await this.getHierarchicalPermissions(access.roleId);
+
+        const adminRoles = ['HOTEL_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN'];
+        if (adminRoles.includes(roleName)) {
+          dashboardRoute = '/hotel/admin/dashboard';
+        }
       }
     } else {
       // PLATFORM SCOPE: Check if user has HOTEL_OWNER access to any hotel
@@ -277,7 +282,10 @@ export class AuthService {
             hotelRole?.name ??
             userWithRole?.role?.name ??
             (user.scope === UserScope.PLATFORM ? 'PLATFORM_USER' : 'USER');
-          dashboardRoute = '/hotel/dashboard';
+          const adminRoles = ['HOTEL_MANAGER', 'HOTEL_ADMIN', 'SUPER_ADMIN'];
+          dashboardRoute = adminRoles.includes(roleName)
+            ? '/hotel/admin/dashboard'
+            : '/hotel/dashboard';
           sessionScope = UserScope.HOTEL;
           sessionHotelId = sessionHotelId ?? hotelAccess.hotelId;
           permissions = await this.getHierarchicalPermissions(
@@ -516,6 +524,36 @@ export class AuthService {
     });
 
     return permissions.map((permission) => permission.slug);
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password'],
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) throw new UnauthorizedException('Current password is incorrect');
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.update(userId, { password: hashed });
+  }
+
+  async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string },
+  ): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (data.firstName !== undefined) user.firstName = data.firstName;
+    if (data.lastName !== undefined) user.lastName = data.lastName;
+    await this.userRepository.save(user);
   }
 
   private async createAuditLog(data: {

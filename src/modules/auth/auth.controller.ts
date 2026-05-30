@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Patch,
   Body,
   UnauthorizedException,
   HttpCode,
@@ -194,5 +195,31 @@ export class AuthController {
       await this.authService.revokeSupportAccess(req.user.supportAccessId);
     }
     return result;
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() body: { currentPassword: string; newPassword: string },
+    @Request() req: any,
+  ) {
+    await this.authService.changePassword(
+      req.user.userId,
+      body.currentPassword,
+      body.newPassword,
+    );
+    return { success: true };
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @Body() body: { firstName?: string; lastName?: string },
+    @Request() req: any,
+  ) {
+    await this.authService.updateProfile(req.user.userId, body);
+    return { success: true };
   }
 }
