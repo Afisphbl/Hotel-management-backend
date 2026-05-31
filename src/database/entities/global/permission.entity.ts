@@ -7,7 +7,7 @@ import {
   DeleteDateColumn,
   OneToMany,
 } from 'typeorm';
-import { RolePermission } from './role-permission.entity';
+import { RolePermission } from '../role-permission.entity';
 
 @Entity({ name: 'permissions', schema: 'global' })
 export class Permission {

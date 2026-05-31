@@ -1,6 +1,6 @@
 export * from './role.entity';
 export * from './permission.entity';
-export * from './role-permission.entity';
+export { RolePermission } from '../role-permission.entity';
 export * from './platform-user.entity';
 export * from './hotel-user-access.entity';
 export * from './audit-log.entity';
