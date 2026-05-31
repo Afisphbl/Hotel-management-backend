@@ -29,6 +29,12 @@ import { success, paginated } from '../common/response.interceptor';
 export class MaintenanceController {
   constructor(private maintenanceService: MaintenanceService) {}
 
+  @Get('stats')
+  async getStats() {
+    const stats = await this.maintenanceService.getStats();
+    return success(stats);
+  }
+
   @Get()
   async findAll(
     @Query()

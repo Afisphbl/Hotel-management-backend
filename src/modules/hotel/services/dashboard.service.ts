@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThan, LessThan } from 'typeorm';
+import { Repository, Between, MoreThan, LessThan, In } from 'typeorm';
 import {
   Booking,
   BookingStatus,
@@ -18,6 +18,7 @@ import {
 } from '../../../database/entities/payment.entity';
 import { Staff, StaffStatus } from '../../../database/entities/staff.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
+import { Refund } from '../../../database/entities/refund.entity';
 
 @Injectable()
 export class DashboardService {
@@ -38,6 +39,8 @@ export class DashboardService {
     private hotelRepository: Repository<Hotel>,
     @InjectRepository(LedgerEntry)
     private ledgerRepository: Repository<LedgerEntry>,
+    @InjectRepository(Refund)
+    private refundRepository: Repository<Refund>,
   ) {}
 
   async getDashboard() {
@@ -201,6 +204,8 @@ export class DashboardService {
     const monthProfitResult = await this.ledgerRepository
       .createQueryBuilder('ledger')
       .select('SUM(ledger.credit) - SUM(ledger.debit)', 'profit')
+      .addSelect('SUM(ledger.debit)', 'expenses')
+      .addSelect('SUM(ledger.credit)', 'income')
       .where('ledger."entryDate" BETWEEN :start AND :end', {
         start: monthStart,
         end: monthEnd,
@@ -208,11 +213,37 @@ export class DashboardService {
       .getRawOne();
     
     const monthlyProfit = Number(monthProfitResult?.profit || 0);
+    const monthlyExpenses = Number(monthProfitResult?.expenses || 0);
 
     // Generate trend data for charts
-    const occupancyTrend = await this.generateOccupancyTrend(monthStart, now);
-    const revenueTrend = await this.generateRevenueTrend(monthStart, now);
-    const bookingTrend = await this.generateBookingTrend(monthStart, now);
+    const [occupancyTrend, revenueTrend, bookingTrend, expenseTrend, expenseByAccount, recentExpenses] = await Promise.all([
+      this.generateOccupancyTrend(monthStart, now),
+      this.generateRevenueTrend(monthStart, now),
+      this.generateBookingTrend(monthStart, now),
+      this.ledgerRepository
+        .createQueryBuilder('ledger')
+        .select(`TO_CHAR(ledger."entryDate", 'YYYY-MM-DD')`, 'date')
+        .addSelect('SUM(ledger.debit)', 'expenses')
+        .where('ledger."entryDate" BETWEEN :start AND :end', { start: monthStart, end: now })
+        .andWhere('ledger.debit > 0')
+        .groupBy('date')
+        .orderBy('date', 'ASC')
+        .getRawMany(),
+      this.ledgerRepository
+        .createQueryBuilder('ledger')
+        .select('ledger.accountId', 'accountId')
+        .addSelect('SUM(ledger.debit)', 'total')
+        .where('ledger."entryDate" BETWEEN :start AND :end', { start: monthStart, end: now })
+        .andWhere('ledger.debit > 0')
+        .groupBy('ledger.accountId')
+        .orderBy('SUM(ledger.debit)', 'DESC')
+        .getRawMany(),
+      this.ledgerRepository.find({
+        where: { debit: MoreThan(0) },
+        order: { entryDate: 'DESC' },
+        take: 5,
+      }),
+    ]);
 
     // Recent bookings for activity feed
     const recentBookings = await this.bookingRepository.find({
@@ -246,6 +277,50 @@ export class DashboardService {
       yearlyRevenue: Number(yearlyRevenue?.revenue || 0),
       totalRevenue: Number(totalRevenue?.revenue || 0),
       monthlyProfit,
+      monthlyExpenses,
+      expenseTrend: expenseTrend.map(r => ({
+        date: r.date,
+        expenses: Number(r.expenses),
+      })),
+      expenseByAccount: expenseByAccount.map(r => ({
+        accountId: r.accountId,
+        total: Number(r.total),
+      })),
+      recentExpenses: await (async () => {
+        const refundEntries = recentExpenses.filter(e => e.referenceType === 'REFUND');
+        const refundIds = refundEntries.map(e => e.referenceId);
+        const refundMap = new Map<string, Refund>();
+        if (refundIds.length > 0) {
+          const refunds = await this.refundRepository.find({
+            where: { id: In(refundIds) },
+            relations: ['payment', 'invoice', 'booking', 'booking.guest'],
+          });
+          for (const r of refunds) refundMap.set(r.id, r);
+        }
+        return recentExpenses.map(e => {
+          let display = e.description;
+          if (e.referenceType === 'REFUND') {
+            const refund = refundMap.get(e.referenceId);
+            if (refund) {
+              const guestName = refund.booking?.guest
+                ? `${refund.booking.guest.firstName} ${refund.booking.guest.lastName}`
+                : null;
+              const invoiceLabel = refund.invoice?.invoiceNumber
+                ? `Invoice ${refund.invoice.invoiceNumber}`
+                : null;
+              const label = guestName || invoiceLabel || `payment ${refund.paymentId.slice(0, 8)}...`;
+              display = `Refund (${refund.reason})${label ? ` - ${label}` : ''}`;
+            }
+          }
+          return {
+            id: e.id,
+            accountId: e.accountId,
+            amount: Number(e.debit),
+            description: display,
+            entryDate: e.entryDate,
+          };
+        });
+      })(),
       pendingInvoices,
       overdueInvoices,
 
