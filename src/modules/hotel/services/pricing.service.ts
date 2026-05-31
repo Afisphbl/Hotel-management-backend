@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { validateSchemaName } from '../../../common/utils/security.utils';
 import { Hotel } from '../../../database/entities/hotel.entity';
 
 @Injectable()
@@ -17,7 +18,7 @@ export class PricingService {
     });
     if (!hotel?.schemaName)
       throw new NotFoundException('Hotel schema not found');
-    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+    return validateSchemaName(hotel.schemaName);
   }
 
   // ─── Calculate Price with Details ──────────────────────────────────────────

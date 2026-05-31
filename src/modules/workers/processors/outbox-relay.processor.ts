@@ -3,6 +3,7 @@ import { Job } from 'bullmq';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, Repository, LessThan } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
+import { validateSchemaName } from '../../../common/utils/security.utils';
 import {
   OutboxEvent,
   OutboxStatus,
@@ -61,7 +62,7 @@ export class OutboxRelayProcessor extends WorkerHost {
           });
 
           const hotel = await this.hotelRepository.findOneBy({ id: payload.hotelId });
-          const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+          const schema = hotel?.schemaName ? validateSchemaName(hotel.schemaName) : 'public';
           console.log(`[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`);
 
           const qr = this.dataSource.createQueryRunner();

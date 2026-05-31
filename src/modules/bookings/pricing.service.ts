@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { validateSchemaName } from '../../common/utils/security.utils';
 import { Hotel } from '../../database/entities/hotel.entity';
 
 @Injectable()
@@ -18,7 +19,7 @@ export class PricingService {
   private async getSchema(hotelId: string): Promise<string> {
     if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
     const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
-    const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+    const schema = hotel?.schemaName ? validateSchemaName(hotel.schemaName) : 'public';
     this.schemaCache.set(hotelId, schema);
     return schema;
   }

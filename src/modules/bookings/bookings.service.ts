@@ -12,6 +12,7 @@ import {
   ObjectLiteral,
   In,
 } from 'typeorm';
+import { validateSchemaName } from '../../common/utils/security.utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Booking, BookingStatus } from '../../database/entities/booking.entity';
@@ -68,7 +69,7 @@ export class BookingsService {
   private async getSchema(hotelId: string): Promise<string> {
     if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
     const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
-    const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+    const schema = hotel?.schemaName ? validateSchemaName(hotel.schemaName) : 'public';
     this.schemaCache.set(hotelId, schema);
     return schema;
   }
