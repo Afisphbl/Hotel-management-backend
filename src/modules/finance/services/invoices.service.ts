@@ -8,7 +8,9 @@ import {
 import {
   Payment,
   PaymentStatus,
+  PaymentMethod,
 } from '../../../database/entities/payment.entity';
+import { Refund } from '../../../database/entities/refund.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Guest } from '../../../database/entities/guest.entity';
 import {
@@ -27,6 +29,8 @@ export class InvoicesService {
     private paymentRepository: Repository<Payment>,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
+    @InjectRepository(Refund)
+    private refundRepository: Repository<Refund>,
     @InjectRepository(TaxRule)
     private taxRuleRepository: Repository<TaxRule>,
     @InjectRepository(OutboxEvent)
@@ -161,6 +165,31 @@ export class InvoicesService {
     }
     if (pendingPayments.length > 0) {
       await this.paymentRepository.save(pendingPayments);
+    }
+
+    const totalRefundedResult = await this.refundRepository
+      .createQueryBuilder('refund')
+      .where('refund.invoiceId = :invoiceId', { invoiceId: id })
+      .select('COALESCE(SUM(refund.amount), 0)', 'total')
+      .getRawOne();
+
+    const totalRefunded = Number(totalRefundedResult?.total || 0);
+
+    if (totalRefunded > 0) {
+      const newPayment = this.paymentRepository.create({
+        invoiceId: id,
+        bookingId: invoice.bookingId,
+        amount: totalRefunded,
+        fee: 0,
+        netAmount: totalRefunded,
+        currency: invoice.currency,
+        method: PaymentMethod.CASH,
+        status: PaymentStatus.COMPLETED,
+        paidAt: new Date(),
+        transactionId: `REFUND-REVERSAL-${Date.now()}`,
+        description: `Auto-payment for refunded amount on invoice ${invoice.invoiceNumber}`,
+      });
+      await this.paymentRepository.save(newPayment);
     }
 
     return saved;

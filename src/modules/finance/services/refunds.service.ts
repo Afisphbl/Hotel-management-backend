@@ -125,7 +125,16 @@ export class RefundsService {
       });
       const saved = await queryRunner.manager.save(refund);
 
-      // 3. Create ledger entry
+      // 3. Update payment status
+      const totalRefunded = refundedSoFar + dto.amount;
+      if (totalRefunded >= Number(payment.amount)) {
+        payment.status = PaymentStatus.REFUNDED;
+      } else {
+        payment.status = PaymentStatus.PARTIALLY_REFUNDED;
+      }
+      await queryRunner.manager.save(payment);
+
+      // 4. Create ledger entry
       const ledger = queryRunner.manager.create(LedgerEntry, {
         accountId: 'ACCOUNTS_RECEIVABLE',
         debit: dto.amount,
@@ -138,7 +147,7 @@ export class RefundsService {
       });
       await queryRunner.manager.save(ledger);
 
-      // 4. Revert invoice to ISSUED if it was PAID (bypass entity immutability hook)
+      // 5. Revert invoice to ISSUED if it was PAID (bypass entity immutability hook)
       if (invoiceId) {
         const invoice = await queryRunner.manager.findOne(Invoice, {
           where: { id: invoiceId },
@@ -150,7 +159,7 @@ export class RefundsService {
         }
       }
 
-      // 5. Create outbox event
+      // 6. Create outbox event
       await queryRunner.manager.save(
         queryRunner.manager.create(OutboxEvent, {
           type: 'REFUND_PROCESSED',
