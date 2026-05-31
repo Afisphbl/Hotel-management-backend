@@ -8,12 +8,9 @@ import {
   Param,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { HousekeepingService } from '../services/housekeeping.service';
-import {
-  TaskPriority,
-  TaskStatus,
-} from '../../../database/entities/housekeeping-task.entity';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
@@ -31,51 +28,67 @@ export class HousekeepingController {
 
   @Get()
   async findAll(
+    @Request() req: any,
     @Query()
     query: PaginationDto & {
-      status?: TaskStatus;
+      status?: string;
       assignedTo?: string;
-      priority?: TaskPriority;
+      priority?: string;
       roomId?: string;
     },
   ) {
-    const result = await this.housekeepingService.findAll(query);
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const result = await this.housekeepingService.findAll(hotelId, query);
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    const task = await this.housekeepingService.findById(id);
+  async findById(@Param('id') id: string, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const task = await this.housekeepingService.findById(id, hotelId);
     return success(task);
   }
 
   @Post()
-  async create(@Body() data: any) {
-    const task = await this.housekeepingService.create(data);
+  async create(@Body() data: any, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const task = await this.housekeepingService.create(hotelId, data);
     return success(task);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const task = await this.housekeepingService.update(id, data);
+  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const task = await this.housekeepingService.update(id, data, hotelId);
     return success(task);
   }
 
   @Post(':id/assign')
-  async assign(@Param('id') id: string, @Body('staffId') staffId: string) {
-    const task = await this.housekeepingService.assign(id, staffId);
+  async assign(
+    @Param('id') id: string,
+    @Body('staffId') staffId: string,
+    @Request() req: any,
+  ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const task = await this.housekeepingService.assign(id, staffId, hotelId);
     return success(task);
   }
 
   @Post(':id/complete')
-  async complete(@Param('id') id: string, @Body('notes') notes?: string) {
-    const task = await this.housekeepingService.complete(id, notes);
+  async complete(
+    @Param('id') id: string,
+    @Body('notes') notes: string,
+    @Request() req: any,
+  ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const task = await this.housekeepingService.complete(id, notes, hotelId);
     return success(task);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    await this.housekeepingService.remove(id);
+  async remove(@Param('id') id: string, @Request() req: any) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    await this.housekeepingService.remove(id, hotelId);
     return success({ deleted: true });
   }
 }

@@ -6,7 +6,7 @@ import {
   TicketStatus,
   TicketPriority,
 } from '../../../database/entities/maintenance-ticket.entity';
-import { paginate, PaginatedResult } from '../common/pagination.helper';
+import { paginateQuery, PaginatedResult } from '../common/pagination.helper';
 
 @Injectable()
 export class MaintenanceService {
@@ -23,18 +23,17 @@ export class MaintenanceService {
     roomId?: string;
     assignedTo?: string;
   }): Promise<PaginatedResult<MaintenanceTicket>> {
-    const where: any = {};
-    if (options.status) where.status = options.status;
-    if (options.priority) where.priority = options.priority;
-    if (options.roomId) where.roomId = options.roomId;
-    if (options.assignedTo) where.assignedTo = options.assignedTo;
+    const qb = this.ticketRepository
+      .createQueryBuilder('t');
 
-    return paginate<MaintenanceTicket>(this.ticketRepository, {
-      page: options.page,
-      limit: options.limit,
-      where,
-      order: { createdAt: 'DESC' },
-    });
+    if (options.status) qb.andWhere('t.status = :status', { status: options.status });
+    if (options.priority) qb.andWhere('t.priority = :priority', { priority: options.priority });
+    if (options.roomId) qb.andWhere('t.roomId = :roomId', { roomId: options.roomId });
+    if (options.assignedTo) qb.andWhere('t.assignedTo = :assignedTo', { assignedTo: options.assignedTo });
+
+    qb.orderBy('t.createdAt', 'DESC');
+
+    return paginateQuery(qb, options.page ?? 1, options.limit ?? 50);
   }
 
   async findById(id: string): Promise<MaintenanceTicket> {
