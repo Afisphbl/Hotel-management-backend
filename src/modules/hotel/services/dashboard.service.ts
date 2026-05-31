@@ -5,6 +5,11 @@ import {
   Booking,
   BookingStatus,
 } from '../../../database/entities/booking.entity';
+import { BookingRoom } from '../../../database/entities/booking-room.entity';
+import {
+  RoomNight,
+  RoomNightStatus,
+} from '../../../database/entities/room-night.entity';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
 import { Guest } from '../../../database/entities/guest.entity';
 import {
@@ -23,6 +28,8 @@ import { Refund } from '../../../database/entities/refund.entity';
 @Injectable()
 export class DashboardService {
   constructor(
+    @InjectRepository(BookingRoom)
+    private bookingRoomRepository: Repository<BookingRoom>,
     @InjectRepository(Booking)
     private bookingRepository: Repository<Booking>,
     @InjectRepository(Room)
@@ -41,6 +48,8 @@ export class DashboardService {
     private ledgerRepository: Repository<LedgerEntry>,
     @InjectRepository(Refund)
     private refundRepository: Repository<Refund>,
+    @InjectRepository(RoomNight)
+    private roomNightRepository: Repository<RoomNight>,
   ) {}
 
   async getDashboard() {
@@ -216,7 +225,10 @@ export class DashboardService {
     const monthlyExpenses = Number(monthProfitResult?.expenses || 0);
 
     // Generate trend data for charts
-    const [occupancyTrend, revenueTrend, bookingTrend, expenseTrend, expenseByAccount, recentExpenses] = await Promise.all([
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [occupancyTrend, revenueTrend, bookingTrend, expenseTrend, expenseByAccount, recentExpenses, heatmap, bookingSource, revenue30d] = await Promise.all([
       this.generateOccupancyTrend(monthStart, now),
       this.generateRevenueTrend(monthStart, now),
       this.generateBookingTrend(monthStart, now),
@@ -243,6 +255,9 @@ export class DashboardService {
         order: { entryDate: 'DESC' },
         take: 5,
       }),
+      this.generateHeatmap(14),
+      this.getBookingSourceDistribution(),
+      this.generateRevenueTrend(thirtyDaysAgo, now),
     ]);
 
     // Recent bookings for activity feed
@@ -250,7 +265,7 @@ export class DashboardService {
       where: { status: BookingStatus.CONFIRMED },
       order: { createdAt: 'DESC' },
       take: 10,
-      relations: ['guest'],
+      relations: ['guest', 'bookingRooms', 'bookingRooms.room'],
     });
 
     return {
@@ -362,13 +377,17 @@ export class DashboardService {
       occupancyTrend,
       revenueTrend,
       bookingTrend,
+      heatmap,
+      bookingSource,
+      revenue30d,
     };
   }
 
-  async getReports() {
+  async getReports(hotelId: string, days?: number) {
     const now = new Date();
-    const sixMonthsAgo = new Date(now);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const effectiveDays = days ?? 180;
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - effectiveDays);
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -379,21 +398,46 @@ export class DashboardService {
     const occupancyRate =
       totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
+    const hotelRooms = await this.roomRepository.find({ select: ['id'] });
+    const roomIds = hotelRooms.map(r => r.id);
+    let bookingIds: string[] = [];
+    if (roomIds.length > 0) {
+      const bookingRooms = await this.bookingRoomRepository.find({
+        where: { roomId: In(roomIds) },
+        select: ['bookingId'],
+      });
+      bookingIds = [...new Set(bookingRooms.map(br => br.bookingId))];
+    }
+
+    if (bookingIds.length === 0) {
+      return {
+        revenueByMonth: [],
+        revenueTrend: [],
+        occupancyTrend: [],
+        bookingSource: [],
+        bookingDistribution: [],
+        guestStatistics: { totalGuests: 0, newGuests: 0, returningGuests: 0, averageStay: 0 },
+        financialMetrics: { totalRevenue: 0, averageDailyRate: 0, revenuePAR: 0, occupancyRate },
+      };
+    }
+
     const [
       revenueByMonth,
       occupancyTrend,
       totalRevenueResult,
       bookingStatsResult,
       avgStayResult,
-      totalGuests,
-      guestsLast6Months,
+      bookingSource,
+      totalHotelGuests,
+      guestsInPeriod,
     ] = await Promise.all([
-      this.getRevenueByMonth(sixMonthsAgo, now),
+      this.getRevenueByMonth(bookingIds, startDate, now),
       this.generateOccupancyTrend(thirtyDaysAgo, now),
       this.invoiceRepository
         .createQueryBuilder('invoice')
         .select('COALESCE(SUM(invoice.amount), 0)', 'revenue')
         .where('invoice.status = :status', { status: InvoiceStatus.PAID })
+        .andWhere('invoice."bookingId" IN (:...bookingIds)', { bookingIds })
         .getRawOne(),
       this.bookingRepository
         .createQueryBuilder('booking')
@@ -403,7 +447,8 @@ export class DashboardService {
           `COALESCE(SUM(EXTRACT(EPOCH FROM (booking."checkOut" - booking."checkIn")) / 86400), 0)`,
           'nights',
         )
-        .where('booking.status IN (:...statuses)', {
+        .where('booking.id IN (:...bookingIds)', { bookingIds })
+        .andWhere('booking.status IN (:...statuses)', {
           statuses: [
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN,
@@ -417,7 +462,8 @@ export class DashboardService {
           `COALESCE(AVG(EXTRACT(EPOCH FROM (booking."checkOut" - booking."checkIn")) / 86400), 0)`,
           'avgStay',
         )
-        .where('booking.status IN (:...statuses)', {
+        .where('booking.id IN (:...bookingIds)', { bookingIds })
+        .andWhere('booking.status IN (:...statuses)', {
           statuses: [
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN,
@@ -425,14 +471,26 @@ export class DashboardService {
           ],
         })
         .getRawOne(),
-      this.guestRepository.count(),
-      this.guestRepository.count({
-        where: { createdAt: Between(sixMonthsAgo, now) },
-      }),
+      this.getBookingSourceDistribution(),
+      this.guestRepository
+        .createQueryBuilder('guest')
+        .innerJoin(Booking, 'booking', 'booking."guestId" = guest.id')
+        .where('booking.id IN (:...bookingIds)', { bookingIds })
+        .select('COUNT(DISTINCT guest.id)', 'count')
+        .getRawOne(),
+      this.guestRepository
+        .createQueryBuilder('guest')
+        .innerJoin(Booking, 'booking', 'booking."guestId" = guest.id')
+        .where('booking.id IN (:...bookingIds)', { bookingIds })
+        .andWhere('booking."createdAt" BETWEEN :start AND :end', { start: startDate, end: now })
+        .select('COUNT(DISTINCT guest.id)', 'count')
+        .getRawOne(),
     ]);
 
     const totalBookingRevenue = Number(bookingStatsResult?.revenue || 0);
     const totalNights = Number(bookingStatsResult?.nights || 0);
+    const totalGuestsCount = Number(totalHotelGuests?.count || 0);
+    const guestsInPeriodCount = Number(guestsInPeriod?.count || 0);
     const avgDailyRate =
       totalNights > 0 ? Math.round(totalBookingRevenue / totalNights) : 0;
     const revenuePAR =
@@ -450,14 +508,24 @@ export class DashboardService {
           )
         : 0;
 
+    // Booking distribution (by source as percentages for admin pie chart)
+    const bookingDistribution = bookingSource.length > 0
+      ? bookingSource.map((r: any) => ({ name: r.name, value: r.value }))
+      : [];
+
     return {
       revenueByMonth,
+      revenueTrend: revenueByMonth.map((r: any) => ({
+        date: r.month,
+        revenue: r.revenue,
+      })),
       occupancyTrend,
-      bookingSource: [],
+      bookingSource,
+      bookingDistribution,
       guestStatistics: {
-        totalGuests,
-        newGuests: guestsLast6Months,
-        returningGuests: Math.max(0, totalGuests - guestsLast6Months),
+        totalGuests: totalGuestsCount,
+        newGuests: guestsInPeriodCount,
+        returningGuests: Math.max(0, totalGuestsCount - guestsInPeriodCount),
         averageStay: Number(
           Number(avgStayResult?.avgStay || 0).toFixed(1),
         ),
@@ -467,11 +535,100 @@ export class DashboardService {
         averageDailyRate: avgDailyRate,
         revenuePAR,
         occupancyRate,
+        revPAR: revenuePAR,
       },
     };
   }
 
+  async getBookingSourceDistribution() {
+    const rows = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .select('booking.source', 'source')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('booking.source')
+      .getRawMany();
+
+    const sourceColors: Record<string, string> = {
+      direct: '#C9973A',
+      bookingcom: '#0F1B2D',
+      expedia: '#8b5cf6',
+      agoda: '#10b981',
+      phone: '#f59e0b',
+      walk_in: '#ef4444',
+      email: '#3b82f6',
+      other: '#6b7280',
+    };
+
+    return rows.map((r) => ({
+      name: r.source || 'other',
+      value: Number(r.count),
+      color: sourceColors[r.source?.toLowerCase()] || sourceColors.other,
+    }));
+  }
+
+  async generateHeatmap(days: number = 14) {
+    const rooms = await this.roomRepository.find({ order: { roomNumber: 'ASC' } });
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endDate = new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000);
+
+    const endDateStr = endDate.toISOString().split('T')[0];
+    const dateStrs: string[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      dateStrs.push(d.toISOString().split('T')[0]);
+    }
+
+    // Query room_nights for per-date status
+    const roomNights = await this.roomNightRepository.find({
+      where: {
+        date: Between(dateStrs[0], endDateStr),
+      },
+      relations: ['booking'],
+    });
+
+    const roomNightMap: Record<string, Record<string, { status: RoomNightStatus; bookingStatus?: string }>> = {};
+    for (const rn of roomNights) {
+      if (!roomNightMap[rn.roomId]) roomNightMap[rn.roomId] = {};
+      roomNightMap[rn.roomId][rn.date] = {
+        status: rn.status,
+        bookingStatus: rn.booking?.status,
+      };
+    }
+
+    return rooms.map(room => {
+      const dates: string[] = [];
+      for (let i = 0; i < days; i++) {
+        const dStr = dateStrs[i];
+
+        // Room physical status takes priority
+        if (room.status === RoomStatus.MAINTENANCE || room.status === RoomStatus.OUT_OF_ORDER) {
+          dates.push('out_of_order');
+          continue;
+        }
+
+        const rn = roomNightMap[room.id]?.[dStr];
+        if (rn) {
+          if (rn.status === RoomNightStatus.BLOCKED) {
+            dates.push('blocked');
+          } else if (rn.status === RoomNightStatus.HELD || rn.bookingStatus === BookingStatus.HOLD) {
+            dates.push('hold');
+          } else {
+            dates.push('confirmed');
+          }
+        } else {
+          dates.push('available');
+        }
+      }
+      return {
+        room: room.roomNumber,
+        dates,
+      };
+    });
+  }
+
   private async getRevenueByMonth(
+    bookingIds: string[],
     startDate: Date,
     endDate: Date,
   ): Promise<{ month: string; revenue: number }[]> {
@@ -487,6 +644,7 @@ export class DashboardService {
         start: startDate,
         end: endDate,
       })
+      .andWhere('invoice."bookingId" IN (:...bookingIds)', { bookingIds })
       .groupBy('monthKey')
       .orderBy('monthKey', 'ASC')
       .getRawMany();

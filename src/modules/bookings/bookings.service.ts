@@ -10,6 +10,7 @@ import {
   Repository,
   SelectQueryBuilder,
   ObjectLiteral,
+  In,
 } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -19,6 +20,7 @@ import {
   RoomNight,
   RoomNightStatus,
 } from '../../database/entities/room-night.entity';
+import { RoomStatus } from '../../database/entities/room.entity';
 import { OutboxEvent } from '../../database/entities/outbox-event.entity';
 import { Guest } from '../../database/entities/guest.entity';
 import { Room } from '../../database/entities/room.entity';
@@ -651,6 +653,20 @@ export class BookingsService {
 
       await queryRunner.manager.delete(RoomNight, { bookingId: id });
 
+      const bookingRooms = await queryRunner.manager.find(BookingRoom, {
+        where: { bookingId: id },
+        select: ['roomId'],
+      });
+      const cancelRoomIds = bookingRooms.map(br => br.roomId);
+      if (cancelRoomIds.length > 0) {
+        await queryRunner.manager
+          .createQueryBuilder()
+          .update(Room)
+          .set({ status: RoomStatus.AVAILABLE })
+          .where('id IN (:...ids)', { ids: cancelRoomIds })
+          .execute();
+      }
+
       const outbox = queryRunner.manager.create(OutboxEvent, {
         type: 'BOOKING_CANCELLED',
         payload: { bookingId: id, previousStatus: oldStatus, reason },
@@ -726,6 +742,31 @@ export class BookingsService {
         { bookingId: id },
         { status: RoomNightStatus.BOOKED },
       );
+      const brs = await this.bookingRoomRepository.find({
+        where: { bookingId: id },
+        select: ['roomId'],
+      });
+      const roomIds = brs.map(br => br.roomId);
+      if (roomIds.length > 0) {
+        await this.roomRepository.update(
+          { id: In(roomIds) },
+          { status: RoomStatus.OCCUPIED },
+        );
+      }
+    }
+
+    if (newStatus === BookingStatus.CHECKED_OUT) {
+      const brs = await this.bookingRoomRepository.find({
+        where: { bookingId: id },
+        select: ['roomId'],
+      });
+      const roomIds = brs.map(br => br.roomId);
+      if (roomIds.length > 0) {
+        await this.roomRepository.update(
+          { id: In(roomIds) },
+          { status: RoomStatus.DIRTY },
+        );
+      }
     }
 
     if (userId) {

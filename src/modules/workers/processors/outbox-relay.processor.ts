@@ -55,7 +55,8 @@ export class OutboxRelayProcessor extends WorkerHost {
           const invoice = this.invoiceRepository.create({
             bookingId: payload.bookingId,
             amount: payload.totalPrice ?? 0,
-            status: InvoiceStatus.DRAFT,
+            status: InvoiceStatus.PAID,
+            paidAt: new Date(),
             dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           });
 
@@ -76,7 +77,7 @@ export class OutboxRelayProcessor extends WorkerHost {
               netAmount: payload.totalPrice ?? 0,
               currency: 'ETB',
               method: PaymentMethod.CASH,
-              status: PaymentStatus.PENDING,
+              status: PaymentStatus.COMPLETED,
               description: `Auto-created payment for booking ${payload.bookingId}`,
             });
             const savedPayment = await qr.manager.save(payment);
