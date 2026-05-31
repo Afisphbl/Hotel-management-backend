@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, In } from 'typeorm';
+import { validateSchemaName } from '../../../common/utils/security.utils';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import {
   HousekeepingTask,
@@ -25,7 +26,7 @@ export class HousekeepingService {
     });
     if (!hotel?.schemaName)
       throw new NotFoundException('Hotel schema not found');
-    return hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+    return validateSchemaName(hotel.schemaName);
   }
 
   async findAll(
