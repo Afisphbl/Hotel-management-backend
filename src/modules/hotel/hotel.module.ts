@@ -131,6 +131,6 @@ const services = [
   ],
   controllers,
   providers: [...services, PlanLimitGuard, TenantQuotaService],
-  exports: [PricingService],
+  exports: [PricingService, RoomsService, RoomTypesService],
 })
 export class HotelModule {}
