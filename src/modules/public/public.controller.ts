@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Headers, UnauthorizedException } from '@nestjs/common';
 import { PublicService } from './public.service';
 import { GuestRegisterDto, GuestLoginDto } from './dto/guest-register.dto';
 
@@ -19,5 +19,22 @@ export class PublicController {
   @Post('auth/login')
   async login(@Body() dto: GuestLoginDto) {
     return this.publicService.loginGuest(dto);
+  }
+
+  @Get('auth/me')
+  async me(@Headers('authorization') authorization: string) {
+    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    const token = authorization.replace('Bearer ', '');
+    return this.publicService.getMe(token);
+  }
+
+  @Patch('auth/me')
+  async updateMe(
+    @Headers('authorization') authorization: string,
+    @Body() body: { nationality?: string; nationalID?: string; countryFlag?: string },
+  ) {
+    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    const token = authorization.replace('Bearer ', '');
+    return this.publicService.updateMe(token, body);
   }
 }

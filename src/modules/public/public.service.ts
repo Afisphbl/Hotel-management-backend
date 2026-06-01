@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   UnauthorizedException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -126,5 +127,86 @@ export class PublicService {
         email: guest.email,
       },
     };
+  }
+
+  async getMe(token: string) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: payload.hotel_id, status: HotelStatus.ACTIVE },
+    });
+    if (!hotel) throw new NotFoundException('Hotel not found');
+
+    const rows = await this.dataSource.query(
+      `SELECT id, "firstName", "lastName", email, nationality, "countryFlag", "nationalID", "isVip"
+       FROM "${hotel.schemaName}"."guests"
+       WHERE id = $1
+       LIMIT 1`,
+      [payload.sub],
+    );
+
+    if (rows.length === 0) throw new NotFoundException('Guest not found');
+
+    return {
+      id: rows[0].id,
+      firstName: rows[0].firstName,
+      lastName: rows[0].lastName,
+      email: rows[0].email,
+      nationality: rows[0].nationality || null,
+      countryFlag: rows[0].countryFlag || null,
+      nationalID: rows[0].nationalID || null,
+      isVip: rows[0].isVip || false,
+    };
+  }
+
+  async updateMe(
+    token: string,
+    data: { nationality?: string; nationalID?: string; countryFlag?: string },
+  ) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: payload.hotel_id, status: HotelStatus.ACTIVE },
+    });
+    if (!hotel) throw new NotFoundException('Hotel not found');
+
+    const sets: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+
+    if (data.nationality !== undefined) {
+      sets.push(`nationality = $${idx++}`);
+      params.push(data.nationality);
+    }
+    if (data.nationalID !== undefined) {
+      sets.push(`"nationalID" = $${idx++}`);
+      params.push(data.nationalID);
+    }
+    if (data.countryFlag !== undefined) {
+      sets.push(`"countryFlag" = $${idx++}`);
+      params.push(data.countryFlag);
+    }
+
+    if (sets.length === 0) {
+      return this.getMe(token);
+    }
+
+    params.push(payload.sub);
+    await this.dataSource.query(
+      `UPDATE "${hotel.schemaName}"."guests" SET ${sets.join(', ')} WHERE id = $${idx}`,
+      params,
+    );
+
+    return this.getMe(token);
   }
 }
