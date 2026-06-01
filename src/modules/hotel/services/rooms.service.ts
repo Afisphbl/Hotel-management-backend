@@ -48,6 +48,7 @@ export class RoomsService {
       (room as any).roomType = {
         id: r.rt_id,
         name: r.rt_name,
+        description: r.rt_description,
         baseCapacity: r.rt_baseCapacity,
         maxExtraBeds: r.rt_maxExtraBeds,
         basePrice: r.rt_basePrice,
@@ -100,8 +101,8 @@ export class RoomsService {
     const where = conditions.join(' AND ');
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
-        `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt."baseCapacity" AS rt_baseCapacity,
-                rt."maxExtraBeds" AS rt_maxExtraBeds, rt."basePrice" AS rt_basePrice
+        `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt.description AS rt_description, rt."baseCapacity" AS rt_baseCapacity,
+                 rt."maxExtraBeds" AS rt_maxExtraBeds, rt."basePrice" AS rt_basePrice
          FROM "${s}"."rooms" r
          LEFT JOIN "${s}"."room_types" rt ON rt.id = r."roomTypeId" AND rt."deletedAt" IS NULL
          WHERE ${where} ORDER BY r.floor ASC, r."roomNumber" ASC LIMIT ${limit} OFFSET ${offset}`,
@@ -164,7 +165,7 @@ export class RoomsService {
   async findById(id: string, hotelId?: string): Promise<Room> {
     const s = await this.getSchema(hotelId!);
     const params: any[] = [id];
-    let sql = `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt."baseCapacity" AS rt_baseCapacity,
+    let sql = `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt.description AS rt_description, rt."baseCapacity" AS rt_baseCapacity,
                rt."maxExtraBeds" AS rt_maxExtraBeds, rt."basePrice" AS rt_basePrice
                FROM "${s}"."rooms" r
                LEFT JOIN "${s}"."room_types" rt ON rt.id = r."roomTypeId" AND rt."deletedAt" IS NULL
@@ -359,7 +360,7 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
   ) {
     const s = await this.getSchema(hotelId);
     const params: any[] = [];
-    let sql = `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt."baseCapacity" AS rt_baseCapacity,
+    let sql = `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt.description AS rt_description, rt."baseCapacity" AS rt_baseCapacity,
                rt."maxExtraBeds" AS rt_maxExtraBeds, rt."basePrice" AS rt_basePrice
                FROM "${s}"."rooms" r
                LEFT JOIN "${s}"."room_types" rt ON rt.id = r."roomTypeId" AND rt."deletedAt" IS NULL

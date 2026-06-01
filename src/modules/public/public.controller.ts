@@ -11,6 +11,11 @@ export class PublicController {
     return this.publicService.findHotelBySubdomain(subdomain);
   }
 
+  @Get('hotels/by-id/:id')
+  async getHotelById(@Param('id') id: string) {
+    return this.publicService.findHotelById(id);
+  }
+
   @Post('auth/register')
   async register(@Body() dto: GuestRegisterDto) {
     return this.publicService.registerGuest(dto);

@@ -26,6 +26,9 @@ export class Hotel extends BaseEntity {
   @Column({ type: 'enum', enum: HotelType, default: HotelType.BOUTIQUE })
   type: HotelType;
 
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @Column({ unique: true, nullable: true })
   schemaName: string;
 

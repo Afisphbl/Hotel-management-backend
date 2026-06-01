@@ -29,9 +29,22 @@ export class PublicService {
       throw new NotFoundException('Hotel not found');
     }
 
+    return this.mapHotel(hotel);
+  }
+
+  async findHotelById(id: string) {
+    const hotel = await this.hotelRepository.findOne({
+      where: { id, status: HotelStatus.ACTIVE },
+    });
+    if (!hotel) throw new NotFoundException('Hotel not found');
+    return this.mapHotel(hotel);
+  }
+
+  private mapHotel(hotel: Hotel) {
     return {
       id: hotel.id,
       name: hotel.name,
+      description: hotel.description || null,
       slug: hotel.slug,
       subdomain: hotel.subdomain,
       schemaName: hotel.schemaName,
