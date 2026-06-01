@@ -27,6 +27,9 @@ export class Guest extends BaseEntity {
   @Column({ nullable: true })
   documentNumber: string; // PII
 
+  @Column({ nullable: true, select: false })
+  passwordHash: string;
+
   @Column({ type: 'jsonb', nullable: true })
   metadata: any;
 

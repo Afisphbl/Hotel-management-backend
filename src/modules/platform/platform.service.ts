@@ -645,6 +645,7 @@ export class PlatformService {
         "isVip" BOOLEAN DEFAULT FALSE,
         "documentType" VARCHAR,
         "documentNumber" VARCHAR,
+        "passwordHash" VARCHAR,
         metadata JSONB,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

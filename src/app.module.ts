@@ -17,6 +17,7 @@ import { validateEnv } from './config/env.validation';
 import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { PublicModule } from './modules/public/public.module';
 import { RateLimiterModule } from './common/rate-limiter/rate-limiter.module';
 import { ShardingModule } from './common/sharding/sharding.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
@@ -83,6 +84,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     ShardingModule,
     ObservabilityModule,
     StorageModule,
+    PublicModule,
     AuthModule,
     HotelsModule,
     UsersModule,
