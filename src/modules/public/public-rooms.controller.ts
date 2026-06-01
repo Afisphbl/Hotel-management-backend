@@ -216,27 +216,7 @@ export class PublicRoomsController {
       endDate ||
       new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];
 
-    const availability = await this.roomsService.getAvailability(
-      hotelId,
-      undefined,
-      start,
-      end,
-    );
-
-    const roomAvailability = availability.find(
-      (a: any) => a.room?.id === roomId,
-    );
-    if (!roomAvailability) return [];
-
-    const dates: string[] = [];
-    const curr = new Date(start);
-    const last = new Date(end);
-    while (curr < last) {
-      dates.push(curr.toISOString().split('T')[0]);
-      curr.setDate(curr.getDate() + 1);
-    }
-
-    return roomAvailability.available ? [] : dates;
+    return this.roomsService.getBookedDatesForRoom(hotelId, roomId, start, end);
   }
 
   @Get('room-types')

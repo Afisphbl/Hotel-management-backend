@@ -396,6 +396,40 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
     }));
   }
 
+  async getBookedDatesForRoom(
+    hotelId: string,
+    roomId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<string[]> {
+    const s = await this.getSchema(hotelId);
+
+    const roomResult = await this.dataSource.query(
+      `SELECT status FROM "${s}"."rooms" WHERE id = $1 AND "deletedAt" IS NULL`,
+      [roomId],
+    );
+    if (!roomResult.length) return [];
+
+    const roomStatus = roomResult[0].status;
+    if (roomStatus !== RoomStatus.AVAILABLE && roomStatus !== RoomStatus.OCCUPIED) {
+      const dates: string[] = [];
+      const curr = new Date(startDate);
+      const last = new Date(endDate);
+      while (curr < last) {
+        dates.push(curr.toISOString().split('T')[0]);
+        curr.setDate(curr.getDate() + 1);
+      }
+      return dates;
+    }
+
+    const result = await this.dataSource.query(
+      `SELECT date FROM "${s}"."room_nights" WHERE "roomId" = $1 AND date >= $2::date AND date < $3::date AND status IN ('booked', 'held')`,
+      [roomId, startDate, endDate],
+    );
+
+    return result.map((r: any) => new Date(r.date).toISOString().split('T')[0]);
+  }
+
   private getDatesBetween(startDate: string, endDate: string): string[] {
     const dates: string[] = [];
     const curr = new Date(startDate);
