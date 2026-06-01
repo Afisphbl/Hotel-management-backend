@@ -38,11 +38,12 @@ export class PublicService {
       timezone: hotel.timezone || 'UTC',
       currency: hotel.currency || 'USD',
       status: hotel.status,
-      branding: hotel.branding || {
-        primaryColor: '#0F1B2D',
-        accentColor: '#C9973A',
-        logo: null,
-        favicon: '/favicon.ico',
+      branding: {
+        primaryColor: hotel.branding?.primaryColor || '#0F1B2D',
+        accentColor: hotel.branding?.accentColor || '#C9973A',
+        logo: hotel.branding?.logo || null,
+        favicon: hotel.branding?.favicon || '/favicon.ico',
+        homePageImage: hotel.branding?.homePageImage || null,
       },
     };
   }

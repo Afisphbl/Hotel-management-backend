@@ -109,5 +109,9 @@ export function validateEnv(config: Record<string, unknown>) {
     CDN_DISTRIBUTION_ID: asOptionalString(env, 'CDN_DISTRIBUTION_ID'),
     CDN_API_TOKEN: asOptionalString(env, 'CDN_API_TOKEN'),
     CDN_ZONE_ID: asOptionalString(env, 'CDN_ZONE_ID'),
+
+    CLOUDINARY_CLOUD_NAME: asOptionalString(env, 'CLOUDINARY_CLOUD_NAME'),
+    CLOUDINARY_API_KEY: asOptionalString(env, 'CLOUDINARY_API_KEY'),
+    CLOUDINARY_API_SECRET: asOptionalString(env, 'CLOUDINARY_API_SECRET'),
   };
 }

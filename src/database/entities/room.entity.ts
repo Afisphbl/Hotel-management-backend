@@ -41,4 +41,7 @@ export class Room extends BaseEntity {
     default: RoomStatus.AVAILABLE,
   })
   status: RoomStatus;
+
+  @Column('text', { array: true, nullable: true })
+  images: string[];
 }

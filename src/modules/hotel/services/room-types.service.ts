@@ -65,14 +65,15 @@ export class RoomTypesService {
   async create(data: Partial<RoomType>, hotelId: string): Promise<RoomType> {
     const s = await this.getSchema(hotelId);
     const rows = await this.dataSource.query(
-      `INSERT INTO "${s}"."room_types" (name, description, "baseCapacity", "maxExtraBeds", "basePrice")
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      `INSERT INTO "${s}"."room_types" (name, description, "baseCapacity", "maxExtraBeds", "basePrice", image)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [
         data.name,
         data.description ?? null,
         data.baseCapacity,
         data.maxExtraBeds ?? 0,
         data.basePrice,
+        (data as any).image ?? null,
       ],
     );
     return rows[0];
@@ -92,6 +93,7 @@ export class RoomTypesService {
       'baseCapacity',
       'maxExtraBeds',
       'basePrice',
+      'image',
     ];
 
     for (const key of allowed) {

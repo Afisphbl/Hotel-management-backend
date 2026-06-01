@@ -17,4 +17,7 @@ export class RoomType extends BaseEntity {
 
   @Column({ type: 'numeric', precision: 12, scale: 2 })
   basePrice: number;
+
+  @Column({ nullable: true })
+  image: string;
 }

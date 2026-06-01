@@ -36,6 +36,7 @@ export class RoomsService {
       basePrice: r.basePrice,
       baseCapacity: r.baseCapacity,
       status: r.status,
+      images: r.images || null,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       deletedAt: r.deletedAt,
@@ -187,8 +188,8 @@ export class RoomsService {
       if (!rt.length) throw new NotFoundException('Room type not found');
     }
     const rows = await this.dataSource.query(
-      `INSERT INTO "${s}"."rooms" ("roomNumber", floor, "hotelId", "roomTypeId", "basePrice", "baseCapacity", status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      `INSERT INTO "${s}"."rooms" ("roomNumber", floor, "hotelId", "roomTypeId", "basePrice", "baseCapacity", status, images)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [
         data.roomNumber,
         data.floor,
@@ -197,6 +198,7 @@ export class RoomsService {
         data.basePrice ?? null,
         data.baseCapacity ?? null,
         data.status ?? RoomStatus.AVAILABLE,
+        data.images ?? null,
       ],
     );
     await this.syncHotelRoomCount(hotelId, s);
@@ -218,6 +220,7 @@ export class RoomsService {
       'baseCapacity',
       'status',
       'roomTypeId',
+      'images',
     ] as const;
     for (const key of allowed) {
       if (data[key] !== undefined) {
