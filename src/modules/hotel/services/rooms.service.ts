@@ -414,10 +414,15 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
     const roomStatus = roomResult[0].status;
     if (roomStatus !== RoomStatus.AVAILABLE && roomStatus !== RoomStatus.OCCUPIED) {
       const dates: string[] = [];
-      const curr = new Date(startDate);
-      const last = new Date(endDate);
+      const [sy, sm, sd] = startDate.split('-').map(Number);
+      const [ey, em, ed] = endDate.split('-').map(Number);
+      const curr = new Date(sy, sm - 1, sd);
+      const last = new Date(ey, em - 1, ed);
       while (curr < last) {
-        dates.push(curr.toISOString().split('T')[0]);
+        const y = curr.getFullYear();
+        const m = String(curr.getMonth() + 1).padStart(2, '0');
+        const d = String(curr.getDate()).padStart(2, '0');
+        dates.push(`${y}-${m}-${d}`);
         curr.setDate(curr.getDate() + 1);
       }
       return dates;
@@ -428,7 +433,13 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
       [roomId, startDate, endDate],
     );
 
-    const mapped = result.map((r: any) => new Date(r.date).toISOString().split('T')[0]);
+    const mapped = result.map((r: any) => {
+      const d = r.date instanceof Date ? r.date : new Date(r.date);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    });
     console.log('[getBookedDatesForRoom]', { roomId, startDate, endDate, resultCount: result.length, dates: mapped });
     return mapped;
   }

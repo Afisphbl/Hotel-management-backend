@@ -33,6 +33,13 @@ export class PublicController {
     return this.publicService.getMe(token);
   }
 
+  @Get('auth/bookings')
+  async myBookings(@Headers('authorization') authorization: string) {
+    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    const token = authorization.replace('Bearer ', '');
+    return this.publicService.getMyBookings(token);
+  }
+
   @Patch('auth/me')
   async updateMe(
     @Headers('authorization') authorization: string,

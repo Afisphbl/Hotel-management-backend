@@ -2,13 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
+import { NotificationService } from '../workers/services/notification.service';
+import { NotificationType } from '../../database/entities/notification.entity';
 
 @Injectable()
 export class ReviewsService {
   constructor(
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
+    @InjectRepository(HotelUserAccess)
+    private hotelUserAccessRepository: Repository<HotelUserAccess>,
     private dataSource: DataSource,
+    private notificationService: NotificationService,
   ) {}
 
   private async getSchema(hotelId: string): Promise<string> {
@@ -50,6 +56,9 @@ export class ReviewsService {
       [dto.rating, dto.comment, dto.roomId, guestId, hotelId]
     );
 
+    // Notify hotel admins
+    this.notifyAdmins(hotelId, dto.rating, s).catch(() => {});
+
     return result[0];
   }
 
@@ -65,5 +74,34 @@ export class ReviewsService {
       average: result[0]?.average || 0,
       count: result[0]?.count || 0
     };
+  }
+
+  private async notifyAdmins(hotelId: string, rating: number, schema: string): Promise<void> {
+    const [admins, todayResult] = await Promise.all([
+      this.hotelUserAccessRepository.find({
+        where: { hotelId, revokedAt: null as any },
+        select: ['userId'],
+      }),
+      this.dataSource.query(
+        `SELECT COUNT(*)::int as count FROM "${schema}"."reviews"
+         WHERE "hotelId" = $1 AND "createdAt" >= CURRENT_DATE AND "deletedAt" IS NULL`,
+        [hotelId],
+      ),
+    ]);
+
+    if (!admins.length) return;
+
+    const count: number = todayResult[0]?.count ?? 1;
+    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+
+    await this.notificationService.sendBulk(
+      admins.map(({ userId }) => ({
+        userId,
+        type: NotificationType.NEW_REVIEW,
+        title: `New Guest Review ${stars}`,
+        body: `A guest left a ${rating}-star review. ${count} review${count !== 1 ? 's' : ''} today.`,
+        data: { hotelId, rating, todayCount: count },
+      })),
+    );
   }
 }

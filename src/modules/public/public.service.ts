@@ -133,7 +133,7 @@ export class PublicService {
       permissions: ['guest:book', 'guest:view'],
     };
 
-    const access_token = this.jwtService.sign(payload);
+    const access_token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
     return {
       access_token,
@@ -179,6 +179,57 @@ export class PublicService {
       nationalID: rows[0].nationalID || null,
       isVip: rows[0].isVip || false,
     };
+  }
+
+  async getMyBookings(token: string) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: payload.hotel_id, status: HotelStatus.ACTIVE },
+    });
+    if (!hotel) throw new NotFoundException('Hotel not found');
+
+    const rows = await this.dataSource.query(
+      `SELECT b.id, b."checkIn", b."checkOut", b.status, b."totalPrice",
+              b."numGuests", b."notes", b."createdAt", b."updatedAt",
+              r.id AS "roomId", r."roomNumber", r.images,
+              rt.name AS "roomTypeName", rt."baseCapacity" AS "maxCapacity",
+              br.price AS "roomPrice"
+       FROM "${hotel.schemaName}"."bookings" b
+       LEFT JOIN "${hotel.schemaName}"."booking_rooms" br ON br."bookingId" = b.id
+       LEFT JOIN "${hotel.schemaName}"."rooms" r ON r.id = br."roomId"
+       LEFT JOIN "${hotel.schemaName}"."room_types" rt ON rt.id = r."roomTypeId"
+       WHERE b."guestId" = $1 AND b."deletedAt" IS NULL
+       ORDER BY b."checkIn" DESC`,
+      [payload.sub],
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      checkIn: row.checkIn,
+      checkOut: row.checkOut,
+      status: row.status,
+      totalPrice: Number(row.totalPrice),
+      numGuests: row.numGuests,
+      notes: row.notes,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      room: row.roomId
+        ? {
+            id: row.roomId,
+            name: row.roomNumber,
+            image: row.images?.[0] || null,
+            roomTypeName: row.roomTypeName,
+            maxCapacity: row.maxCapacity,
+            price: row.roomPrice ? Number(row.roomPrice) : null,
+          }
+        : null,
+    }));
   }
 
   async updateMe(

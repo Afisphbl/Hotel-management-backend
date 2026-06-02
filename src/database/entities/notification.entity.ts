@@ -25,6 +25,7 @@ export enum NotificationType {
   HOUSEKEEPING_TASK = 'housekeeping_task',
   MAINTENANCE_TICKET = 'maintenance_ticket',
   SHIFT_REMINDER = 'shift_reminder',
+  NEW_REVIEW = 'new_review',
 }
 
 @Entity({ name: 'notifications' })

@@ -50,6 +50,9 @@ export class Booking extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   notes?: string;
 
+  @Column({ type: 'int', nullable: true })
+  numGuests?: number;
+
   @OneToMany(() => BookingRoom, (br) => br.booking)
   bookingRooms: BookingRoom[];
 }

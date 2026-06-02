@@ -120,8 +120,8 @@ export class PublicBookingService {
 
       const bookingResult = await queryRunner.query(
         `INSERT INTO "${schema}"."bookings"
-         ("guestId", "checkIn", "checkOut", "status", "totalPrice", "idempotencyKey", "source", "notes", "priceSnapshot")
-         VALUES ($1, $2, $3, 'pending', $4, $5, 'public', $6, $7)
+         ("guestId", "checkIn", "checkOut", "status", "totalPrice", "idempotencyKey", "source", "notes", "numGuests", "priceSnapshot")
+         VALUES ($1, $2, $3, 'pending', $4, $5, 'public', $6, $7, $8)
          RETURNING id`,
         [
           guestId,
@@ -130,6 +130,7 @@ export class PublicBookingService {
           totalPrice,
           `${dto.hotelId}_${dto.roomId}_${dto.checkIn}_${dto.checkOut}_${Date.now()}`,
           dto.notes || null,
+          dto.numGuests,
           JSON.stringify({
             roomTypeId: roomRow.roomTypeId,
             roomNumber: roomRow.roomNumber,

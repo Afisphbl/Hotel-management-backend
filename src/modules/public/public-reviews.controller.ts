@@ -10,12 +10,14 @@ import {
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('public/reviews')
 export class PublicReviewsController {
   constructor(
     private readonly reviewsService: ReviewsService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get(':roomId')
@@ -44,12 +46,14 @@ export class PublicReviewsController {
     const token = authHeader.split(' ')[1];
     let payload: any;
     try {
-      payload = this.jwtService.verify(token);
+      payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    if (payload.hotel_id !== dto.hotelId) {
+    if (String(payload.hotel_id) !== String(dto.hotelId)) {
       throw new UnauthorizedException('Token not valid for this hotel');
     }
 

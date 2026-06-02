@@ -47,6 +47,7 @@ async function main() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "guestId" UUID NOT NULL REFERENCES "${s}"."guests"(id),
       "checkIn" TIMESTAMPTZ NOT NULL, "checkOut" TIMESTAMPTZ NOT NULL, status VARCHAR NOT NULL DEFAULT 'pending',
       "totalPrice" NUMERIC(12,2) NOT NULL, "idempotencyKey" VARCHAR NOT NULL UNIQUE, "priceSnapshot" JSONB,
+      source VARCHAR(50), notes TEXT, "numGuests" INT,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,
     `CREATE TABLE IF NOT EXISTS "${s}"."booking_rooms" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "bookingId" UUID NOT NULL REFERENCES "${s}"."bookings"(id),

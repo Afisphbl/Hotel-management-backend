@@ -310,8 +310,8 @@ export class BookingsService {
 
       const booking = queryRunner.manager.create(Booking, {
         guestId: createDto.guestId,
-        checkIn: new Date(createDto.checkIn),
-        checkOut: new Date(createDto.checkOut),
+        checkIn: this.parseDate(createDto.checkIn),
+        checkOut: this.parseDate(createDto.checkOut),
         status: BookingStatus.HOLD,
         totalPrice: total,
         idempotencyKey: createDto.idempotencyKey,
@@ -421,8 +421,8 @@ export class BookingsService {
       await queryRunner.startTransaction();
 
       try {
-        const newCheckIn = dto.checkIn ? new Date(dto.checkIn) : booking.checkIn;
-        const newCheckOut = dto.checkOut ? new Date(dto.checkOut) : booking.checkOut;
+        const newCheckIn = dto.checkIn ? this.parseDate(dto.checkIn) : booking.checkIn;
+        const newCheckOut = dto.checkOut ? this.parseDate(dto.checkOut) : booking.checkOut;
         const newRoomIds = dto.roomIds ?? (booking.bookingRooms?.map((br) => br.roomId) ?? []);
 
         if (newCheckOut <= newCheckIn) {
@@ -780,6 +780,11 @@ export class BookingsService {
     }
 
     return saved;
+  }
+
+  private parseDate(dateString: string): Date {
+    const [y, m, d] = dateString.split('-').map(Number);
+    return new Date(y, m - 1, d);
   }
 
   private getDatesBetween(startDate: string, endDate: string): string[] {

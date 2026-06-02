@@ -8,20 +8,23 @@ import { PublicRoomsController } from './public-rooms.controller';
 import { PublicReviewsController } from './public-reviews.controller';
 import { ReviewsService } from './reviews.service';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { HotelModule } from '../hotel/hotel.module';
+import { WorkersModule } from '../workers/workers.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Hotel]),
+    TypeOrmModule.forFeature([Hotel, HotelUserAccess]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRATION', '7d') },
+        signOptions: { expiresIn: '7d' },
       }),
     }),
     HotelModule,
+    WorkersModule,
   ],
   controllers: [
     PublicController,
