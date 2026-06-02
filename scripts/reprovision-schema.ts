@@ -131,6 +131,11 @@ async function main() {
       "referenceId" VARCHAR NOT NULL, "bookingId" UUID, "entryDate" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       description TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "deletedAt" TIMESTAMPTZ)`,
+    `CREATE TABLE IF NOT EXISTS "${s}"."reviews" (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "rating" INT NOT NULL, "comment" TEXT NOT NULL,
+      "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id), "guestId" UUID NOT NULL REFERENCES "${s}"."guests"(id),
+      "hotelId" VARCHAR NOT NULL, "isVisible" BOOLEAN DEFAULT TRUE,
+      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,
   ];
 
   for (const sql of tables) {

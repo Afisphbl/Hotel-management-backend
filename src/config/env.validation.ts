@@ -113,5 +113,9 @@ export function validateEnv(config: Record<string, unknown>) {
     CLOUDINARY_CLOUD_NAME: asOptionalString(env, 'CLOUDINARY_CLOUD_NAME'),
     CLOUDINARY_API_KEY: asOptionalString(env, 'CLOUDINARY_API_KEY'),
     CLOUDINARY_API_SECRET: asOptionalString(env, 'CLOUDINARY_API_SECRET'),
+
+    CHAPA_SECRET_KEY: asString(env, 'CHAPA_SECRET_KEY'),
+    CHAPA_WEBHOOK_SECRET: asOptionalString(env, 'CHAPA_WEBHOOK_SECRET'),
+    BACKOFFICE_URL: asString(env, 'BACKOFFICE_URL', 'http://localhost:5000'),
   };
 }

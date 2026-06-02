@@ -437,10 +437,8 @@ export class BookingsService {
           throw new NotFoundException('One or more rooms not found');
         }
 
-        const dates = this.getDatesBetween(
-          newCheckIn.toISOString().split('T')[0],
-          newCheckOut.toISOString().split('T')[0],
-        );
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const dates = this.getDatesBetween(fmt(newCheckIn), fmt(newCheckOut));
 
         for (const room of rooms) {
           const conflictingNights = await queryRunner.manager
@@ -786,10 +784,15 @@ export class BookingsService {
 
   private getDatesBetween(startDate: string, endDate: string): string[] {
     const dates: string[] = [];
-    const curr = new Date(startDate);
-    const last = new Date(endDate);
+    const [sy, sm, sd] = startDate.split('-').map(Number);
+    const [ey, em, ed] = endDate.split('-').map(Number);
+    const curr = new Date(sy, sm - 1, sd);
+    const last = new Date(ey, em - 1, ed);
     while (curr < last) {
-      dates.push(curr.toISOString().split('T')[0]);
+      const y = curr.getFullYear();
+      const m = String(curr.getMonth() + 1).padStart(2, '0');
+      const d = String(curr.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${d}`);
       curr.setDate(curr.getDate() + 1);
     }
     return dates;

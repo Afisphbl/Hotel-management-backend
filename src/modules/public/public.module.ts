@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PublicController } from './public.controller';
 import { PublicService } from './public.service';
 import { PublicRoomsController } from './public-rooms.controller';
+import { PublicReviewsController } from './public-reviews.controller';
+import { ReviewsService } from './reviews.service';
 import { Hotel } from '../../database/entities/hotel.entity';
 import { HotelModule } from '../hotel/hotel.module';
 
@@ -21,7 +23,11 @@ import { HotelModule } from '../hotel/hotel.module';
     }),
     HotelModule,
   ],
-  controllers: [PublicController, PublicRoomsController],
-  providers: [PublicService],
+  controllers: [
+    PublicController,
+    PublicRoomsController,
+    PublicReviewsController,
+  ],
+  providers: [PublicService, ReviewsService],
 })
 export class PublicModule {}

@@ -58,6 +58,9 @@ export class PublicService {
         favicon: hotel.branding?.favicon || '/favicon.ico',
         homePageImage: hotel.branding?.homePageImage || null,
       },
+      settings: {
+        aboutContent: hotel.settings?.aboutContent || null,
+      },
     };
   }
 

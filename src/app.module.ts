@@ -19,6 +19,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { StorageModule } from './modules/storage/storage.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { PublicModule } from './modules/public/public.module';
+import { PublicBookingModule } from './modules/public-booking/public-booking.module';
 import { RateLimiterModule } from './common/rate-limiter/rate-limiter.module';
 import { ShardingModule } from './common/sharding/sharding.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
@@ -87,6 +88,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     StorageModule,
     CloudinaryModule,
     PublicModule,
+    PublicBookingModule,
     AuthModule,
     HotelsModule,
     UsersModule,

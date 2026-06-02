@@ -30,7 +30,7 @@ export class PricingService {
     opts?: { roomBasePrice?: number | null },
   ): Promise<number> {
     const s = await this.getSchema(hotelId);
-    const d = date.toISOString().split('T')[0];
+    const d = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
     // 1. Price override (highest priority)
     const [ov] = await this.dataSource.query(

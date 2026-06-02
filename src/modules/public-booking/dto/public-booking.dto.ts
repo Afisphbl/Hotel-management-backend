@@ -24,11 +24,35 @@ export class GuestLoginDto {
 }
 
 export class CreatePublicBookingDto {
-  @IsUUID() roomId: string;
-  @IsDateString() checkIn: string;
-  @IsDateString() checkOut: string;
-  @IsInt() @Min(1) numGuests: number;
-  @IsOptional() @IsString() notes?: string;
+  @IsUUID()
+  roomId: string;
+
+  @IsDateString()
+  checkIn: string;
+
+  @IsDateString()
+  checkOut: string;
+
+  @IsInt()
+  @Min(1)
+  numGuests: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsString()
+  firstName: string;
+
+  @IsString()
+  lastName: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string;
 }
 
 export class ChapaWebhookDto {
