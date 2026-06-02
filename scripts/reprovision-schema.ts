@@ -60,7 +60,7 @@ async function main() {
       "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ, UNIQUE("roomId", date))`,
     `CREATE TABLE IF NOT EXISTS "${s}"."staff" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "userId" VARCHAR NOT NULL, "firstName" VARCHAR NOT NULL,
-      "lastName" VARCHAR NOT NULL, email VARCHAR NOT NULL UNIQUE, phone VARCHAR, role VARCHAR NOT NULL,
+      "lastName" VARCHAR NOT NULL, email VARCHAR NOT NULL UNIQUE, password VARCHAR, phone VARCHAR, role VARCHAR NOT NULL,
       "employmentType" VARCHAR NOT NULL DEFAULT 'full_time', status VARCHAR NOT NULL DEFAULT 'active',
       "hourlyRate" NUMERIC(12,2), department VARCHAR, "joinedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,

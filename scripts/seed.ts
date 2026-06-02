@@ -1714,6 +1714,7 @@ async function provisionTenantSchema(dataSource: DataSource, schemaName: string)
       "firstName" VARCHAR NOT NULL,
       "lastName" VARCHAR NOT NULL,
       email VARCHAR NOT NULL UNIQUE,
+      password VARCHAR,
       phone VARCHAR,
       role VARCHAR NOT NULL,
       "employmentType" VARCHAR NOT NULL DEFAULT 'full_time',

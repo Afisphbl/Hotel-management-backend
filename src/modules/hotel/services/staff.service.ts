@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import {
   StaffRole,
@@ -89,14 +90,18 @@ export class StaffService {
 
   async create(data: any, hotelId: string) {
     const s = await this.getSchema(hotelId);
+    const password = data.password
+      ? await bcrypt.hash(data.password, 10)
+      : null;
     const rows = await this.dataSource.query(
-      `INSERT INTO "${s}"."staff" ("userId","firstName","lastName","email","phone","role","employmentType","status","hourlyRate","department","joinedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,COALESCE($11,NOW())) RETURNING *`,
+      `INSERT INTO "${s}"."staff" ("userId","firstName","lastName","email","password","phone","role","employmentType","status","hourlyRate","department","joinedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,COALESCE($12,NOW())) RETURNING *`,
       [
         data.userId ?? '',
         data.firstName,
         data.lastName,
         data.email,
+        password,
         data.phone ?? null,
         data.role,
         data.employmentType ?? 'full_time',
@@ -115,6 +120,7 @@ export class StaffService {
       'firstName',
       'lastName',
       'email',
+      'password',
       'phone',
       'role',
       'employmentType',
@@ -126,7 +132,11 @@ export class StaffService {
     const params: any[] = [];
     for (const key of allowed) {
       if (data[key] !== undefined) {
-        params.push(data[key]);
+        let value = data[key];
+        if (key === 'password') {
+          value = await bcrypt.hash(value, 10);
+        }
+        params.push(value);
         fields.push(`"${key}" = $${params.length}`);
       }
     }

@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsEmail,
   Min,
+  MinLength,
 } from 'class-validator';
 import {
   StaffRole,
@@ -26,6 +27,11 @@ export class CreateStaffDto {
 
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
 
   @IsOptional()
   @IsString()
@@ -64,6 +70,11 @@ export class UpdateStaffDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
 
   @IsOptional()
   @IsString()

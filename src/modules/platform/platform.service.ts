@@ -700,6 +700,7 @@ export class PlatformService {
         "firstName" VARCHAR NOT NULL,
         "lastName" VARCHAR NOT NULL,
         email VARCHAR NOT NULL UNIQUE,
+        password VARCHAR,
         phone VARCHAR,
         role VARCHAR NOT NULL,
         "employmentType" VARCHAR NOT NULL DEFAULT 'full_time',
@@ -711,6 +712,10 @@ export class PlatformService {
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "deletedAt" TIMESTAMPTZ
       )
+    `);
+    // Migrate existing tables that were created without the password column
+    await queryRunner.query(`
+      ALTER TABLE "${s}"."staff" ADD COLUMN IF NOT EXISTS "password" VARCHAR
     `);
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "${s}"."shifts" (

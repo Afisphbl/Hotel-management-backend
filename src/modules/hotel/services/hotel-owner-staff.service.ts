@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -257,6 +258,7 @@ export class HotelOwnerStaffService {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
+          password: tempPassword,
           role: staffRole,
           status: 'active',
         },
@@ -264,7 +266,9 @@ export class HotelOwnerStaffService {
       );
     } catch (e) {
       this.logger.error(`Failed to sync staff to tenant schema: ${e.message}`);
-      // Don't fail the whole invite if sync fails (schema might not be ready)
+      throw new InternalServerErrorException(
+        `Failed to sync staff to hotel schema. The staff was created globally but could not be added to the hotel's staff table. Please ensure the hotel schema is properly provisioned. Error: ${e.message}`,
+      );
     }
 
     // Log the invite action

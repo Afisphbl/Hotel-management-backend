@@ -64,6 +64,59 @@ export class AuthService {
     });
   }
 
+  async findHotelBySlug(slug: string): Promise<any> {
+    return this.dataSource.getRepository(Hotel).findOne({
+      where: { slug },
+    });
+  }
+
+  async findHotelById(id: string): Promise<any> {
+    return this.dataSource.getRepository(Hotel).findOne({
+      where: { id },
+    });
+  }
+
+  extractHotelSlugFromEmail(email: string): string | null {
+    // Match pattern: {slug}.xxx@domain  (e.g. abdures.admin@hotels.io)
+    const match = email.match(/^([a-zA-Z0-9_-]+)\./);
+    return match ? match[1] : null;
+  }
+
+  stripSlugFromEmail(email: string): string {
+    // Remove {slug}. prefix: "abdures.zubier@hotels.io" -> "zubier@hotels.io"
+    return email.replace(/^[a-zA-Z0-9_-]+\./, '');
+  }
+
+  async validateUserWithFallback(
+    email: string,
+    pass: string,
+    hotelId?: string | null,
+  ): Promise<any> {
+    // First try the email as-is
+    let user = await this.validateUser(email, pass);
+    if (user) return user;
+
+    // If email has {slug}. prefix, strip it and try again
+    const slug = this.extractHotelSlugFromEmail(email);
+    if (slug) {
+      const strippedEmail = this.stripSlugFromEmail(email);
+      if (strippedEmail !== email) {
+        user = await this.validateUser(strippedEmail, pass);
+        if (user && hotelId) {
+          // Verify this user has access to the resolved hotel
+          const access = await this.dataSource
+            .getRepository(HotelUserAccess)
+            .findOne({
+              where: { userId: user.id, hotelId },
+            });
+          if (!access) user = null;
+        }
+      }
+    }
+
+    return user;
+  }
+
   async findUserById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
   }
@@ -337,11 +390,23 @@ export class AuthService {
       performedBy: user.id,
     });
 
+    let hotelSubdomain: string | null = null;
+    if (sessionHotelId) {
+      const sessionHotel = await this.hotelRepository.findOne({
+        where: { id: sessionHotelId },
+        select: ['subdomain'],
+      });
+      if (sessionHotel) {
+        hotelSubdomain = sessionHotel.subdomain;
+      }
+    }
+
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
       expires_in: this.configService.get('JWT_EXPIRATION'),
       dashboard_route: dashboardRoute,
+      hotel_subdomain: hotelSubdomain,
     };
   }
 
@@ -542,6 +607,27 @@ export class AuthService {
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.userRepository.update(userId, { password: hashed });
+
+    // Sync the new password hash to tenant staff tables
+    try {
+      const accesses = await this.dataSource
+        .getRepository(HotelUserAccess)
+        .find({ where: { userId } });
+      for (const access of accesses) {
+        const hotel = await this.dataSource
+          .getRepository(Hotel)
+          .findOne({ where: { id: access.hotelId } });
+        if (hotel?.schemaName) {
+          const s = hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
+          await this.dataSource.query(
+            `UPDATE "${s}"."staff" SET "password" = $1, "updatedAt" = NOW() WHERE "userId" = $2`,
+            [hashed, userId],
+          );
+        }
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to sync password to tenant staff table: ${e.message}`);
+    }
   }
 
   async updateProfile(

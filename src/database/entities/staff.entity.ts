@@ -38,6 +38,9 @@ export class Staff extends BaseEntity {
   @Column({ unique: true })
   email: string;
 
+  @Column({ select: false, nullable: true })
+  password: string;
+
   @Column({ nullable: true })
   phone: string;
 

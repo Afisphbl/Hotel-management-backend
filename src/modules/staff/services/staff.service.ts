@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Staff } from '../../../database/entities/staff.entity';
 import {
   CreateStaffDto,
@@ -37,12 +38,20 @@ export class StaffService {
   }
 
   async create(dto: CreateStaffDto): Promise<Staff> {
-    return this.staffRepository.save(this.staffRepository.create(dto));
+    const data = { ...dto };
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+    return this.staffRepository.save(this.staffRepository.create(data));
   }
 
   async update(id: string, dto: UpdateStaffDto): Promise<Staff> {
     const staff = await this.findById(id);
-    Object.assign(staff, dto);
+    const data = { ...dto };
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+    Object.assign(staff, data);
     return this.staffRepository.save(staff);
   }
 

@@ -56,24 +56,33 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Request() req: any) {
-    const user = await this.authService.validateUser(
+    // Resolve hotel from multiple sources (priority: email slug > subdomain param > explicit hotelId)
+    let hotel: any = null;
+
+    const slugFromEmail = this.authService.extractHotelSlugFromEmail(
+      loginDto.email,
+    );
+    if (slugFromEmail) {
+      hotel = await this.authService.findHotelBySlug(slugFromEmail);
+    }
+
+    if (!hotel && loginDto.domain) {
+      hotel = await this.authService.findHotelBySubdomain(loginDto.domain);
+    }
+
+    if (!hotel && loginDto.hotelId) {
+      hotel = await this.authService.findHotelById(loginDto.hotelId);
+    }
+
+    const hotelId = hotel?.id || null;
+
+    const user = await this.authService.validateUserWithFallback(
       loginDto.email,
       loginDto.password,
+      hotelId,
     );
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
-    }
-
-    let hotelId = loginDto.hotelId;
-
-    if (loginDto.domain && !hotelId) {
-      // Find hotel by subdomain if domain is provided
-      const hotel = await this.authService.findHotelBySubdomain(
-        loginDto.domain,
-      );
-      if (hotel) {
-        hotelId = hotel.id;
-      }
     }
 
     // Check if 2FA is required for Platform users
