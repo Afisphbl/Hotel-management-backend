@@ -9753,3 +9753,883 @@ Application is running on: http://localhost:5000/api/v1
 [90m[4mquery:[24m[39m [94mCREATE[0m [37mEXTENSION[0m [94mIF[0m [94mNOT[0m [94mEXISTS[0m [37m"uuid-ossp"[0m
 [90m[4mquery:[24m[39m [94mSET[0m [37msearch_path[0m [94mTO[0m [37m"global"[0m[37m,[0m [37mglobal[0m[37m,[0m [37mpublic[0m
 [90m[4mquery:[24m[39m [94mSELECT[0m [37m"GlobalSetting"[0m[37m.[0m[37m"id"[0m [94mAS[0m [37m"GlobalSetting_id"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"createdAt"[0m [94mAS[0m [37m"GlobalSetting_createdAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"updatedAt"[0m [94mAS[0m [37m"GlobalSetting_updatedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mAS[0m [37m"GlobalSetting_deletedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [94mAS[0m [37m"GlobalSetting_key"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"value"[0m [94mAS[0m [37m"GlobalSetting_value"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"category"[0m [94mAS[0m [37m"GlobalSetting_category"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"description"[0m [94mAS[0m [37m"GlobalSetting_description"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"isPublic"[0m [94mAS[0m [37m"GlobalSetting_isPublic"[0m [94mFROM[0m [37m"global"[0m[37m.[0m[37m"global_settings"[0m [37m"GlobalSetting"[0m [94mWHERE[0m [37m([0m [37m([0m[37m([0m[37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [37m)[0m [94mAND[0m [37m([0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mIS NULL[0m [37m)[0m [94mLIMIT[0m [32m1[0m [90m-- PARAMETERS: ["rate_limiting:config"][0m
+[2J[3J[H[[90m6:09:35 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:35 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:09:37 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:40 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:09:41 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:44 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:09:45 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:47 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:09:51 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:52 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:09:53 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:09:56 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:10:02 PM[0m] File change detected. Starting incremental compilation...
+
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mversion[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m*[0m [94mFROM[0m [95mcurrent_schema[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mCREATE[0m [37mEXTENSION[0m [94mIF[0m [94mNOT[0m [94mEXISTS[0m [37m"uuid-ossp"[0m
+[[90m6:10:03 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:10:04 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:10:06 PM[0m] Found 0 errors. Watching for file changes.
+
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mversion[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m*[0m [94mFROM[0m [95mcurrent_schema[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mCREATE[0m [37mEXTENSION[0m [94mIF[0m [94mNOT[0m [94mEXISTS[0m [37m"uuid-ossp"[0m
+[90m[4mquery:[24m[39m [94mSET[0m [37msearch_path[0m [94mTO[0m [37m"global"[0m[37m,[0m [37mglobal[0m[37m,[0m [37mpublic[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m"GlobalSetting"[0m[37m.[0m[37m"id"[0m [94mAS[0m [37m"GlobalSetting_id"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"createdAt"[0m [94mAS[0m [37m"GlobalSetting_createdAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"updatedAt"[0m [94mAS[0m [37m"GlobalSetting_updatedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mAS[0m [37m"GlobalSetting_deletedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [94mAS[0m [37m"GlobalSetting_key"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"value"[0m [94mAS[0m [37m"GlobalSetting_value"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"category"[0m [94mAS[0m [37m"GlobalSetting_category"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"description"[0m [94mAS[0m [37m"GlobalSetting_description"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"isPublic"[0m [94mAS[0m [37m"GlobalSetting_isPublic"[0m [94mFROM[0m [37m"global"[0m[37m.[0m[37m"global_settings"[0m [37m"GlobalSetting"[0m [94mWHERE[0m [37m([0m [37m([0m[37m([0m[37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [37m)[0m [94mAND[0m [37m([0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mIS NULL[0m [37m)[0m [94mLIMIT[0m [32m1[0m [90m-- PARAMETERS: ["rate_limiting:config"][0m
+Application is running on: http://localhost:5000/api/v1
+[18:10:12.453] [32mINFO[39m (12260): [36mStarting Nest application...[39m
+    [35mcontext[39m: "NestFactory"
+[18:10:12.454] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mPassportModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mHotelsModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mUsersModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mConfigHostModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mDiscoveryModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mCloudinary configured for cloud: dnkfnquyf[39m
+    [35mcontext[39m: "CloudinaryService"
+[18:10:12.454] [32mINFO[39m (12260): [36mConfigModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.454] [32mINFO[39m (12260): [36mConfigModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mLoggerModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mObservabilityModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mShardingModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBullModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBullModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mJwtModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mRedisModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mJwtModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mJwtModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBullModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBullModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBullModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmCoreModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mDatabaseModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mRateLimiterModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mTypeOrmModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mAppModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mPublicBookingModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mPublicModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mCloudinaryModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mStorageModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mHotelFinanceConfigModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mFinanceModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mAuthModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mHotelModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mWorkersModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mBookingsModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [32mINFO[39m (12260): [36mPlatformModule dependencies initialized[39m
+    [35mcontext[39m: "InstanceLoader"
+[18:10:12.455] [33mWARN[39m (12260): [36mUnsupported route path: "/api/v1/api/*". In previous versions, the symbols ?, *, and + were used to denote optional or repeating path parameters. The latest version of "path-to-regexp" now requires the use of named parameters. For example, instead of using a route like /users/* to capture all routes starting with "/users", you should use /users/*path. For more details, refer to the migration guide. Attempting to auto-convert...[39m
+    [35mcontext[39m: "LegacyRouteConverter"
+[18:10:12.455] [33mWARN[39m (12260): [36mUnsupported route path: "/api/v1/api/*". In previous versions, the symbols ?, *, and + were used to denote optional or repeating path parameters. The latest version of "path-to-regexp" now requires the use of named parameters. For example, instead of using a route like /users/* to capture all routes starting with "/users", you should use /users/*path. For more details, refer to the migration guide. Attempting to auto-convert...[39m
+    [35mcontext[39m: "LegacyRouteConverter"
+[18:10:12.456] [32mINFO[39m (12260): [36mMetricsController {/api/v1/metrics}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/metrics, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mStorageController {/api/v1/hotel/storage}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/storage/presign, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/storage/usage, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mCloudinaryController {/api/v1/hotel/cloudinary}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/cloudinary/upload, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mPublicController {/api/v1/public}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/hotels/by-subdomain/:subdomain, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/hotels/by-id/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/auth/register, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/auth/login, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/auth/me, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/auth/bookings, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/auth/me, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mPublicRoomsController {/api/v1/public}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/rooms, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/rooms/availability, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/rooms/booked-dates, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/rooms/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/room-types, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mPublicReviewsController {/api/v1/public/reviews}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/reviews/:roomId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/public/reviews, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mRoomsController {/api/v1/hotel/rooms}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/availability, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/booked-dates, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/:id/status, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/rooms/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mRoomTypesController {/api/v1/hotel/room-types}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/room-types, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/room-types/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/room-types, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/room-types/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/room-types/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mGuestsController {/api/v1/hotel/guests}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/guests, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/guests/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/guests, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/guests/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/guests/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mHousekeepingController {/api/v1/hotel/housekeeping}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping/:id/assign, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping/:id/complete, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/housekeeping/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMaintenanceController {/api/v1/hotel/maintenance}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/stats, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/:id/assign, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.456] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/:id/resolve, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/maintenance/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mStaffController {/api/v1/hotel/staff}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/staff, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/staff/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/staff, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/staff/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/staff/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mShiftsController {/api/v1/hotel/shifts}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts/:id/check-in, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts/:id/check-out, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/shifts/:id/cancel, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mInvoicesController {/api/v1/hotel/invoices}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/invoices, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/invoices/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/invoices/:id/issue, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/invoices/:id/void, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mPaymentsController {/api/v1/hotel/payments}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/payments, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/payments/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/payments, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/payments/:id/refund, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/payments/:id/refunds, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mDashboardController {/api/v1/platform/dashboard}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/dashboard, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mHotelOwnerDashboardController {/api/v1/hotel/dashboard}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/dashboard, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mHotelManagementController {/api/v1/hotel/owner/hotels}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/activate, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/branding, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mHotelManagementExtendedController {/api/v1/hotel/owner/hotels}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/info, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/settings, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/timezone-currency-taxes, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/subscription, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/performance, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/booking-policies, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/admins, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/modules, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/audit-logs, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/notifications, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/payment-methods, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/hotels/:id/cancellation-policy, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mHotelOwnerStaffController {/api/v1/hotel/owner/staff}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/roles, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/invite, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/:id/role, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/:id/status, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/owner/staff/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mHotelOwnerReportsController {/api/v1/hotel/reports}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/reports, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mPricingController {/api/v1/hotel/pricing}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/overrides, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/overrides, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/overrides/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/overrides/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/promotions, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/promotions, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/promotions/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/promotions/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/seasonal-rates, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/seasonal-rates, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/seasonal-rates/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/seasonal-rates/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/rate-plans, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/rate-plans, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/rate-plans/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/pricing/rate-plans/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mNotificationsController {/api/v1/notifications}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/notifications, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/notifications/unread-count, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/notifications/:id/read, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/notifications/read-all, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mPublicBookingController {/api/v1/public/bookings}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/public/bookings, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/public/bookings/:id/return/:hotelId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/public/bookings/webhook, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/public/bookings/webhook, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/public/bookings/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mAuthController {/api/v1/auth}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/login, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/setup-2fa, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/activate-2fa, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/verify-2fa, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/impersonate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/refresh, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/logout, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/change-password, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/auth/profile, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mBookingsController {/api/v1/hotel/bookings}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/calculate-price, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id/confirm, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.457] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id/cancel, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id/checkin, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id/checkout, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/bookings/:id/status, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPaymentsController {/api/v1/finance/payments}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/payments, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/payments/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/payments, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/payments/by-invoice/:invoiceId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/payments/by-booking/:bookingId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mRefundsController {/api/v1/finance/refunds}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/refunds, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/refunds/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/refunds, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/refunds/by-payment/:paymentId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/refunds/by-booking/:bookingId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mInvoicesController {/api/v1/finance/invoices}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices/:id/issue, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices/:id/paid, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices/:id/overdue, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/invoices/:id/void, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mLedgerController {/api/v1/finance/ledger}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/ledger, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/ledger/trial-balance, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/ledger/balance/:accountId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/ledger/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/ledger, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mTaxRulesController {/api/v1/finance/tax-rules}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/tax-rules, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/tax-rules/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/tax-rules, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/tax-rules/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/finance/tax-rules/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformHotelsController {/api/v1/platform/hotels}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id/branding, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id/reprovision-schema, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id/features, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/:id/features/:featureId/toggle, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/staff, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/hotels/staff, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformAnalyticsController {/api/v1/platform/analytics}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/global, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/kpis, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/revenue-chart, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/hotels-by-tier, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/revenue-summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/billing-report, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/audit-logs, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/mrr, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/churn, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/financial-report, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/projections, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformSubscriptionsController {/api/v1/platform/subscriptions}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/plans, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/top, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/subscriptions/:id/cancel, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformFeatureFlagsController {/api/v1/platform/feature-flags}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/rollout-summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/:id/toggle, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/evaluate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/feature-flags/evaluate-variant, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformSettingsController {/api/v1/platform/settings}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/settings, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/settings, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/settings/:key, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformMonitoringController {/api/v1/platform/monitoring}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/health, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/health/detailed, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/system, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/metrics, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/uptime, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/uptime/summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/uptime/record, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-windows, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-windows/active, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-windows, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-windows/:id/status, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-windows/:id/cancel, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-notice, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-notice, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/monitoring/maintenance-mode, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mPlatformComplianceController {/api/v1/platform/compliance}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/password-policy, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.458] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/password-policy, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/retention-policy, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/retention-policy, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/gdpr/export/:userId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/compliance/gdpr/anonymize/:userId, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformQuotaController {/api/v1/platform/quota}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/snapshot/:hotelId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/utilization/:hotelId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/sync/:hotelId, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/overage/:hotelId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/overage/bill/:hotelId, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/alerts, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/quota/alerts/:id/dismiss, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mCrossTenantAccessController {/api/v1/platform/access}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/impersonate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/impersonate/:id/stop, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/impersonate, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/impersonate/history, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency/:id/approve, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency/:id/activate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency/:id/revoke, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/emergency/pending, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/delegations, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/delegations/:id/revoke, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/delegations, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/support, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/support/:id/revoke, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/access/support, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformConfigController {/api/v1/platform/config}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/smtp, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/smtp, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/smtp/test, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/payment-gateway, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/payment-gateway, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/config/payment-gateway/test, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformTaxRulesController {/api/v1/platform/tax-rules}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/tax-rules/applicable/:country, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformLocalesController {/api/v1/platform/locales}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/locales, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/locales/:hotelId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/locales/:hotelId, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformUsersManagementController {/api/v1/platform/users}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id/deactivate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id/activate, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id/suspend, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id/reset-lockout, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/:id/change-password, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/role/:roleName, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/lockout/config, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/users/lockout/config, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformConsentController {/api/v1/platform/privacy}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/consents/:userId, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/consents/:userId/summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/consents, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/consents/:userId/revoke/:type, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/consents/:userId/check/:type, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/data-retention, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/data-retention, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/privacy/cleanup-expired-consents, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformAnalyticsExportController {/api/v1/platform/analytics}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/export/:snapshotType, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports/:id, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports/:id, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports/:id/run, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports/:id/export, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/analytics/reports/:id/delete, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mPlatformRolesController {/api/v1/platform}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/roles, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/roles/summary, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/platform/permissions, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mHotelFinanceConfigController {/api/v1/hotel/finance-config}:[39m
+    [35mcontext[39m: "RoutesResolver"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/finance-config, GET} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/finance-config, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/finance-config/taxes, POST} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/finance-config/taxes/:id, PATCH} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mMapped {/api/v1/hotel/finance-config/taxes/:id, DELETE} route[39m
+    [35mcontext[39m: "RouterExplorer"
+[18:10:12.459] [32mINFO[39m (12260): [36mNo read replicas configured, using primary for all queries[39m
+    [35mcontext[39m: "ReplicaDataSourceService"
+[18:10:12.460] [32mINFO[39m (12260): [36mNo shard configuration found, running in single-database mode[39m
+    [35mcontext[39m: "ShardingService"
+[18:10:12.460] [32mINFO[39m (12260): [36mNest application successfully started[39m
+    [35mcontext[39m: "NestApplication"
+[90m[4mquery:[24m[39m [94mSET[0m [37msearch_path[0m [94mTO[0m [37m"global"[0m[37m,[0m [37mglobal[0m[37m,[0m [37mpublic[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mCOUNT[0m[37m([0m[32m1[0m[37m)[0m [94mAS[0m [37m"cnt"[0m [94mFROM[0m [37m"notifications"[0m [37m"Notification"[0m [94mWHERE[0m [37m([0m [37m([0m[37m([0m[37m"Notification"[0m[37m.[0m[37m"userId"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [37m)[0m [94mAND[0m [37m([0m [37m"Notification"[0m[37m.[0m[37m"deletedAt"[0m [94mIS NULL[0m [37m)[0m [90m-- PARAMETERS: ["9b7b2c35-d485-40fb-9a8d-c53cc426e68a"][0m
+[90m[4mquery:[24m[39m [94mSET[0m [37msearch_path[0m [94mTO[0m [37m"global"[0m[37m,[0m [37mglobal[0m[37m,[0m [37mpublic[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mCOUNT[0m[37m([0m[32m1[0m[37m)[0m [94mAS[0m [37m"cnt"[0m [94mFROM[0m [37m"notifications"[0m [37m"Notification"[0m [94mWHERE[0m [37m([0m [37m([0m[37m([0m[37m"Notification"[0m[37m.[0m[37m"userId"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [37m)[0m [94mAND[0m [37m([0m [37m"Notification"[0m[37m.[0m[37m"deletedAt"[0m [94mIS NULL[0m [37m)[0m [90m-- PARAMETERS: ["9b7b2c35-d485-40fb-9a8d-c53cc426e68a"][0m
+[2J[3J[H[[90m6:11:05 PM[0m] File change detected. Starting incremental compilation...
+
+[[90m6:11:08 PM[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m6:11:08 PM[0m] File change detected. Starting incremental compilation...
+
+[90m[4mquery:[24m[39m [94mSELECT[0m [95mversion[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m*[0m [94mFROM[0m [95mcurrent_schema[0m[37m([0m[37m)[0m
+[90m[4mquery:[24m[39m [94mCREATE[0m [37mEXTENSION[0m [94mIF[0m [94mNOT[0m [94mEXISTS[0m [37m"uuid-ossp"[0m
+[90m[4mquery:[24m[39m [94mSET[0m [37msearch_path[0m [94mTO[0m [37m"global"[0m[37m,[0m [37mglobal[0m[37m,[0m [37mpublic[0m
+[90m[4mquery:[24m[39m [94mSELECT[0m [37m"GlobalSetting"[0m[37m.[0m[37m"id"[0m [94mAS[0m [37m"GlobalSetting_id"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"createdAt"[0m [94mAS[0m [37m"GlobalSetting_createdAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"updatedAt"[0m [94mAS[0m [37m"GlobalSetting_updatedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mAS[0m [37m"GlobalSetting_deletedAt"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [94mAS[0m [37m"GlobalSetting_key"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"value"[0m [94mAS[0m [37m"GlobalSetting_value"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"category"[0m [94mAS[0m [37m"GlobalSetting_category"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"description"[0m [94mAS[0m [37m"GlobalSetting_description"[0m[37m,[0m [37m"GlobalSetting"[0m[37m.[0m[37m"isPublic"[0m [94mAS[0m [37m"GlobalSetting_isPublic"[0m [94mFROM[0m [37m"global"[0m[37m.[0m[37m"global_settings"[0m [37m"GlobalSetting"[0m [94mWHERE[0m [37m([0m [37m([0m[37m([0m[37m"GlobalSetting"[0m[37m.[0m[37m"key"[0m [37m=[0m [37m$[0m[32m1[0m[37m)[0m[37m)[0m [37m)[0m [94mAND[0m [37m([0m [37m"GlobalSetting"[0m[37m.[0m[37m"deletedAt"[0m [94mIS NULL[0m [37m)[0m [94mLIMIT[0m [32m1[0m [90m-- PARAMETERS: ["rate_limiting:config"][0m
