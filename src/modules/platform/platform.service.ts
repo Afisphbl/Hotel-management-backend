@@ -1384,9 +1384,12 @@ export class PlatformService {
       take: 20,
     });
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const userIds = [
       ...new Set(
-        logs.map((log) => log.performedBy || log.userId).filter(Boolean),
+        logs
+          .map((log) => log.performedBy || log.userId)
+          .filter((id): id is string => !!id && uuidRegex.test(id)),
       ),
     ];
     const hotelIds = [
