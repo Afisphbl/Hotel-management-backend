@@ -645,8 +645,8 @@ export class DashboardService {
         end: endDate,
       })
       .andWhere('invoice."bookingId" IN (:...bookingIds)', { bookingIds })
-      .groupBy('monthKey')
-      .orderBy('monthKey', 'ASC')
+      .groupBy('"monthKey"')
+      .orderBy('"monthKey"', 'ASC')
       .getRawMany();
 
     const monthNames = [
