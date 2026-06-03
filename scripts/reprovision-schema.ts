@@ -36,7 +36,7 @@ async function main() {
     `CREATE TABLE IF NOT EXISTS "${s}"."rooms" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "roomNumber" VARCHAR NOT NULL, floor VARCHAR NOT NULL,
       "hotelId" VARCHAR NOT NULL, "roomTypeId" UUID REFERENCES "${s}"."room_types"(id),
-      "basePrice" NUMERIC(12,2), "baseCapacity" INT, status VARCHAR NOT NULL DEFAULT 'available',
+      "basePrice" NUMERIC(12,2), "baseCapacity" INT, status VARCHAR NOT NULL DEFAULT 'available', images TEXT[],
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ,
       UNIQUE("hotelId", "roomNumber"))`,
     `CREATE TABLE IF NOT EXISTS "${s}"."guests" (
