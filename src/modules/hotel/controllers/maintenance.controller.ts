@@ -77,12 +77,12 @@ export class MaintenanceController {
   @Post(':id/resolve')
   async resolve(
     @Param('id') id: string,
-    @Body() data: { notes?: string; cost?: number },
+    @Body() dto: UpdateMaintenanceDto,
   ) {
     const ticket = await this.maintenanceService.resolve(
       id,
-      data.notes,
-      data.cost,
+      dto.notes,
+      dto.cost,
     );
     return success(ticket);
   }

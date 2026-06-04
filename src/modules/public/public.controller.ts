@@ -1,6 +1,16 @@
-import { Controller, Get, Post, Patch, Body, Param, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PublicService } from './public.service';
 import { GuestRegisterDto, GuestLoginDto } from './dto/guest-register.dto';
+import { UpdateGuestProfileDto } from './dto/public-operations.dto';
 
 @Controller('public')
 export class PublicController {
@@ -28,14 +38,16 @@ export class PublicController {
 
   @Get('auth/me')
   async me(@Headers('authorization') authorization: string) {
-    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    if (!authorization)
+      throw new UnauthorizedException('Missing authorization header');
     const token = authorization.replace('Bearer ', '');
     return this.publicService.getMe(token);
   }
 
   @Get('auth/bookings')
   async myBookings(@Headers('authorization') authorization: string) {
-    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    if (!authorization)
+      throw new UnauthorizedException('Missing authorization header');
     const token = authorization.replace('Bearer ', '');
     return this.publicService.getMyBookings(token);
   }
@@ -43,10 +55,11 @@ export class PublicController {
   @Patch('auth/me')
   async updateMe(
     @Headers('authorization') authorization: string,
-    @Body() body: { nationality?: string; nationalID?: string; countryFlag?: string },
+    @Body() dto: UpdateGuestProfileDto,
   ) {
-    if (!authorization) throw new UnauthorizedException('Missing authorization header');
+    if (!authorization)
+      throw new UnauthorizedException('Missing authorization header');
     const token = authorization.replace('Bearer ', '');
-    return this.publicService.updateMe(token, body);
+    return this.publicService.updateMe(token, dto);
   }
 }

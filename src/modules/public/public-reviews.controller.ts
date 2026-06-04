@@ -11,6 +11,7 @@ import {
 import { ReviewsService } from './reviews.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { CreateReviewDto } from './dto/public-operations.dto';
 
 @Controller('public/reviews')
 export class PublicReviewsController {
@@ -27,7 +28,7 @@ export class PublicReviewsController {
   ) {
     const reviews = await this.reviewsService.findByRoomId(hotelId, roomId);
     const stats = await this.reviewsService.getAverageRating(hotelId, roomId);
-    
+
     return {
       reviews,
       stats,
@@ -37,7 +38,7 @@ export class PublicReviewsController {
   @Post()
   async create(
     @Headers('authorization') authHeader: string,
-    @Body() dto: { hotelId: string, roomId: string, rating: number, comment: string },
+    @Body() dto: CreateReviewDto,
   ) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Authentication required');

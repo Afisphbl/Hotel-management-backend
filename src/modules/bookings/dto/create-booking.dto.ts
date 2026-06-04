@@ -6,7 +6,9 @@ import {
   IsDateString,
   IsArray,
   ArrayMinSize,
+  IsEnum,
 } from 'class-validator';
+import { BookingStatus } from '../../../database/entities/booking.entity';
 
 export class CreateBookingDto {
   @IsUUID()
@@ -74,6 +76,27 @@ export class UpdateBookingDto {
   @IsArray()
   @IsUUID('4', { each: true })
   roomIds?: string[];
+}
+
+export class CalculatePricePreviewDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  roomIds: string[];
+
+  @IsDateString()
+  @IsNotEmpty()
+  checkIn: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  checkOut: string;
+}
+
+export class UpdateBookingStatusDto {
+  @IsEnum(BookingStatus)
+  @IsNotEmpty()
+  status: BookingStatus;
 }
 
 export class QueryBookingsDto {

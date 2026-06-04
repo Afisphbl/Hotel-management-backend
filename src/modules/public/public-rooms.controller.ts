@@ -10,6 +10,7 @@ import {
 import { RoomsService } from '../hotel/services/rooms.service';
 import { RoomTypesService } from '../hotel/services/room-types.service';
 import { PricingService } from '../hotel/services/pricing.service';
+import { CalculatePriceDto } from './dto/public-operations.dto';
 
 @Controller('public')
 export class PublicRoomsController {
@@ -71,15 +72,16 @@ export class PublicRoomsController {
             baseCapacity: r.roomType.baseCapacity,
             maxExtraBeds: r.roomType.maxExtraBeds,
             basePrice: Number(r.roomType.basePrice),
-            description: (r.roomType as any).description || null,
-            image: (r.roomType as any).image || null,
+            description: r.roomType.description || null,
+            image: r.roomType.image || null,
           }
         : null,
       basePrice: r.basePrice != null ? Number(r.basePrice) : null,
       baseCapacity: r.baseCapacity,
       status: r.status,
       images: r.images || [],
-      effectivePrice: r.effectivePrice != null ? Number(r.effectivePrice) : null,
+      effectivePrice:
+        r.effectivePrice != null ? Number(r.effectivePrice) : null,
       _sortPrice:
         r.effectivePrice != null
           ? Number(r.effectivePrice)
@@ -94,7 +96,8 @@ export class PublicRoomsController {
     }));
 
     const validSortBy = ['floor', 'price', 'capacity', 'roomNumber'] as const;
-    const field = (sortBy && validSortBy.includes(sortBy as any)) ? sortBy : 'floor';
+    const field =
+      sortBy && validSortBy.includes(sortBy as any) ? sortBy : 'floor';
     const order = sortOrder === 'desc' ? -1 : 1;
 
     mapped.sort((a: any, b: any) => {
@@ -174,21 +177,24 @@ export class PublicRoomsController {
 
   @Post('rooms/calculate-price')
   async calculatePrice(
-    @Body() body: { hotelId: string; roomId: string; checkIn: string; checkOut: string },
+    @Body() dto: CalculatePriceDto,
   ) {
-    const { hotelId, roomId, checkIn, checkOut } = body;
+    const { hotelId, roomId, checkIn, checkOut } = dto;
     if (!hotelId || !roomId || !checkIn || !checkOut) {
-      throw new NotFoundException('hotelId, roomId, checkIn, and checkOut are required');
+      throw new NotFoundException(
+        'hotelId, roomId, checkIn, and checkOut are required',
+      );
     }
 
     // Get room to find roomTypeId and basePrice
     const room = await this.roomsService.findById(roomId, hotelId);
     const roomTypeId = room.roomTypeId;
-    const basePrice = room.basePrice != null
-      ? Number(room.basePrice)
-      : (room as any).roomType?.basePrice != null
-        ? Number((room as any).roomType.basePrice)
-        : 0;
+    const basePrice =
+      room.basePrice != null
+        ? Number(room.basePrice)
+        : (room as any).roomType?.basePrice != null
+          ? Number((room as any).roomType.basePrice)
+          : 0;
 
     // Generate dates between checkIn and checkOut
     const dates: string[] = [];
@@ -211,7 +217,13 @@ export class PublicRoomsController {
           new Date(date),
           basePrice,
         );
-        return { date, price: info.price, reason: info.reason, type: info.type, factors: info.factors };
+        return {
+          date,
+          price: info.price,
+          reason: info.reason,
+          type: info.type,
+          factors: info.factors,
+        };
       }),
     );
 
@@ -222,10 +234,7 @@ export class PublicRoomsController {
   }
 
   @Get('rooms/:id')
-  async findById(
-    @Param('id') id: string,
-    @Query('hotelId') hotelId: string,
-  ) {
+  async findById(@Param('id') id: string, @Query('hotelId') hotelId: string) {
     if (!hotelId) {
       throw new NotFoundException('hotelId is required');
     }
@@ -251,9 +260,10 @@ export class PublicRoomsController {
       baseCapacity: room.baseCapacity,
       status: room.status,
       images: room.images || [],
-      effectivePrice: (room as any).effectivePrice != null
-        ? Number((room as any).effectivePrice)
-        : null,
+      effectivePrice:
+        (room as any).effectivePrice != null
+          ? Number((room as any).effectivePrice)
+          : null,
     };
   }
 
@@ -263,8 +273,7 @@ export class PublicRoomsController {
     startDate?: string,
     endDate?: string,
   ): Promise<string[]> {
-    const start =
-      startDate || new Date().toISOString().split('T')[0];
+    const start = startDate || new Date().toISOString().split('T')[0];
     const end =
       endDate ||
       new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0];

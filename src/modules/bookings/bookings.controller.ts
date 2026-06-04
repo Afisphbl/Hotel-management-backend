@@ -25,6 +25,8 @@ import {
   CancelBookingDto,
   QueryBookingsDto,
   UpdateBookingDto,
+  CalculatePricePreviewDto,
+  UpdateBookingStatusDto,
 } from './dto/create-booking.dto';
 
 @Controller('hotel/bookings')
@@ -61,7 +63,7 @@ export class BookingsController {
   @Post('calculate-price')
   @HttpCode(HttpStatus.OK)
   async calculatePrice(
-    @Body() dto: { roomIds: string[]; checkIn: string; checkOut: string },
+    @Body() dto: CalculatePricePreviewDto,
   ) {
     const result = await this.bookingsService.calculatePricePreview(dto);
     return { success: true, data: result };
@@ -139,14 +141,19 @@ export class BookingsController {
     @Request() req: any,
   ) {
     const hotelId = req.user.hotel_id || req.user.hotelId;
-    const booking = await this.bookingsService.updateBooking(id, dto, hotelId, req.user.userId);
+    const booking = await this.bookingsService.updateBooking(
+      id,
+      dto,
+      hotelId,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,
-    @Body() dto: { status: BookingStatus },
+    @Body() dto: UpdateBookingStatusDto,
     @Request() req: any,
   ) {
     const booking = await this.bookingsService.transitionStatus(

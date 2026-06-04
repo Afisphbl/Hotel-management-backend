@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { Activate2faDto, ChangePasswordDto, UpdateProfileDto } from './dto/auth-operations.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -130,13 +131,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async activate2fa(
-    @Body() body: { secret: string; code: string },
+    @Body() dto: Activate2faDto,
     @Request() req: any,
   ) {
     return this.authService.verify2FASetup(
       req.user.userId,
-      body.secret,
-      body.code,
+      dto.secret,
+      dto.code,
     );
   }
 
@@ -210,13 +211,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async changePassword(
-    @Body() body: { currentPassword: string; newPassword: string },
+    @Body() dto: ChangePasswordDto,
     @Request() req: any,
   ) {
     await this.authService.changePassword(
       req.user.userId,
-      body.currentPassword,
-      body.newPassword,
+      dto.currentPassword,
+      dto.newPassword,
     );
     return { success: true };
   }
@@ -225,10 +226,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async updateProfile(
-    @Body() body: { firstName?: string; lastName?: string },
+    @Body() dto: UpdateProfileDto,
     @Request() req: any,
   ) {
-    await this.authService.updateProfile(req.user.userId, body);
+    await this.authService.updateProfile(req.user.userId, dto);
     return { success: true };
   }
 }
