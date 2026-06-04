@@ -7,8 +7,15 @@ import {
   OutboxEvent,
   OutboxStatus,
 } from '../../../database/entities/outbox-event.entity';
-import { Invoice, InvoiceStatus } from '../../../database/entities/invoice.entity';
-import { Payment, PaymentMethod, PaymentStatus } from '../../../database/entities/payment.entity';
+import {
+  Invoice,
+  InvoiceStatus,
+} from '../../../database/entities/invoice.entity';
+import {
+  Payment,
+  PaymentMethod,
+  PaymentStatus,
+} from '../../../database/entities/payment.entity';
 import { Booking } from '../../../database/entities/booking.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
 import { NotificationService } from '../services/notification.service';
@@ -42,13 +49,23 @@ export class OutboxRelayProcessor extends WorkerHost {
   private registerHandlers(): void {
     this.handlers = {
       BOOKING_CREATED: async (payload) => {
-        console.log(`[BOOKING_CREATED Handler] Starting for booking ${payload.bookingId}, totalPrice: ${payload.totalPrice}, hotelId: ${payload.hotelId}`);
+        console.log(
+          `[BOOKING_CREATED Handler] Starting for booking ${payload.bookingId}, totalPrice: ${payload.totalPrice}, hotelId: ${payload.hotelId}`,
+        );
         try {
-          console.log(`[BOOKING_CREATED Handler] Checking for existing invoice, bookingId: ${payload.bookingId}`);
-          const existing = await this.invoiceRepository.findOneBy({ bookingId: payload.bookingId });
+          console.log(
+            `[BOOKING_CREATED Handler] Checking for existing invoice, bookingId: ${payload.bookingId}`,
+          );
+          const existing = await this.invoiceRepository.findOneBy({
+            bookingId: payload.bookingId,
+          });
           if (existing) {
-            console.log(`[BOOKING_CREATED Handler] Invoice already exists: ${existing.id}`);
-            this.logger.log(`Invoice already exists for booking ${payload.bookingId}`);
+            console.log(
+              `[BOOKING_CREATED Handler] Invoice already exists: ${existing.id}`,
+            );
+            this.logger.log(
+              `Invoice already exists for booking ${payload.bookingId}`,
+            );
             return;
           }
 
@@ -60,9 +77,14 @@ export class OutboxRelayProcessor extends WorkerHost {
             dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           });
 
-          const hotel = await this.hotelRepository.findOneBy({ id: payload.hotelId });
-          const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
-          console.log(`[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`);
+          const hotel = await this.hotelRepository.findOneBy({
+            id: payload.hotelId,
+          });
+          const schema =
+            hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
+          console.log(
+            `[BOOKING_CREATED Handler] Saving invoice in tenant schema: ${schema}`,
+          );
 
           const qr = this.dataSource.createQueryRunner();
           await qr.connect();
@@ -81,14 +103,24 @@ export class OutboxRelayProcessor extends WorkerHost {
               description: `Auto-created payment for booking ${payload.bookingId}`,
             });
             const savedPayment = await qr.manager.save(payment);
-            console.log(`[BOOKING_CREATED Handler] Invoice ${savedInvoice.id} + Payment ${savedPayment.id} created`);
-            this.logger.log(`Invoice ${savedInvoice.id} and Payment ${savedPayment.id} created for booking ${payload.bookingId}`);
+            console.log(
+              `[BOOKING_CREATED Handler] Invoice ${savedInvoice.id} + Payment ${savedPayment.id} created`,
+            );
+            this.logger.log(
+              `Invoice ${savedInvoice.id} and Payment ${savedPayment.id} created for booking ${payload.bookingId}`,
+            );
           } finally {
             await qr.release();
           }
         } catch (err) {
-          console.error(`[BOOKING_CREATED Handler] ERROR:`, err.message, err.stack);
-          this.logger.error(`Failed to create invoice for booking ${payload.bookingId}: ${err.message}`);
+          console.error(
+            `[BOOKING_CREATED Handler] ERROR:`,
+            err.message,
+            err.stack,
+          );
+          this.logger.error(
+            `Failed to create invoice for booking ${payload.bookingId}: ${err.message}`,
+          );
           throw err;
         }
       },
@@ -117,7 +149,9 @@ export class OutboxRelayProcessor extends WorkerHost {
 
   async process(job: Job<{ eventId?: string; batch?: boolean }>): Promise<any> {
     const { eventId } = job.data;
-    console.log(`[OutboxRelayProcessor] process() called, eventId: ${eventId}, jobId: ${job.id}`);
+    console.log(
+      `[OutboxRelayProcessor] process() called, eventId: ${eventId}, jobId: ${job.id}`,
+    );
 
     if (eventId) {
       return this.processSingle(eventId);
@@ -127,14 +161,20 @@ export class OutboxRelayProcessor extends WorkerHost {
   }
 
   private async processSingle(eventId: string): Promise<void> {
-    console.log(`[OutboxRelayProcessor] processSingle() looking for event ${eventId}`);
+    console.log(
+      `[OutboxRelayProcessor] processSingle() looking for event ${eventId}`,
+    );
     const event = await this.outboxRepository.findOneBy({ id: eventId });
     if (!event) {
-      console.log(`[OutboxRelayProcessor] Event ${eventId} NOT FOUND in database`);
+      console.log(
+        `[OutboxRelayProcessor] Event ${eventId} NOT FOUND in database`,
+      );
       this.logger.warn(`Outbox event ${eventId} not found`);
       return;
     }
-    console.log(`[OutboxRelayProcessor] Found event ${eventId}, type: ${event.type}, status: ${event.status}`);
+    console.log(
+      `[OutboxRelayProcessor] Found event ${eventId}, type: ${event.type}, status: ${event.status}`,
+    );
     await this.dispatch(event);
   }
 
@@ -170,7 +210,9 @@ export class OutboxRelayProcessor extends WorkerHost {
 
   private async dispatch(event: OutboxEvent): Promise<void> {
     const handler = this.handlers[event.type];
-    console.log(`[OutboxRelayProcessor] dispatch() for event ${event.id}, type: ${event.type}, hasHandler: ${!!handler}`);
+    console.log(
+      `[OutboxRelayProcessor] dispatch() for event ${event.id}, type: ${event.type}, hasHandler: ${!!handler}`,
+    );
 
     if (!handler) {
       this.logger.warn(`No handler registered for event type: ${event.type}`);
@@ -182,13 +224,20 @@ export class OutboxRelayProcessor extends WorkerHost {
 
     try {
       await handler(event.payload);
-      console.log(`[OutboxRelayProcessor] Handler completed successfully for event ${event.id}`);
+      console.log(
+        `[OutboxRelayProcessor] Handler completed successfully for event ${event.id}`,
+      );
       event.status = OutboxStatus.PROCESSED;
       (event as any).error = null;
       await this.outboxRepository.save(event);
-      console.log(`[OutboxRelayProcessor] Event ${event.id} saved as PROCESSED`);
+      console.log(
+        `[OutboxRelayProcessor] Event ${event.id} saved as PROCESSED`,
+      );
     } catch (err) {
-      console.error(`[OutboxRelayProcessor] Handler FAILED for event ${event.id}:`, err.message);
+      console.error(
+        `[OutboxRelayProcessor] Handler FAILED for event ${event.id}:`,
+        err.message,
+      );
       event.attempts += 1;
       event.error = err.message;
 

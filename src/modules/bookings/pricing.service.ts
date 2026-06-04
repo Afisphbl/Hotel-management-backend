@@ -17,7 +17,9 @@ export class PricingService {
 
   private async getSchema(hotelId: string): Promise<string> {
     if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
     this.schemaCache.set(hotelId, schema);
     return schema;
@@ -62,7 +64,9 @@ export class PricingService {
     );
     if (rp) {
       const isWeekend = [0, 6].includes(date.getUTCDay());
-      const adj = isWeekend ? Number(rp.weekendAdjustment) : Number(rp.weekdayAdjustment);
+      const adj = isWeekend
+        ? Number(rp.weekendAdjustment)
+        : Number(rp.weekdayAdjustment);
       if (adj !== 0) {
         price += price * (adj / 100);
         this.logger.debug(`RatePlan adjustment: ${adj}% → ${price}`);
@@ -86,9 +90,10 @@ export class PricingService {
       [roomTypeId, d],
     );
     if (pr) {
-      price = pr.discountType === 'percentage'
-        ? price - price * (Number(pr.discountValue) / 100)
-        : price - Number(pr.discountValue);
+      price =
+        pr.discountType === 'percentage'
+          ? price - price * (Number(pr.discountValue) / 100)
+          : price - Number(pr.discountValue);
       this.logger.debug(`Promotion "${pr.name}" applied → ${price}`);
     }
 

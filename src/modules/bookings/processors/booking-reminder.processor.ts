@@ -3,8 +3,16 @@ import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Booking, BookingStatus } from '../../../database/entities/booking.entity';
-import { Notification, NotificationType, NotificationStatus, NotificationChannel } from '../../../database/entities/notification.entity';
+import {
+  Booking,
+  BookingStatus,
+} from '../../../database/entities/booking.entity';
+import {
+  Notification,
+  NotificationType,
+  NotificationStatus,
+  NotificationChannel,
+} from '../../../database/entities/notification.entity';
 import { BookingRoom } from '../../../database/entities/booking-room.entity';
 import { Room } from '../../../database/entities/room.entity';
 import { Hotel } from '../../../database/entities/hotel.entity';
@@ -77,7 +85,8 @@ export class BookingReminderProcessor extends WorkerHost {
         `Guest ${booking.guest?.firstName ?? 'N/A'} ${booking.guest?.lastName ?? ''} is checking out today.`,
         NotificationType.BOOKING_CHECKED_OUT,
       );
-      if (notified) this.logger.log(`Departure reminder: booking ${booking.id}`);
+      if (notified)
+        this.logger.log(`Departure reminder: booking ${booking.id}`);
     }
 
     for (const booking of inHouse) {
@@ -90,7 +99,11 @@ export class BookingReminderProcessor extends WorkerHost {
       if (notified) this.logger.log(`In-house reminder: booking ${booking.id}`);
     }
 
-    return { arrivals: arrivals.length, departures: departures.length, inHouse: inHouse.length };
+    return {
+      arrivals: arrivals.length,
+      departures: departures.length,
+      inHouse: inHouse.length,
+    };
   }
 
   private async createNotification(
@@ -101,9 +114,7 @@ export class BookingReminderProcessor extends WorkerHost {
   ): Promise<boolean> {
     try {
       const hotel = await this.getHotelForBooking(booking.id);
-      const userIds = hotel
-        ? await this.getHotelUserIds(hotel)
-        : [];
+      const userIds = hotel ? await this.getHotelUserIds(hotel) : [];
 
       if (!userIds.length) {
         this.logger.warn(`No users found for booking ${booking.id}`);

@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddRoomTypeIdToBookingRooms1748563200000
-  implements MigrationInterface
-{
+export class AddRoomTypeIdToBookingRooms1748563200000 implements MigrationInterface {
   name = 'AddRoomTypeIdToBookingRooms1748563200000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -10,7 +8,9 @@ export class AddRoomTypeIdToBookingRooms1748563200000
       `SELECT "schemaName" FROM global.hotels WHERE "schemaName" IS NOT NULL`,
     );
 
-    const schemas = [...new Set([...hotels.map((h) => h.schemaName), 'public'])];
+    const schemas = [
+      ...new Set([...hotels.map((h) => h.schemaName), 'public']),
+    ];
 
     for (const schema of schemas) {
       const safeSchema = schema.replace(/[^a-zA-Z0-9_]/g, '');
@@ -21,7 +21,9 @@ export class AddRoomTypeIdToBookingRooms1748563200000
         console.log(`Added roomTypeId to ${safeSchema}.booking_rooms`);
       } catch (err: any) {
         if (err?.message?.includes('already exists')) {
-          console.log(`Column roomTypeId already exists in ${safeSchema}.booking_rooms, skipping`);
+          console.log(
+            `Column roomTypeId already exists in ${safeSchema}.booking_rooms, skipping`,
+          );
         } else {
           throw err;
         }
@@ -34,7 +36,9 @@ export class AddRoomTypeIdToBookingRooms1748563200000
       `SELECT "schemaName" FROM global.hotels WHERE "schemaName" IS NOT NULL`,
     );
 
-    const schemas = [...new Set([...hotels.map((h) => h.schemaName), 'public'])];
+    const schemas = [
+      ...new Set([...hotels.map((h) => h.schemaName), 'public']),
+    ];
 
     for (const schema of schemas) {
       const safeSchema = schema.replace(/[^a-zA-Z0-9_]/g, '');

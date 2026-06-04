@@ -45,8 +45,12 @@ export class AddRoomImages1760000000000 implements MigrationInterface {
 
     for (const hotel of hotels) {
       const s = hotel.schemaName.replace(/[^a-zA-Z0-9_]/g, '');
-      await queryRunner.query(`ALTER TABLE "${s}".rooms DROP COLUMN IF EXISTS images`);
-      await queryRunner.query(`ALTER TABLE "${s}".room_types DROP COLUMN IF EXISTS image`);
+      await queryRunner.query(
+        `ALTER TABLE "${s}".rooms DROP COLUMN IF EXISTS images`,
+      );
+      await queryRunner.query(
+        `ALTER TABLE "${s}".room_types DROP COLUMN IF EXISTS image`,
+      );
     }
   }
 }

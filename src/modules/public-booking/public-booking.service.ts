@@ -28,7 +28,9 @@ export class PublicBookingService {
   }
 
   private async getSchema(hotelId: string): Promise<string> {
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     if (!hotel) throw new NotFoundException('Hotel not found');
     return hotel.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
   }
@@ -62,7 +64,10 @@ export class PublicBookingService {
     email: string;
     phoneNumber?: string;
   }) {
-    console.log('[createPublicBooking] Input:', { checkIn: dto.checkIn, checkOut: dto.checkOut });
+    console.log('[createPublicBooking] Input:', {
+      checkIn: dto.checkIn,
+      checkOut: dto.checkOut,
+    });
     const schema = await this.getSchema(dto.hotelId);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -113,11 +118,20 @@ export class PublicBookingService {
         [dto.roomId, dates],
       );
       if (conflictingNights.length > 0) {
-        console.log('[Conflict] Room', roomRow.roomNumber, 'not available for dates', dates, '- conflicting:', conflictingNights);
+        console.log(
+          '[Conflict] Room',
+          roomRow.roomNumber,
+          'not available for dates',
+          dates,
+          '- conflicting:',
+          conflictingNights,
+        );
         throw new ConflictException('Room is not available for selected dates');
       }
 
-      const roomBasePrice = Number(roomRow.basePrice || roomRow.rt_basePrice || 0);
+      const roomBasePrice = Number(
+        roomRow.basePrice || roomRow.rt_basePrice || 0,
+      );
       const nightPrices: { date: string; price: number }[] = [];
       for (const date of dates) {
         const info = await this.pricingService.getEffectivePriceInfo(
@@ -183,12 +197,14 @@ export class PublicBookingService {
           bookingId,
           totalPrice,
           totalPrice,
-          JSON.stringify([{
-            description: `${roomRow.roomNumber} x ${dates.length} nights`,
-            quantity: dates.length,
-            unitPrice: Math.round(totalPrice / dates.length * 100) / 100,
-            total: totalPrice,
-          }]),
+          JSON.stringify([
+            {
+              description: `${roomRow.roomNumber} x ${dates.length} nights`,
+              quantity: dates.length,
+              unitPrice: Math.round((totalPrice / dates.length) * 100) / 100,
+              total: totalPrice,
+            },
+          ]),
         ],
       );
       const invoiceId = invoiceResult[0].id;
@@ -198,15 +214,29 @@ export class PublicBookingService {
          ("invoiceId", "bookingId", "amount", "fee", "netAmount", "currency", "method", "status", "description")
          VALUES ($1, $2, $3, 0, $4, 'ETB', 'mobile_payment', 'pending', $5)
          RETURNING id`,
-        [invoiceId, bookingId, totalPrice, totalPrice, `Booking ${bookingId} - ${roomRow.roomNumber}`],
+        [
+          invoiceId,
+          bookingId,
+          totalPrice,
+          totalPrice,
+          `Booking ${bookingId} - ${roomRow.roomNumber}`,
+        ],
       );
       const paymentId = paymentResult[0].id;
 
-      const backofficeUrl = this.config.get('BACKOFFICE_URL', 'http://localhost:5000');
+      const backofficeUrl = this.config.get(
+        'BACKOFFICE_URL',
+        'http://localhost:5000',
+      );
       const rand = Math.random().toString(36).substring(2, 6);
       const txRef = `TX${Date.now()}${rand}`;
 
-      console.log('[Chapa] Initiating payment:', { amount: totalPrice, currency: 'ETB', email: dto.email, txRef });
+      console.log('[Chapa] Initiating payment:', {
+        amount: totalPrice,
+        currency: 'ETB',
+        email: dto.email,
+        txRef,
+      });
       const { checkoutUrl } = await this.chapaService.initiate({
         amount: totalPrice,
         currency: 'ETB',
@@ -276,7 +306,8 @@ export class PublicBookingService {
         const bookingId = payload.meta?.bookingId;
         const hotelId = payload.meta?.hotelId;
         if (bookingId && hotelId) {
-          const schema = payload.meta?.schemaName || await this.getSchema(hotelId);
+          const schema =
+            payload.meta?.schemaName || (await this.getSchema(hotelId));
           await runWithTenantSchema(schema, () =>
             this.confirmBooking(bookingId, txRef, verification),
           );
@@ -302,8 +333,13 @@ export class PublicBookingService {
       );
       if (!bookingRows.length) throw new NotFoundException('Booking not found');
       if (bookingRows[0].status === 'confirmed') return;
-      if (bookingRows[0].status !== 'pending' && bookingRows[0].status !== 'hold') {
-        throw new BadRequestException(`Cannot confirm booking in status: ${bookingRows[0].status}`);
+      if (
+        bookingRows[0].status !== 'pending' &&
+        bookingRows[0].status !== 'hold'
+      ) {
+        throw new BadRequestException(
+          `Cannot confirm booking in status: ${bookingRows[0].status}`,
+        );
       }
 
       await queryRunner.query(

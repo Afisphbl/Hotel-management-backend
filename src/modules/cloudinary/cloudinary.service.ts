@@ -40,7 +40,9 @@ export class CloudinaryService {
       this.isConfigured = true;
       this.logger.log(`Cloudinary configured for cloud: ${cloudName}`);
     } else {
-      this.logger.warn('Cloudinary not configured — some image features will be unavailable');
+      this.logger.warn(
+        'Cloudinary not configured — some image features will be unavailable',
+      );
     }
   }
 
@@ -52,9 +54,9 @@ export class CloudinaryService {
       throw new Error('Cloudinary is not configured');
     }
 
-    const buffer = file.buffer || Buffer.from(
-      file.path ? require('fs').readFileSync(file.path) : '',
-    );
+    const buffer =
+      file.buffer ||
+      Buffer.from(file.path ? require('fs').readFileSync(file.path) : '');
 
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -89,18 +91,25 @@ export class CloudinaryService {
     try {
       await cloudinary.uploader.destroy(publicId);
     } catch (error: any) {
-      this.logger.error(`Failed to delete Cloudinary image ${publicId}: ${error.message}`);
+      this.logger.error(
+        `Failed to delete Cloudinary image ${publicId}: ${error.message}`,
+      );
     }
   }
 
-  getOptimizedUrl(publicId: string, transforms?: ImageTransformOptions): string {
+  getOptimizedUrl(
+    publicId: string,
+    transforms?: ImageTransformOptions,
+  ): string {
     if (!this.isConfigured) return '';
     const params: string[] = ['q_auto', 'f_auto'];
     if (transforms?.width) params.push(`w_${transforms.width}`);
     if (transforms?.height) params.push(`h_${transforms.height}`);
     if (transforms?.crop) params.push(`c_${transforms.crop}`);
-    if (transforms?.quality && transforms.quality !== 'auto') params.push(`q_${transforms.quality}`);
-    if (transforms?.format && transforms.format !== 'auto') params.push(`f_${transforms.format}`);
+    if (transforms?.quality && transforms.quality !== 'auto')
+      params.push(`q_${transforms.quality}`);
+    if (transforms?.format && transforms.format !== 'auto')
+      params.push(`f_${transforms.format}`);
     if (transforms?.blur) params.push(`e_blur:${transforms.blur}`);
     if (transforms?.sharpen) params.push(`e_sharpen:${transforms.sharpen}`);
     return cloudinary.url(publicId, { transformation: params.join(',') });

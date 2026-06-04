@@ -603,7 +603,8 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('User not found');
 
     const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) throw new UnauthorizedException('Current password is incorrect');
+    if (!isValid)
+      throw new UnauthorizedException('Current password is incorrect');
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.userRepository.update(userId, { password: hashed });
@@ -626,7 +627,9 @@ export class AuthService {
         }
       }
     } catch (e) {
-      this.logger.warn(`Failed to sync password to tenant staff table: ${e.message}`);
+      this.logger.warn(
+        `Failed to sync password to tenant staff table: ${e.message}`,
+      );
     }
   }
 

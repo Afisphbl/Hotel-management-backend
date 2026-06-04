@@ -21,7 +21,9 @@ async function bootstrap() {
       const allowedOrigins = [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
-        ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : []),
+        ...(process.env.CORS_ORIGINS
+          ? process.env.CORS_ORIGINS.split(',')
+          : []),
       ];
 
       // Allow any .localhost:3000 subdomain (for multi-tenant subdomain routing)

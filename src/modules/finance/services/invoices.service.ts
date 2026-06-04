@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -40,13 +44,25 @@ export class InvoicesService {
   async findAll(query: QueryInvoiceDto) {
     const qb = this.invoiceRepository
       .createQueryBuilder('invoice')
-      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
-      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"');
+      .leftJoinAndMapOne(
+        'invoice.booking',
+        Booking,
+        'booking',
+        'booking.id = invoice."bookingId"',
+      )
+      .leftJoinAndMapOne(
+        'booking.guest',
+        Guest,
+        'guest',
+        'guest.id = booking."guestId"',
+      );
     if (query.status) {
       qb.andWhere('invoice.status = :status', { status: query.status });
     }
     if (query.bookingId) {
-      qb.andWhere('invoice."bookingId" = :bookingId', { bookingId: query.bookingId });
+      qb.andWhere('invoice."bookingId" = :bookingId', {
+        bookingId: query.bookingId,
+      });
     }
     qb.orderBy('invoice.createdAt', 'DESC');
 
@@ -62,8 +78,18 @@ export class InvoicesService {
   async findById(id: string): Promise<Invoice> {
     const invoice = await this.invoiceRepository
       .createQueryBuilder('invoice')
-      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
-      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"')
+      .leftJoinAndMapOne(
+        'invoice.booking',
+        Booking,
+        'booking',
+        'booking.id = invoice."bookingId"',
+      )
+      .leftJoinAndMapOne(
+        'booking.guest',
+        Guest,
+        'guest',
+        'guest.id = booking."guestId"',
+      )
       .where('invoice.id = :id', { id })
       .getOne();
     if (!invoice) throw new NotFoundException('Invoice not found');

@@ -18,7 +18,9 @@ export class NotificationsController {
 
   @Get()
   async findAll(@Request() req: any) {
-    const notifications = await this.notificationService.findByUser(req.user.userId);
+    const notifications = await this.notificationService.findByUser(
+      req.user.userId,
+    );
     return { success: true, data: notifications };
   }
 

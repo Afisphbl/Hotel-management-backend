@@ -67,7 +67,9 @@ export class BookingsService {
 
   private async getSchema(hotelId: string): Promise<string> {
     if (this.schemaCache.has(hotelId)) return this.schemaCache.get(hotelId)!;
-    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const hotel = await this.hotelRepository.findOne({
+      where: { id: hotelId },
+    });
     const schema = hotel?.schemaName?.replace(/[^a-zA-Z0-9_]/g, '') ?? 'public';
     this.schemaCache.set(hotelId, schema);
     return schema;
@@ -80,7 +82,13 @@ export class BookingsService {
   }): Promise<{
     total: number;
     nights: number;
-    rooms: { roomId: string; roomNumber: string; roomType: { id: string; name: string } | null; total: number; nights: { date: string; price: number }[] }[];
+    rooms: {
+      roomId: string;
+      roomNumber: string;
+      roomType: { id: string; name: string } | null;
+      total: number;
+      nights: { date: string; price: number }[];
+    }[];
   }> {
     const rooms = await this.roomRepository.find({
       where: dto.roomIds.map((id) => ({ id })),
@@ -92,7 +100,13 @@ export class BookingsService {
 
     const dates = this.getDatesBetween(dto.checkIn, dto.checkOut);
     let total = 0;
-    const roomBreakdowns: { roomId: string; roomNumber: string; roomType: { id: string; name: string } | null; total: number; nights: { date: string; price: number }[] }[] = [];
+    const roomBreakdowns: {
+      roomId: string;
+      roomNumber: string;
+      roomType: { id: string; name: string } | null;
+      total: number;
+      nights: { date: string; price: number }[];
+    }[] = [];
 
     for (const room of rooms) {
       const nightPrices: { date: string; price: number }[] = [];
@@ -109,7 +123,9 @@ export class BookingsService {
       roomBreakdowns.push({
         roomId: room.id,
         roomNumber: room.roomNumber,
-        roomType: room.roomType ? { id: room.roomType.id, name: room.roomType.name } : null,
+        roomType: room.roomType
+          ? { id: room.roomType.id, name: room.roomType.name }
+          : null,
         total: nightPrices.reduce((s, n) => s + n.price, 0),
         nights: nightPrices,
       });
@@ -137,13 +153,28 @@ export class BookingsService {
     const params: any[] = [];
     let i = 1;
 
-    if (query.status) { conditions.push(`b.status = $${i++}`); params.push(query.status); }
-    if (query.guestId) { conditions.push(`b."guestId" = $${i++}`); params.push(query.guestId); }
-    if (query.dateFrom) { conditions.push(`b."checkIn" >= $${i++}`); params.push(query.dateFrom); }
-    if (query.dateTo) { conditions.push(`b."checkOut" <= $${i++}`); params.push(query.dateTo); }
+    if (query.status) {
+      conditions.push(`b.status = $${i++}`);
+      params.push(query.status);
+    }
+    if (query.guestId) {
+      conditions.push(`b."guestId" = $${i++}`);
+      params.push(query.guestId);
+    }
+    if (query.dateFrom) {
+      conditions.push(`b."checkIn" >= $${i++}`);
+      params.push(query.dateFrom);
+    }
+    if (query.dateTo) {
+      conditions.push(`b."checkOut" <= $${i++}`);
+      params.push(query.dateTo);
+    }
     if (query.search) {
-      conditions.push(`(LOWER(g."firstName") LIKE LOWER($${i}) OR LOWER(g."lastName") LIKE LOWER($${i}) OR LOWER(g.email) LIKE LOWER($${i}) OR LOWER(b.id::text) LIKE LOWER($${i}))`);
-      params.push(`%${query.search}%`); i++;
+      conditions.push(
+        `(LOWER(g."firstName") LIKE LOWER($${i}) OR LOWER(g."lastName") LIKE LOWER($${i}) OR LOWER(g.email) LIKE LOWER($${i}) OR LOWER(b.id::text) LIKE LOWER($${i}))`,
+      );
+      params.push(`%${query.search}%`);
+      i++;
     }
 
     const andCond = conditions.length ? 'AND ' + conditions.join(' AND ') : '';
@@ -175,20 +206,39 @@ export class BookingsService {
     );
 
     const items = rows.map((r: any) => ({
-      id: r.id, guestId: r.guestId, checkIn: r.checkIn, checkOut: r.checkOut,
-      status: r.status, totalPrice: r.totalPrice, source: r.source, notes: r.notes,
-      createdAt: r.createdAt, updatedAt: r.updatedAt, priceSnapshot: r.priceSnapshot,
-      guest: { firstName: r.firstName, lastName: r.lastName, email: r.email, phone: r.phone },
+      id: r.id,
+      guestId: r.guestId,
+      checkIn: r.checkIn,
+      checkOut: r.checkOut,
+      status: r.status,
+      totalPrice: r.totalPrice,
+      source: r.source,
+      notes: r.notes,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      priceSnapshot: r.priceSnapshot,
+      guest: {
+        firstName: r.firstName,
+        lastName: r.lastName,
+        email: r.email,
+        phone: r.phone,
+      },
       bookingRooms: r.bookingRooms ?? [],
     }));
 
-    return { items, total: Number(count), page, limit, totalPages: Math.ceil(Number(count) / limit) };
+    return {
+      items,
+      total: Number(count),
+      page,
+      limit,
+      totalPages: Math.ceil(Number(count) / limit),
+    };
   }
 
   async findById(id: string, hotelId: string): Promise<any> {
     const s = await this.getSchema(hotelId);
-      const rows = await this.dataSource.query(
-        `SELECT b.id, b."guestId", b."checkIn", b."checkOut", b.status, b."totalPrice",
+    const rows = await this.dataSource.query(
+      `SELECT b.id, b."guestId", b."checkIn", b."checkOut", b.status, b."totalPrice",
           b.source, b.notes, b."createdAt", b."updatedAt", b."priceSnapshot",
           g."firstName", g."lastName", g.email, g.phone,
           json_agg(json_build_object(
@@ -203,30 +253,46 @@ export class BookingsService {
         LEFT JOIN "${s}".room_types rt ON rt.id = COALESCE(br."roomTypeId", r."roomTypeId")
         WHERE b.id = $1 AND b."deletedAt" IS NULL
         GROUP BY b.id, g."firstName", g."lastName", g.email, g.phone`,
-        [id],
-      );
+      [id],
+    );
     if (!rows.length) throw new NotFoundException('Booking not found');
     const r = rows[0];
     return {
-      id: r.id, guestId: r.guestId, checkIn: r.checkIn, checkOut: r.checkOut,
-      status: r.status, totalPrice: r.totalPrice, source: r.source, notes: r.notes,
-      createdAt: r.createdAt, updatedAt: r.updatedAt, priceSnapshot: r.priceSnapshot,
-      guest: { firstName: r.firstName, lastName: r.lastName, email: r.email, phone: r.phone },
+      id: r.id,
+      guestId: r.guestId,
+      checkIn: r.checkIn,
+      checkOut: r.checkOut,
+      status: r.status,
+      totalPrice: r.totalPrice,
+      source: r.source,
+      notes: r.notes,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      priceSnapshot: r.priceSnapshot,
+      guest: {
+        firstName: r.firstName,
+        lastName: r.lastName,
+        email: r.email,
+        phone: r.phone,
+      },
       bookingRooms: r.bookingRooms ?? [],
     };
   }
 
-  async createBooking(hotelId: string, createDto: {
-    guestId: string;
-    roomIds: string[];
-    checkIn: string;
-    checkOut: string;
-    idempotencyKey: string;
-    source?: string;
-    notes?: string;
-    metadata?: Record<string, unknown>;
-    userId?: string;
-  }): Promise<Booking> {
+  async createBooking(
+    hotelId: string,
+    createDto: {
+      guestId: string;
+      roomIds: string[];
+      checkIn: string;
+      checkOut: string;
+      idempotencyKey: string;
+      source?: string;
+      notes?: string;
+      metadata?: Record<string, unknown>;
+      userId?: string;
+    },
+  ): Promise<Booking> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -347,7 +413,12 @@ export class BookingsService {
 
       const outbox = queryRunner.manager.create(OutboxEvent, {
         type: 'BOOKING_CREATED',
-        payload: { bookingId: savedBooking.id, guestId: savedBooking.guestId, totalPrice: total, hotelId },
+        payload: {
+          bookingId: savedBooking.id,
+          guestId: savedBooking.guestId,
+          totalPrice: total,
+          hotelId,
+        },
       });
       await queryRunner.manager.save(outbox);
       const outboxEventId = outbox.id;
@@ -372,15 +443,19 @@ export class BookingsService {
         { delay: 15 * 60 * 1000 },
       );
 
-      console.log(`[BookingService] Enqueuing outbox-relay job for event ${outboxEventId}`);
+      console.log(
+        `[BookingService] Enqueuing outbox-relay job for event ${outboxEventId}`,
+      );
       try {
-        await this.outboxRelayQueue.add(
-          'outbox-relay',
-          { eventId: outboxEventId },
-        );
+        await this.outboxRelayQueue.add('outbox-relay', {
+          eventId: outboxEventId,
+        });
         console.log(`[BookingService] outbox-relay job enqueued successfully`);
       } catch (err) {
-        console.error(`[BookingService] Failed to enqueue outbox-relay job:`, err);
+        console.error(
+          `[BookingService] Failed to enqueue outbox-relay job:`,
+          err,
+        );
       }
 
       return savedBooking;
@@ -404,12 +479,21 @@ export class BookingsService {
     hotelId: string,
     userId?: string,
   ): Promise<any> {
-    const booking = await this.bookingRepository.findOne({ where: { id }, relations: ['bookingRooms'] });
+    const booking = await this.bookingRepository.findOne({
+      where: { id },
+      relations: ['bookingRooms'],
+    });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const editableStatuses = [BookingStatus.PENDING, BookingStatus.HOLD, BookingStatus.CONFIRMED];
+    const editableStatuses = [
+      BookingStatus.PENDING,
+      BookingStatus.HOLD,
+      BookingStatus.CONFIRMED,
+    ];
     if (!editableStatuses.includes(booking.status)) {
-      throw new BadRequestException('Booking cannot be edited in its current status');
+      throw new BadRequestException(
+        'Booking cannot be edited in its current status',
+      );
     }
 
     const hasDateChange = dto.checkIn || dto.checkOut;
@@ -421,9 +505,14 @@ export class BookingsService {
       await queryRunner.startTransaction();
 
       try {
-        const newCheckIn = dto.checkIn ? this.parseDate(dto.checkIn) : booking.checkIn;
-        const newCheckOut = dto.checkOut ? this.parseDate(dto.checkOut) : booking.checkOut;
-        const newRoomIds = dto.roomIds ?? (booking.bookingRooms?.map((br) => br.roomId) ?? []);
+        const newCheckIn = dto.checkIn
+          ? this.parseDate(dto.checkIn)
+          : booking.checkIn;
+        const newCheckOut = dto.checkOut
+          ? this.parseDate(dto.checkOut)
+          : booking.checkOut;
+        const newRoomIds =
+          dto.roomIds ?? booking.bookingRooms?.map((br) => br.roomId) ?? [];
 
         if (newCheckOut <= newCheckIn) {
           throw new BadRequestException('Check-out must be after check-in');
@@ -437,7 +526,8 @@ export class BookingsService {
           throw new NotFoundException('One or more rooms not found');
         }
 
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const fmt = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const dates = this.getDatesBetween(fmt(newCheckIn), fmt(newCheckOut));
 
         for (const room of rooms) {
@@ -451,9 +541,12 @@ export class BookingsService {
             .andWhere('rn.status IN (:...statuses)', {
               statuses: [RoomNightStatus.HELD, RoomNightStatus.BOOKED],
             })
-            .andWhere('(rn."bookingId" IS NULL OR rn."bookingId" != :bookingId)', {
-              bookingId: id,
-            })
+            .andWhere(
+              '(rn."bookingId" IS NULL OR rn."bookingId" != :bookingId)',
+              {
+                bookingId: id,
+              },
+            )
             .getMany();
 
           if (conflictingNights.length > 0) {
@@ -539,7 +632,12 @@ export class BookingsService {
             action: AuditAction.BOOKING_UPDATE,
             resourceType: AuditResource.BOOKING,
             resourceId: id,
-            newValues: { checkIn: newCheckIn, checkOut: newCheckOut, roomIds: newRoomIds, totalPrice: total },
+            newValues: {
+              checkIn: newCheckIn,
+              checkOut: newCheckOut,
+              roomIds: newRoomIds,
+              totalPrice: total,
+            },
             performedBy: userId,
           });
           await queryRunner.manager.save(audit);
@@ -655,7 +753,7 @@ export class BookingsService {
         where: { bookingId: id },
         select: ['roomId'],
       });
-      const cancelRoomIds = bookingRooms.map(br => br.roomId);
+      const cancelRoomIds = bookingRooms.map((br) => br.roomId);
       if (cancelRoomIds.length > 0) {
         await queryRunner.manager
           .createQueryBuilder()
@@ -744,7 +842,7 @@ export class BookingsService {
         where: { bookingId: id },
         select: ['roomId'],
       });
-      const roomIds = brs.map(br => br.roomId);
+      const roomIds = brs.map((br) => br.roomId);
       if (roomIds.length > 0) {
         await this.roomRepository.update(
           { id: In(roomIds) },
@@ -758,7 +856,7 @@ export class BookingsService {
         where: { bookingId: id },
         select: ['roomId'],
       });
-      const roomIds = brs.map(br => br.roomId);
+      const roomIds = brs.map((br) => br.roomId);
       if (roomIds.length > 0) {
         await this.roomRepository.update(
           { id: In(roomIds) },

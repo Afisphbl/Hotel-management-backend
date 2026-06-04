@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-  BeforeUpdate,
-  AfterLoad,
-} from 'typeorm';
+import { Entity, Column, Index, BeforeUpdate, AfterLoad } from 'typeorm';
 import { BaseEntity } from './base.entity';
 
 export enum InvoiceStatus {

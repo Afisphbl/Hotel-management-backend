@@ -39,13 +39,17 @@ export class ReviewsService {
     return rows;
   }
 
-  async create(hotelId: string, guestId: string, dto: { roomId: string, rating: number, comment: string }) {
+  async create(
+    hotelId: string,
+    guestId: string,
+    dto: { roomId: string; rating: number; comment: string },
+  ) {
     const s = await this.getSchema(hotelId);
-    
+
     // Check if room exists
     const room = await this.dataSource.query(
       `SELECT id FROM "${s}"."rooms" WHERE id = $1 AND "deletedAt" IS NULL`,
-      [dto.roomId]
+      [dto.roomId],
     );
     if (!room.length) throw new NotFoundException('Room not found');
 
@@ -53,7 +57,7 @@ export class ReviewsService {
       `INSERT INTO "${s}"."reviews" ("rating", "comment", "roomId", "guestId", "hotelId", "status")
        VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING *`,
-      [dto.rating, dto.comment, dto.roomId, guestId, hotelId]
+      [dto.rating, dto.comment, dto.roomId, guestId, hotelId],
     );
 
     // Notify hotel admins
@@ -68,15 +72,19 @@ export class ReviewsService {
       `SELECT AVG(rating)::float as average, COUNT(*)::int as count
        FROM "${s}"."reviews"
        WHERE "roomId" = $1 AND "isVisible" = TRUE AND "deletedAt" IS NULL`,
-      [roomId]
+      [roomId],
     );
     return {
       average: result[0]?.average || 0,
-      count: result[0]?.count || 0
+      count: result[0]?.count || 0,
     };
   }
 
-  private async notifyAdmins(hotelId: string, rating: number, schema: string): Promise<void> {
+  private async notifyAdmins(
+    hotelId: string,
+    rating: number,
+    schema: string,
+  ): Promise<void> {
     const [admins, todayResult] = await Promise.all([
       this.hotelUserAccessRepository.find({
         where: { hotelId, revokedAt: null as any },
@@ -105,7 +113,10 @@ export class ReviewsService {
     );
   }
 
-  async findAll(hotelId: string, options: { page?: number; limit?: number } = {}) {
+  async findAll(
+    hotelId: string,
+    options: { page?: number; limit?: number } = {},
+  ) {
     const s = await this.getSchema(hotelId);
     const page = Number(options.page) || 1;
     const limit = Number(options.limit) || 10;
@@ -123,7 +134,7 @@ export class ReviewsService {
     );
 
     const totalRes = await this.dataSource.query(
-      `SELECT COUNT(*)::int as count FROM "${s}"."reviews" WHERE "deletedAt" IS NULL`
+      `SELECT COUNT(*)::int as count FROM "${s}"."reviews" WHERE "deletedAt" IS NULL`,
     );
     const total = totalRes[0]?.count || 0;
 
@@ -135,14 +146,18 @@ export class ReviewsService {
     };
   }
 
-  async updateVisibility(hotelId: string, reviewId: string, isVisible: boolean) {
+  async updateVisibility(
+    hotelId: string,
+    reviewId: string,
+    isVisible: boolean,
+  ) {
     const s = await this.getSchema(hotelId);
     const result = await this.dataSource.query(
       `UPDATE "${s}"."reviews"
        SET "isVisible" = $1
        WHERE id = $2 AND "deletedAt" IS NULL
        RETURNING *`,
-      [isVisible, reviewId]
+      [isVisible, reviewId],
     );
     if (!result.length) throw new NotFoundException('Review not found');
     return result[0];
@@ -155,7 +170,7 @@ export class ReviewsService {
        SET status = $1
        WHERE id = $2 AND "deletedAt" IS NULL
        RETURNING *`,
-      [status, reviewId]
+      [status, reviewId],
     );
     if (!result.length) throw new NotFoundException('Review not found');
     return result[0];
@@ -165,7 +180,7 @@ export class ReviewsService {
     const s = await this.getSchema(hotelId);
     const result = await this.dataSource.query(
       `SELECT COUNT(*)::int as count FROM "${s}"."reviews"
-       WHERE status = 'pending' AND "deletedAt" IS NULL`
+       WHERE status = 'pending' AND "deletedAt" IS NULL`,
     );
     return { count: result[0]?.count || 0 };
   }
@@ -177,7 +192,7 @@ export class ReviewsService {
        SET "deletedAt" = NOW()
        WHERE id = $1 AND "deletedAt" IS NULL
        RETURNING *`,
-      [reviewId]
+      [reviewId],
     );
     if (!result.length) throw new NotFoundException('Review not found');
     return result[0];

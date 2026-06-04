@@ -47,11 +47,18 @@ import { Hotel } from '../../database/entities/hotel.entity';
     ),
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, PricingService, HoldExpiryProcessor, BookingReminderProcessor],
+  providers: [
+    BookingsService,
+    PricingService,
+    HoldExpiryProcessor,
+    BookingReminderProcessor,
+  ],
   exports: [BookingsService],
 })
 export class BookingsModule implements OnApplicationBootstrap {
-  constructor(@InjectQueue('booking-reminders') private remindersQueue: Queue) {}
+  constructor(
+    @InjectQueue('booking-reminders') private remindersQueue: Queue,
+  ) {}
 
   async onApplicationBootstrap() {
     const repeatableJobs = await this.remindersQueue.getRepeatableJobs();

@@ -20,8 +20,12 @@ export class PublicBookingController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreatePublicBookingDto, @Headers('x-hotel-id') hotelId: string) {
-    if (!hotelId) throw new BadRequestException('x-hotel-id header is required');
+  async create(
+    @Body() dto: CreatePublicBookingDto,
+    @Headers('x-hotel-id') hotelId: string,
+  ) {
+    if (!hotelId)
+      throw new BadRequestException('x-hotel-id header is required');
 
     return this.publicBookingService.createPublicBooking({
       hotelId,
@@ -44,8 +48,13 @@ export class PublicBookingController {
     @Param('hotelId') hotelId: string,
     @Query('tx_ref') txRef: string,
   ) {
-    if (!hotelId) throw new BadRequestException('hotelId path parameter is required');
-    const result = await this.publicBookingService.handlePaymentReturn(id, txRef, hotelId);
+    if (!hotelId)
+      throw new BadRequestException('hotelId path parameter is required');
+    const result = await this.publicBookingService.handlePaymentReturn(
+      id,
+      txRef,
+      hotelId,
+    );
     const frontendUrl = this.publicBookingService.getFrontendUrl();
     const status = result.status === 'success' ? 'success' : 'failed';
     const url = `${frontendUrl}/cabins?payment=${status}&booking=${id}`;
@@ -59,7 +68,8 @@ export class PublicBookingController {
     @Query('status') status: string,
     @Query('callback') callback: string,
   ) {
-    if (!txRef) throw new BadRequestException('trx_ref query parameter is required');
+    if (!txRef)
+      throw new BadRequestException('trx_ref query parameter is required');
     await this.publicBookingService.handleJSONPCallback(txRef, status);
     if (callback) {
       return `${callback}(${JSON.stringify({ status: 'ok' })})`;

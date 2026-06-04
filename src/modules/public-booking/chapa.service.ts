@@ -51,10 +51,14 @@ export class ChapaService {
     }
 
     const jsonBody = JSON.stringify(body);
-    console.log('[ChapaService] POST', `${this.baseUrl}/transaction/initialize`, {
-      secretKeyPrefix: this.secretKey?.substring(0, 12) + '...',
-      body,
-    });
+    console.log(
+      '[ChapaService] POST',
+      `${this.baseUrl}/transaction/initialize`,
+      {
+        secretKeyPrefix: this.secretKey?.substring(0, 12) + '...',
+        body,
+      },
+    );
 
     const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
       method: 'POST',
@@ -71,10 +75,15 @@ export class ChapaService {
     if (data.status !== 'success') {
       throw new BadRequestException(`Chapa init failed: ${data.message}`);
     }
-    return { checkoutUrl: data.data.checkout_url as string, txRef: params.txRef };
+    return {
+      checkoutUrl: data.data.checkout_url as string,
+      txRef: params.txRef,
+    };
   }
 
-  async verify(txRef: string): Promise<{ status: string; amount: number; currency: string }> {
+  async verify(
+    txRef: string,
+  ): Promise<{ status: string; amount: number; currency: string }> {
     const res = await fetch(`${this.baseUrl}/transaction/verify/${txRef}`, {
       headers: { Authorization: `Bearer ${this.secretKey}` },
     });

@@ -59,10 +59,7 @@ export class HotelReviewsController {
   }
 
   @Delete(':id')
-  async delete(
-    @Request() req: any,
-    @Param('id') id: string,
-  ) {
+  async delete(@Request() req: any, @Param('id') id: string) {
     const hotelId = req.user.hotel_id;
     return this.reviewsService.delete(hotelId, id);
   }
