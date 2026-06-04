@@ -11,6 +11,7 @@ import { Guest } from '../../database/entities/guest.entity';
 import { Payment } from '../../database/entities/payment.entity';
 import { Invoice } from '../../database/entities/invoice.entity';
 import { Hotel } from '../../database/entities/hotel.entity';
+import { HotelModule } from '../hotel/hotel.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { Hotel } from '../../database/entities/hotel.entity';
       Invoice,
       Hotel,
     ]),
+    HotelModule,
   ],
   controllers: [PublicBookingController],
   providers: [PublicBookingService, ChapaService],

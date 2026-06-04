@@ -9,6 +9,7 @@ import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Hotel } from '../../database/entities/hotel.entity';
 import { ChapaService } from './chapa.service';
+import { PricingService } from '../hotel/services/pricing.service';
 import { runWithTenantSchema } from '../../common/tenant/tenant-context';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class PublicBookingService {
     private hotelRepository: Repository<Hotel>,
     private chapaService: ChapaService,
     private config: ConfigService,
+    private pricingService: PricingService,
   ) {}
 
   getFrontendUrl(): string {
@@ -115,8 +117,18 @@ export class PublicBookingService {
         throw new ConflictException('Room is not available for selected dates');
       }
 
-      const basePrice = Number(roomRow.basePrice || roomRow.rt_basePrice || 0);
-      const totalPrice = basePrice * dates.length;
+      const roomBasePrice = Number(roomRow.basePrice || roomRow.rt_basePrice || 0);
+      const nightPrices: { date: string; price: number }[] = [];
+      for (const date of dates) {
+        const info = await this.pricingService.getEffectivePriceInfo(
+          dto.hotelId,
+          roomRow.roomTypeId,
+          new Date(date),
+          roomBasePrice,
+        );
+        nightPrices.push({ date, price: info.price });
+      }
+      const totalPrice = nightPrices.reduce((sum, n) => sum + n.price, 0);
 
       const bookingResult = await queryRunner.query(
         `INSERT INTO "${schema}"."bookings"
@@ -134,19 +146,19 @@ export class PublicBookingService {
           JSON.stringify({
             roomTypeId: roomRow.roomTypeId,
             roomNumber: roomRow.roomNumber,
-            basePrice,
-            nights: dates.map((date: string) => ({ date, price: basePrice })),
+            basePrice: roomBasePrice,
+            nights: nightPrices,
             pricingDate: new Date().toISOString(),
           }),
         ],
       );
       const bookingId = bookingResult[0].id;
 
-      for (const date of dates) {
+      for (const { date, price } of nightPrices) {
         await queryRunner.query(
           `INSERT INTO "${schema}"."room_nights" ("roomId", "date", "status", "price", "bookingId")
            VALUES ($1, $2, 'held', $3, $4)`,
-          [dto.roomId, date, basePrice, bookingId],
+          [dto.roomId, date, price, bookingId],
         );
       }
 
@@ -158,7 +170,7 @@ export class PublicBookingService {
           dto.roomId,
           roomRow.roomTypeId,
           totalPrice,
-          JSON.stringify(dates.map((date: string) => ({ date, price: basePrice }))),
+          JSON.stringify(nightPrices),
         ],
       );
 
@@ -174,7 +186,7 @@ export class PublicBookingService {
           JSON.stringify([{
             description: `${roomRow.roomNumber} x ${dates.length} nights`,
             quantity: dates.length,
-            unitPrice: basePrice,
+            unitPrice: Math.round(totalPrice / dates.length * 100) / 100,
             total: totalPrice,
           }]),
         ],
