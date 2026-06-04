@@ -50,8 +50,8 @@ export class ReviewsService {
     if (!room.length) throw new NotFoundException('Room not found');
 
     const result = await this.dataSource.query(
-      `INSERT INTO "${s}"."reviews" ("rating", "comment", "roomId", "guestId", "hotelId")
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO "${s}"."reviews" ("rating", "comment", "roomId", "guestId", "hotelId", "status")
+       VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING *`,
       [dto.rating, dto.comment, dto.roomId, guestId, hotelId]
     );
@@ -103,5 +103,83 @@ export class ReviewsService {
         data: { hotelId, rating, todayCount: count },
       })),
     );
+  }
+
+  async findAll(hotelId: string, options: { page?: number; limit?: number } = {}) {
+    const s = await this.getSchema(hotelId);
+    const page = Number(options.page) || 1;
+    const limit = Number(options.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const rows = await this.dataSource.query(
+      `SELECT r.*, g."firstName", g."lastName", rm."roomNumber" as "roomNumber"
+       FROM "${s}"."reviews" r
+       JOIN "${s}"."guests" g ON g.id = r."guestId"
+       LEFT JOIN "${s}"."rooms" rm ON rm.id = r."roomId"
+       WHERE r."deletedAt" IS NULL
+       ORDER BY r."createdAt" DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+
+    const totalRes = await this.dataSource.query(
+      `SELECT COUNT(*)::int as count FROM "${s}"."reviews" WHERE "deletedAt" IS NULL`
+    );
+    const total = totalRes[0]?.count || 0;
+
+    return {
+      items: rows,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async updateVisibility(hotelId: string, reviewId: string, isVisible: boolean) {
+    const s = await this.getSchema(hotelId);
+    const result = await this.dataSource.query(
+      `UPDATE "${s}"."reviews"
+       SET "isVisible" = $1
+       WHERE id = $2 AND "deletedAt" IS NULL
+       RETURNING *`,
+      [isVisible, reviewId]
+    );
+    if (!result.length) throw new NotFoundException('Review not found');
+    return result[0];
+  }
+
+  async updateStatus(hotelId: string, reviewId: string, status: string) {
+    const s = await this.getSchema(hotelId);
+    const result = await this.dataSource.query(
+      `UPDATE "${s}"."reviews"
+       SET status = $1
+       WHERE id = $2 AND "deletedAt" IS NULL
+       RETURNING *`,
+      [status, reviewId]
+    );
+    if (!result.length) throw new NotFoundException('Review not found');
+    return result[0];
+  }
+
+  async countUnseen(hotelId: string) {
+    const s = await this.getSchema(hotelId);
+    const result = await this.dataSource.query(
+      `SELECT COUNT(*)::int as count FROM "${s}"."reviews"
+       WHERE status = 'pending' AND "deletedAt" IS NULL`
+    );
+    return { count: result[0]?.count || 0 };
+  }
+
+  async delete(hotelId: string, reviewId: string) {
+    const s = await this.getSchema(hotelId);
+    const result = await this.dataSource.query(
+      `UPDATE "${s}"."reviews"
+       SET "deletedAt" = NOW()
+       WHERE id = $1 AND "deletedAt" IS NULL
+       RETURNING *`,
+      [reviewId]
+    );
+    if (!result.length) throw new NotFoundException('Review not found');
+    return result[0];
   }
 }

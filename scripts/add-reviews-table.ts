@@ -31,12 +31,21 @@ async function main() {
           "guestId" UUID NOT NULL REFERENCES "${s}"."guests"(id),
           "hotelId" VARCHAR NOT NULL,
           "isVisible" BOOLEAN DEFAULT TRUE,
+          status VARCHAR NOT NULL DEFAULT 'pending',
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "deletedAt" TIMESTAMPTZ
         )
       `);
       console.log(`  ✓ reviews table created in ${s}`);
+
+      // Add status column to existing tables that may not have it
+      try {
+        await client.query(`
+          ALTER TABLE "${s}"."reviews"
+          ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'pending'
+        `);
+      } catch {}
     } catch (err) {
       console.error(`  ✗ Failed to update schema ${s}:`, err.message);
     }

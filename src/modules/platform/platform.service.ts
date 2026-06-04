@@ -919,6 +919,21 @@ export class PlatformService {
         "deletedAt" TIMESTAMPTZ
       )
     `);
+    await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS "${s}"."reviews" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        rating INT NOT NULL,
+        comment TEXT NOT NULL,
+        "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id),
+        "guestId" UUID NOT NULL REFERENCES "${s}"."guests"(id),
+        "hotelId" VARCHAR NOT NULL,
+        "isVisible" BOOLEAN DEFAULT TRUE,
+        status VARCHAR NOT NULL DEFAULT 'pending',
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "deletedAt" TIMESTAMPTZ
+      )
+    `);
   }
 
   async updateHotel(id: string, data: Partial<Hotel>) {

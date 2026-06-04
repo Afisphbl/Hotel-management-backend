@@ -33,4 +33,7 @@ export class Review extends BaseEntity {
 
   @Column({ default: true })
   isVisible: boolean;
+
+  @Column({ type: 'varchar', default: 'pending' })
+  status: string;
 }

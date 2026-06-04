@@ -71,7 +71,7 @@ export class RoomsService {
   ): Promise<PaginatedResult<Room>> {
     const s = await this.getSchema(hotelId);
     const page = options.page || 1;
-    const limit = options.limit || 12;
+    const limit = options.limit || 50;
     const offset = (page - 1) * limit;
 
     const conditions = ['"r"."deletedAt" IS NULL', `"r"."hotelId" = $1`];
