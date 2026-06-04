@@ -57,9 +57,10 @@ export class StaffService {
     }
 
     const where = conditions.join(' AND ');
+    params.push(limit, offset);
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
-        `SELECT * FROM "${s}"."staff" WHERE ${where} ORDER BY "firstName" ASC, "lastName" ASC LIMIT ${limit} OFFSET ${offset}`,
+        `SELECT * FROM "${s}"."staff" WHERE ${where} ORDER BY "firstName" ASC, "lastName" ASC LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
       ),
       this.dataSource.query(

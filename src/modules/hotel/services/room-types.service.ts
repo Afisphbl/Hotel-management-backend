@@ -33,9 +33,11 @@ export class RoomTypesService {
     const limit = options.limit || 20;
     const offset = (page - 1) * limit;
 
+    const params: any[] = [limit, offset];
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
-        `SELECT * FROM "${s}"."room_types" WHERE "deletedAt" IS NULL ORDER BY name ASC LIMIT ${limit} OFFSET ${offset}`,
+        `SELECT * FROM "${s}"."room_types" WHERE "deletedAt" IS NULL ORDER BY name ASC LIMIT $1 OFFSET $2`,
+        params,
       ),
       this.dataSource.query(
         `SELECT COUNT(*)::int AS count FROM "${s}"."room_types" WHERE "deletedAt" IS NULL`,

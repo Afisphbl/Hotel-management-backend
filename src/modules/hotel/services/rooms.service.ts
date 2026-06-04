@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Room, RoomStatus } from '../../../database/entities/room.entity';
@@ -99,13 +104,14 @@ export class RoomsService {
     }
 
     const where = conditions.join(' AND ');
+    params.push(limit, offset);
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
         `SELECT r.*, rt.id AS rt_id, rt.name AS rt_name, rt.description AS rt_description, rt."baseCapacity" AS rt_baseCapacity,
                  rt."maxExtraBeds" AS rt_maxExtraBeds, rt."basePrice" AS rt_basePrice
          FROM "${s}"."rooms" r
          LEFT JOIN "${s}"."room_types" rt ON rt.id = r."roomTypeId" AND rt."deletedAt" IS NULL
-         WHERE ${where} ORDER BY r.floor ASC, r."roomNumber" ASC LIMIT ${limit} OFFSET ${offset}`,
+         WHERE ${where} ORDER BY r.floor ASC, r."roomNumber" ASC LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
       ),
       this.dataSource.query(
@@ -115,7 +121,9 @@ export class RoomsService {
     ]);
 
     // Enhance rows with dynamic pricing info
-    const pricingDate = options.dateFrom ? new Date(options.dateFrom) : new Date();
+    const pricingDate = options.dateFrom
+      ? new Date(options.dateFrom)
+      : new Date();
 
     const enhancedRows = await Promise.all(
       rows.map(async (row: any) => {
@@ -123,7 +131,8 @@ export class RoomsService {
           // No room type — use room's own basePrice if set
           return {
             ...row,
-            effectivePrice: row.basePrice != null ? Number(row.basePrice) : null,
+            effectivePrice:
+              row.basePrice != null ? Number(row.basePrice) : null,
             pricingReason: null,
             pricingType: null,
           };
@@ -339,17 +348,16 @@ export class RoomsService {
     );
     if (!totalRooms) return [];
 
-    const bookedNights: { date: string; count: number }[] = await this.dataSource.query(
-      `SELECT date, COUNT(DISTINCT "roomId")::int AS count
+    const bookedNights: { date: string; count: number }[] =
+      await this.dataSource.query(
+        `SELECT date, COUNT(DISTINCT "roomId")::int AS count
        FROM "${s}"."room_nights"
 WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
         GROUP BY date`,
-      [dates],
-    );
+        [dates],
+      );
 
-    return bookedNights
-      .filter(n => n.count >= totalRooms)
-      .map(n => n.date);
+    return bookedNights.filter((n) => n.count >= totalRooms).map((n) => n.date);
   }
 
   async getAvailability(
@@ -412,7 +420,10 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
     if (!roomResult.length) return [];
 
     const roomStatus = roomResult[0].status;
-    if (roomStatus !== RoomStatus.AVAILABLE && roomStatus !== RoomStatus.OCCUPIED) {
+    if (
+      roomStatus !== RoomStatus.AVAILABLE &&
+      roomStatus !== RoomStatus.OCCUPIED
+    ) {
       const dates: string[] = [];
       const [sy, sm, sd] = startDate.split('-').map(Number);
       const [ey, em, ed] = endDate.split('-').map(Number);
@@ -440,7 +451,13 @@ WHERE date = ANY($1::date[]) AND status IN ('booked', 'held')
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
     });
-    console.log('[getBookedDatesForRoom]', { roomId, startDate, endDate, resultCount: result.length, dates: mapped });
+    console.log('[getBookedDatesForRoom]', {
+      roomId,
+      startDate,
+      endDate,
+      resultCount: result.length,
+      dates: mapped,
+    });
     return mapped;
   }
 
