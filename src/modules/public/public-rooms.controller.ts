@@ -1,18 +1,22 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   Query,
   NotFoundException,
 } from '@nestjs/common';
 import { RoomsService } from '../hotel/services/rooms.service';
 import { RoomTypesService } from '../hotel/services/room-types.service';
+import { PricingService } from '../hotel/services/pricing.service';
 
 @Controller('public')
 export class PublicRoomsController {
   constructor(
     private readonly roomsService: RoomsService,
     private readonly roomTypesService: RoomTypesService,
+    private readonly pricingService: PricingService,
   ) {}
 
   @Get('rooms')
@@ -166,6 +170,55 @@ export class PublicRoomsController {
       endDate ||
         new Date(Date.now() + 90 * 86400000).toISOString().split('T')[0],
     );
+  }
+
+  @Post('rooms/calculate-price')
+  async calculatePrice(
+    @Body() body: { hotelId: string; roomId: string; checkIn: string; checkOut: string },
+  ) {
+    const { hotelId, roomId, checkIn, checkOut } = body;
+    if (!hotelId || !roomId || !checkIn || !checkOut) {
+      throw new NotFoundException('hotelId, roomId, checkIn, and checkOut are required');
+    }
+
+    // Get room to find roomTypeId and basePrice
+    const room = await this.roomsService.findById(roomId, hotelId);
+    const roomTypeId = room.roomTypeId;
+    const basePrice = room.basePrice != null
+      ? Number(room.basePrice)
+      : (room as any).roomType?.basePrice != null
+        ? Number((room as any).roomType.basePrice)
+        : 0;
+
+    // Generate dates between checkIn and checkOut
+    const dates: string[] = [];
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const current = new Date(start);
+    while (current < end) {
+      const y = current.getFullYear();
+      const m = String(current.getMonth() + 1).padStart(2, '0');
+      const d = String(current.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${d}`);
+      current.setDate(current.getDate() + 1);
+    }
+
+    const nights = await Promise.all(
+      dates.map(async (date) => {
+        const info = await this.pricingService.getEffectivePriceInfo(
+          hotelId,
+          roomTypeId,
+          new Date(date),
+          basePrice,
+        );
+        return { date, price: info.price, reason: info.reason, type: info.type, factors: info.factors };
+      }),
+    );
+
+    const totalPrice = nights.reduce((sum, n) => sum + n.price, 0);
+    const hasDynamicPricing = nights.some((n) => n.factors.length > 0);
+
+    return { nights, totalPrice, basePrice, hasDynamicPricing };
   }
 
   @Get('rooms/:id')
