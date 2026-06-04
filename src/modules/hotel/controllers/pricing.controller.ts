@@ -17,6 +17,16 @@ import { TenantGuard } from '../../../common/guards/tenant.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
+import {
+  CreateOverrideDto,
+  UpdateOverrideDto,
+  CreatePromotionDto,
+  UpdatePromotionDto,
+  CreateSeasonalRateDto,
+  UpdateSeasonalRateDto,
+  CreateRatePlanDto,
+  UpdateRatePlanDto,
+} from '../dto/pricing.dto';
 import { success } from '../common/response.interceptor';
 
 @Controller('hotel/pricing')
@@ -41,9 +51,9 @@ export class PricingController {
   }
 
   @Post('overrides')
-  async createOverride(@Request() req: any, @Body() data: any) {
+  async createOverride(@Request() req: any, @Body() dto: CreateOverrideDto) {
     return success(
-      await this.pricingService.createOverride(this.hotelId(req), data),
+      await this.pricingService.createOverride(this.hotelId(req), dto),
     );
   }
 
@@ -51,10 +61,10 @@ export class PricingController {
   async updateOverride(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateOverrideDto,
   ) {
     return success(
-      await this.pricingService.updateOverride(this.hotelId(req), id, data),
+      await this.pricingService.updateOverride(this.hotelId(req), id, dto),
     );
   }
 
@@ -76,9 +86,9 @@ export class PricingController {
   }
 
   @Post('promotions')
-  async createPromotion(@Request() req: any, @Body() data: any) {
+  async createPromotion(@Request() req: any, @Body() dto: CreatePromotionDto) {
     return success(
-      await this.pricingService.createPromotion(this.hotelId(req), data),
+      await this.pricingService.createPromotion(this.hotelId(req), dto),
     );
   }
 
@@ -86,10 +96,10 @@ export class PricingController {
   async updatePromotion(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdatePromotionDto,
   ) {
     return success(
-      await this.pricingService.updatePromotion(this.hotelId(req), id, data),
+      await this.pricingService.updatePromotion(this.hotelId(req), id, dto),
     );
   }
 
@@ -114,9 +124,9 @@ export class PricingController {
   }
 
   @Post('seasonal-rates')
-  async createSeasonalRate(@Request() req: any, @Body() data: any) {
+  async createSeasonalRate(@Request() req: any, @Body() dto: CreateSeasonalRateDto) {
     return success(
-      await this.pricingService.createSeasonalRate(this.hotelId(req), data),
+      await this.pricingService.createSeasonalRate(this.hotelId(req), dto),
     );
   }
 
@@ -124,10 +134,10 @@ export class PricingController {
   async updateSeasonalRate(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateSeasonalRateDto,
   ) {
     return success(
-      await this.pricingService.updateSeasonalRate(this.hotelId(req), id, data),
+      await this.pricingService.updateSeasonalRate(this.hotelId(req), id, dto),
     );
   }
 
@@ -149,9 +159,9 @@ export class PricingController {
   }
 
   @Post('rate-plans')
-  async createRatePlan(@Request() req: any, @Body() data: any) {
+  async createRatePlan(@Request() req: any, @Body() dto: CreateRatePlanDto) {
     return success(
-      await this.pricingService.createRatePlan(this.hotelId(req), data),
+      await this.pricingService.createRatePlan(this.hotelId(req), dto),
     );
   }
 
@@ -159,10 +169,10 @@ export class PricingController {
   async updateRatePlan(
     @Request() req: any,
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateRatePlanDto,
   ) {
     return success(
-      await this.pricingService.updateRatePlan(this.hotelId(req), id, data),
+      await this.pricingService.updateRatePlan(this.hotelId(req), id, dto),
     );
   }
 

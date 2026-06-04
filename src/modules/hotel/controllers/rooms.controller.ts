@@ -21,6 +21,7 @@ import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { RoomStatus } from '../../../database/entities/room.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateRoomDto, UpdateRoomDto } from '../dto/room.dto';
 import { success, paginated } from '../common/response.interceptor';
 import { TenantQuotaService } from '../../../common/services/tenant-quota.service';
 
@@ -85,7 +86,11 @@ export class RoomsController {
     @Query('endDate') endDate: string,
   ) {
     const hotelId = req.user.hotel_id;
-    const dates = await this.roomsService.getFullyBookedDates(hotelId, startDate, endDate);
+    const dates = await this.roomsService.getFullyBookedDates(
+      hotelId,
+      startDate,
+      endDate,
+    );
     return success(dates);
   }
 
@@ -99,9 +104,9 @@ export class RoomsController {
   @Post()
   @UseGuards(PlanLimitGuard)
   @PlanLimit('rooms')
-  async create(@Body() data: any, @Request() req: any) {
+  async create(@Body() dto: CreateRoomDto, @Request() req: any) {
     const hotelId = req.user.hotel_id;
-    const room = await this.roomsService.create(data, hotelId);
+    const room = await this.roomsService.create(dto, hotelId);
     await this.tenantQuotaService.syncQuotaSnapshot(hotelId);
     return success(room);
   }
@@ -109,11 +114,11 @@ export class RoomsController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateRoomDto,
     @Request() req: any,
   ) {
     const hotelId = req.user.hotel_id;
-    const room = await this.roomsService.update(id, data, hotelId);
+    const room = await this.roomsService.update(id, dto, hotelId);
     return success(room);
   }
 

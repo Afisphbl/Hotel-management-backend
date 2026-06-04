@@ -28,7 +28,14 @@ export class HotelManagementExtendedService {
   async updateInfo(id: string, data: any) {
     const hotel = await this.hotelRepo.findOne({ where: { id } });
     if (!hotel) return null;
-    const allowed = ['name', 'location', 'slug', 'ownerName', 'ownerEmail', 'description'];
+    const allowed = [
+      'name',
+      'location',
+      'slug',
+      'ownerName',
+      'ownerEmail',
+      'description',
+    ];
     for (const k of allowed) if (k in data) (hotel as any)[k] = data[k];
     return this.hotelRepo.save(hotel);
   }

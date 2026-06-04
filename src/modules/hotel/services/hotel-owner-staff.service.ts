@@ -16,7 +16,11 @@ import {
 import { Role } from '../../../database/entities/role.entity';
 import { RolePermission } from '../../../database/entities/role-permission.entity';
 import { Permission } from '../../../database/entities/permission.entity';
-import { AuditLog, AuditAction, AuditResource } from '../../../database/entities/audit-log.entity';
+import {
+  AuditLog,
+  AuditAction,
+  AuditResource,
+} from '../../../database/entities/audit-log.entity';
 import * as bcrypt from 'bcrypt';
 import { StaffService } from './staff.service';
 import { StaffRole } from '../../../database/entities/staff.entity';
@@ -61,7 +65,7 @@ export class HotelOwnerStaffService {
       newValues,
       description,
       performedBy,
-      metadata: {} as any,
+      metadata: {},
     });
     await this.auditLogRepository.save(auditLog);
   }
@@ -186,7 +190,9 @@ export class HotelOwnerStaffService {
         where: { id: data.roleId },
       });
       if (targetRole?.name === 'HOTEL_OWNER') {
-        throw new ForbiddenException('Admins cannot invite users with the Owner role');
+        throw new ForbiddenException(
+          'Admins cannot invite users with the Owner role',
+        );
       }
     }
 
@@ -197,7 +203,7 @@ export class HotelOwnerStaffService {
     let userId: string;
     let tempPassword: string | undefined;
     const oldValues = { email: data.email };
-    
+
     if (existingUser) {
       const existingAccess = await this.accessRepository.findOne({
         where: { userId: existingUser.id, hotelId },
@@ -288,10 +294,15 @@ export class HotelOwnerStaffService {
         roleName: role.name,
         accessId: savedAccess.id,
       },
-      `Invited staff member ${data.firstName} ${data.lastName} (${data.email}) with role ${role.name}`
+      `Invited staff member ${data.firstName} ${data.lastName} (${data.email}) with role ${role.name}`,
     );
 
-    return { userId, accessId: savedAccess.id, roleName: role.name, tempPassword };
+    return {
+      userId,
+      accessId: savedAccess.id,
+      roleName: role.name,
+      tempPassword,
+    };
   }
 
   async updateRole(
@@ -316,20 +327,27 @@ export class HotelOwnerStaffService {
         relations: ['role'],
       });
       const targetRoleName = targetUser?.role?.name || '';
-      if (targetRoleName === 'HOTEL_ADMIN' || targetRoleName === 'HOTEL_OWNER') {
-        throw new ForbiddenException('Admins cannot change the role of other admins or owners');
+      if (
+        targetRoleName === 'HOTEL_ADMIN' ||
+        targetRoleName === 'HOTEL_OWNER'
+      ) {
+        throw new ForbiddenException(
+          'Admins cannot change the role of other admins or owners',
+        );
       }
-      
+
       // Also prevent admin from promoting someone to owner
       if (role.name === 'HOTEL_OWNER') {
-        throw new ForbiddenException('Admins cannot promote staff to the Owner role');
+        throw new ForbiddenException(
+          'Admins cannot promote staff to the Owner role',
+        );
       }
     }
 
     const oldValues = { roleId: access.roleId };
     access.roleId = roleId;
     const savedAccess = await this.accessRepository.save(access);
-    
+
     // Log the role change action
     await this.logAudit(
       AuditAction.UPDATE,
@@ -339,7 +357,7 @@ export class HotelOwnerStaffService {
       hotelId,
       oldValues,
       { roleId, roleName: role.name },
-      `Changed role for staff member ${access.userId} from ${oldValues.roleId} to ${roleId}`
+      `Changed role for staff member ${access.userId} from ${oldValues.roleId} to ${roleId}`,
     );
 
     return { roleId, roleName: role.name };
@@ -364,8 +382,13 @@ export class HotelOwnerStaffService {
         relations: ['role'],
       });
       const targetRoleName = targetUser?.role?.name || '';
-      if (targetRoleName === 'HOTEL_ADMIN' || targetRoleName === 'HOTEL_OWNER') {
-        throw new ForbiddenException('Admins cannot change the status of other admins or owners');
+      if (
+        targetRoleName === 'HOTEL_ADMIN' ||
+        targetRoleName === 'HOTEL_OWNER'
+      ) {
+        throw new ForbiddenException(
+          'Admins cannot change the status of other admins or owners',
+        );
       }
     }
 
@@ -384,14 +407,19 @@ export class HotelOwnerStaffService {
 
     // Log the status change action
     await this.logAudit(
-      status === HotelAccessStatus.INACTIVE ? AuditAction.DELETE : AuditAction.UPDATE,
+      status === HotelAccessStatus.INACTIVE
+        ? AuditAction.DELETE
+        : AuditAction.UPDATE,
       AuditResource.USER,
       access.userId,
       performedBy || 'system',
       hotelId,
       oldValues,
-      { status, revokedAt: status === HotelAccessStatus.INACTIVE ? new Date() : null },
-      `Changed status for staff member ${access.userId} from ${oldValues.status} to ${status}`
+      {
+        status,
+        revokedAt: status === HotelAccessStatus.INACTIVE ? new Date() : null,
+      },
+      `Changed status for staff member ${access.userId} from ${oldValues.status} to ${status}`,
     );
 
     return { status };
@@ -415,8 +443,13 @@ export class HotelOwnerStaffService {
         relations: ['role'],
       });
       const targetRoleName = targetUser?.role?.name || '';
-      if (targetRoleName === 'HOTEL_ADMIN' || targetRoleName === 'HOTEL_OWNER') {
-        throw new ForbiddenException('Admins cannot remove other admins or owners');
+      if (
+        targetRoleName === 'HOTEL_ADMIN' ||
+        targetRoleName === 'HOTEL_OWNER'
+      ) {
+        throw new ForbiddenException(
+          'Admins cannot remove other admins or owners',
+        );
       }
     }
 
@@ -435,7 +468,7 @@ export class HotelOwnerStaffService {
       hotelId,
       oldValues,
       { status: HotelAccessStatus.INACTIVE, revokedAt: access.revokedAt },
-      `Revoked staff access for user ${access.userId}`
+      `Revoked staff access for user ${access.userId}`,
     );
 
     return { deleted: true };

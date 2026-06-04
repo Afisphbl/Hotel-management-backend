@@ -17,6 +17,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateShiftDto, UpdateShiftDto } from '../dto/shift.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/shifts')
@@ -46,14 +47,14 @@ export class ShiftsController {
   }
 
   @Post()
-  async create(@Body() data: any) {
-    const shift = await this.shiftsService.create(data);
+  async create(@Body() dto: CreateShiftDto) {
+    const shift = await this.shiftsService.create(dto as any);
     return success(shift);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const shift = await this.shiftsService.update(id, data);
+  async update(@Param('id') id: string, @Body() dto: UpdateShiftDto) {
+    const shift = await this.shiftsService.update(id, dto as any);
     return success(shift);
   }
 

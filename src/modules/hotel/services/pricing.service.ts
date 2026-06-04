@@ -27,7 +27,12 @@ export class PricingService {
     roomTypeId: string,
     date: Date,
     roomBasePrice?: number | null,
-  ): Promise<{ price: number; reason: string | null; type: string | null; factors: string[] }> {
+  ): Promise<{
+    price: number;
+    reason: string | null;
+    type: string | null;
+    factors: string[];
+  }> {
     const s = await this.getSchema(hotelId);
     const d = date.toISOString().split('T')[0];
     const factors: string[] = [];
@@ -99,7 +104,7 @@ export class PricingService {
         pr.discountType === 'percentage'
           ? price - price * (Number(pr.discountValue) / 100)
           : price - Number(pr.discountValue);
-      
+
       if (price !== oldPrice) {
         factors.push('Promotion');
         currentType = 'promotion';

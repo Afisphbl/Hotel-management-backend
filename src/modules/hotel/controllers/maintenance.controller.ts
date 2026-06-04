@@ -21,6 +21,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateMaintenanceDto, UpdateMaintenanceDto } from '../dto/maintenance.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/maintenance')
@@ -56,14 +57,14 @@ export class MaintenanceController {
   }
 
   @Post()
-  async create(@Body() data: any) {
-    const ticket = await this.maintenanceService.create(data);
+  async create(@Body() dto: CreateMaintenanceDto) {
+    const ticket = await this.maintenanceService.create(dto);
     return success(ticket);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const ticket = await this.maintenanceService.update(id, data);
+  async update(@Param('id') id: string, @Body() dto: UpdateMaintenanceDto) {
+    const ticket = await this.maintenanceService.update(id, dto);
     return success(ticket);
   }
 

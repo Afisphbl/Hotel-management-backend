@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
+import { CreateHotelDto, UpdateHotelDto } from '../dto/hotel-management.dto';
 import { success } from '../common/response.interceptor';
 
 @Controller('hotel/owner/hotels')
@@ -37,15 +38,15 @@ export class HotelManagementController {
   }
 
   @Post()
-  async create(@Body() data: any, @Request() req: any) {
-    data.ownerEmail = req.user?.email;
-    const hotel = await this.hotelManagementService.create(data);
+  async create(@Body() dto: CreateHotelDto, @Request() req: any) {
+    (dto as any).ownerEmail = req.user?.email;
+    const hotel = await this.hotelManagementService.create(dto);
     return success(hotel);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const hotel = await this.hotelManagementService.update(id, data);
+  async update(@Param('id') id: string, @Body() dto: UpdateHotelDto) {
+    const hotel = await this.hotelManagementService.update(id, dto);
     return success(hotel);
   }
 

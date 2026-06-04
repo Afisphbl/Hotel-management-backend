@@ -35,35 +35,56 @@ export class MaintenanceService {
     roomId?: string;
     assignedTo?: string;
   }): Promise<PaginatedResult<MaintenanceTicket>> {
-    const qb = this.ticketRepository
-      .createQueryBuilder('t');
+    const qb = this.ticketRepository.createQueryBuilder('t');
 
-    if (options.status) qb.andWhere('t.status = :status', { status: options.status });
-    if (options.priority) qb.andWhere('t.priority = :priority', { priority: options.priority });
-    if (options.roomId) qb.andWhere('t.roomId = :roomId', { roomId: options.roomId });
-    if (options.assignedTo) qb.andWhere('t.assignedTo = :assignedTo', { assignedTo: options.assignedTo });
+    if (options.status)
+      qb.andWhere('t.status = :status', { status: options.status });
+    if (options.priority)
+      qb.andWhere('t.priority = :priority', { priority: options.priority });
+    if (options.roomId)
+      qb.andWhere('t.roomId = :roomId', { roomId: options.roomId });
+    if (options.assignedTo)
+      qb.andWhere('t.assignedTo = :assignedTo', {
+        assignedTo: options.assignedTo,
+      });
 
     qb.orderBy('t.createdAt', 'DESC');
 
-    const result = await paginateQuery(qb, options.page ?? 1, options.limit ?? 50);
+    const result = await paginateQuery(
+      qb,
+      options.page ?? 1,
+      options.limit ?? 50,
+    );
 
     if (!result.items.length) return result;
 
-    const roomIds = [...new Set(result.items.map(t => t.roomId).filter(Boolean))];
-    const userIds = [...new Set(result.items.map(t => t.reportedBy).filter(Boolean))];
-    const assigneeIds = [...new Set(result.items.map(t => t.assignedTo).filter(Boolean))];
+    const roomIds = [
+      ...new Set(result.items.map((t) => t.roomId).filter(Boolean)),
+    ];
+    const userIds = [
+      ...new Set(result.items.map((t) => t.reportedBy).filter(Boolean)),
+    ];
+    const assigneeIds = [
+      ...new Set(result.items.map((t) => t.assignedTo).filter(Boolean)),
+    ];
 
     const [rooms, reporters, assignees] = await Promise.all([
-      roomIds.length ? this.roomRepository.findBy({ id: In(roomIds) }) : Promise.resolve([]),
-      userIds.length ? this.userRepository.findBy({ id: In(userIds) }) : Promise.resolve([]),
-      assigneeIds.length ? this.staffRepository.findBy({ id: In(assigneeIds) }) : Promise.resolve([]),
+      roomIds.length
+        ? this.roomRepository.findBy({ id: In(roomIds) })
+        : Promise.resolve([]),
+      userIds.length
+        ? this.userRepository.findBy({ id: In(userIds) })
+        : Promise.resolve([]),
+      assigneeIds.length
+        ? this.staffRepository.findBy({ id: In(assigneeIds) })
+        : Promise.resolve([]),
     ]);
 
-    const roomMap = new Map(rooms.map(r => [r.id, r]));
-    const userMap = new Map(reporters.map(u => [u.id, u]));
-    const assigneeMap = new Map(assignees.map(u => [u.id, u]));
+    const roomMap = new Map(rooms.map((r) => [r.id, r]));
+    const userMap = new Map(reporters.map((u) => [u.id, u]));
+    const assigneeMap = new Map(assignees.map((u) => [u.id, u]));
 
-    (result.items as any[]) = result.items.map(t => ({
+    (result.items as any[]) = result.items.map((t) => ({
       ...t,
       room: roomMap.get(t.roomId) || null,
       reporter: userMap.get(t.reportedBy) || null,

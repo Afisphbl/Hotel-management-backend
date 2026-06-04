@@ -18,6 +18,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateHousekeepingDto, UpdateHousekeepingDto } from '../dto/housekeeping.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/housekeeping')
@@ -50,16 +51,20 @@ export class HousekeepingController {
   }
 
   @Post()
-  async create(@Body() data: any, @Request() req: any) {
+  async create(@Body() dto: CreateHousekeepingDto, @Request() req: any) {
     const hotelId = req.user.hotel_id || req.user.hotelId;
-    const task = await this.housekeepingService.create(hotelId, data);
+    const task = await this.housekeepingService.create(hotelId, dto);
     return success(task);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any, @Request() req: any) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateHousekeepingDto,
+    @Request() req: any,
+  ) {
     const hotelId = req.user.hotel_id || req.user.hotelId;
-    const task = await this.housekeepingService.update(id, data, hotelId);
+    const task = await this.housekeepingService.update(id, dto, hotelId);
     return success(task);
   }
 

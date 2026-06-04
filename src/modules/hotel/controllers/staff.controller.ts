@@ -22,6 +22,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateHotelStaffDto, UpdateHotelStaffDto } from '../dto/hotel-staff.dto';
 import { success, paginated } from '../common/response.interceptor';
 import { PlanLimitGuard } from '../../../auth/guards/plan-limit.guard';
 import { PlanLimit } from '../../../common/decorators/plan-limit.decorator';
@@ -62,8 +63,8 @@ export class StaffController {
   @Post()
   @UseGuards(PlanLimitGuard)
   @PlanLimit('users')
-  async create(@Body() data: any, @Request() req: any) {
-    const staff = await this.staffService.create(data, this.hotelId(req));
+  async create(@Body() dto: CreateHotelStaffDto, @Request() req: any) {
+    const staff = await this.staffService.create(dto, this.hotelId(req));
     await this.tenantQuotaService.syncQuotaSnapshot(this.hotelId(req));
     return success(staff);
   }
@@ -71,10 +72,10 @@ export class StaffController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateHotelStaffDto,
     @Request() req: any,
   ) {
-    return success(await this.staffService.update(id, data, this.hotelId(req)));
+    return success(await this.staffService.update(id, dto, this.hotelId(req)));
   }
 
   @Delete(':id')

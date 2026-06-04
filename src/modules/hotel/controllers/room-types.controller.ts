@@ -18,6 +18,7 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateRoomTypeDto, UpdateRoomTypeDto } from '../dto/room-type.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/room-types')
@@ -32,7 +33,10 @@ export class RoomTypesController {
 
   @Get()
   async findAll(@Request() req: any, @Query() query: PaginationDto) {
-    const result = await this.roomTypesService.findAll(this.hotelId(req), query);
+    const result = await this.roomTypesService.findAll(
+      this.hotelId(req),
+      query,
+    );
     return paginated(result.items, result.total, result.page, result.limit);
   }
 
@@ -43,20 +47,20 @@ export class RoomTypesController {
   }
 
   @Post()
-  async create(@Body() data: any, @Request() req: any) {
-    const type = await this.roomTypesService.create(data, this.hotelId(req));
+  async create(@Body() dto: CreateRoomTypeDto, @Request() req: any) {
+    const type = await this.roomTypesService.create(dto, this.hotelId(req));
     return success(type);
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() data: any,
+    @Body() dto: UpdateRoomTypeDto,
     @Request() req: any,
   ) {
     const type = await this.roomTypesService.update(
       id,
-      data,
+      dto,
       this.hotelId(req),
     );
     return success(type);

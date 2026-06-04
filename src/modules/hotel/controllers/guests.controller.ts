@@ -19,6 +19,7 @@ import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { RequirePiiPermission } from '../../../common/decorators/pii.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { PaginationDto } from '../dto/pagination.dto';
+import { CreateGuestDto, UpdateGuestDto } from '../dto/guest.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/guests')
@@ -40,7 +41,12 @@ export class GuestsController {
   ) {
     const options = {
       ...query,
-      isVip: query.isVip === 'true' ? true : query.isVip === 'false' ? false : undefined,
+      isVip:
+        query.isVip === 'true'
+          ? true
+          : query.isVip === 'false'
+            ? false
+            : undefined,
       recent: query.recent === 'true',
     };
     const result = await this.guestsService.findAll(options);
@@ -56,14 +62,14 @@ export class GuestsController {
   }
 
   @Post()
-  async create(@Body() data: any) {
-    const guest = await this.guestsService.create(data);
+  async create(@Body() dto: CreateGuestDto) {
+    const guest = await this.guestsService.create(dto);
     return success(guest);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() data: any) {
-    const guest = await this.guestsService.update(id, data);
+  async update(@Param('id') id: string, @Body() dto: UpdateGuestDto) {
+    const guest = await this.guestsService.update(id, dto);
     return success(guest);
   }
 

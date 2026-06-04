@@ -43,11 +43,13 @@ export class HousekeepingService {
 
     // 1. Get all rooms of this hotel
     const rooms = await this.dataSource.query(
-      `SELECT id, "roomNumber" FROM "${s}"."rooms" WHERE "deletedAt" IS NULL`
+      `SELECT id, "roomNumber" FROM "${s}"."rooms" WHERE "deletedAt" IS NULL`,
     );
     const roomMap = {};
-    rooms.forEach(r => { roomMap[r.id] = r; });
-    const roomIds = rooms.map(r => r.id);
+    rooms.forEach((r) => {
+      roomMap[r.id] = r;
+    });
+    const roomIds = rooms.map((r) => r.id);
 
     if (roomIds.length === 0) {
       return {
@@ -61,10 +63,12 @@ export class HousekeepingService {
 
     // 2. Get all staff of this hotel
     const staffList = await this.dataSource.query(
-      `SELECT id, "firstName", "lastName" FROM "${s}"."staff" WHERE "deletedAt" IS NULL`
+      `SELECT id, "firstName", "lastName" FROM "${s}"."staff" WHERE "deletedAt" IS NULL`,
     );
     const staffMap = {};
-    staffList.forEach(st => { staffMap[st.id] = st; });
+    staffList.forEach((st) => {
+      staffMap[st.id] = st;
+    });
 
     // 3. Build where conditions
     const where: any = {
@@ -74,31 +78,37 @@ export class HousekeepingService {
     // Handle status mapping
     if (options.status && options.status !== 'ALL') {
       const statusMap: Record<string, TaskStatus> = {
-        'PENDING': TaskStatus.PENDING,
-        'ASSIGNED': TaskStatus.ASSIGNED,
-        'IN_PROGRESS': TaskStatus.IN_PROGRESS,
-        'COMPLETED': TaskStatus.COMPLETED,
-        'VERIFIED': TaskStatus.VERIFIED,
+        PENDING: TaskStatus.PENDING,
+        ASSIGNED: TaskStatus.ASSIGNED,
+        IN_PROGRESS: TaskStatus.IN_PROGRESS,
+        COMPLETED: TaskStatus.COMPLETED,
+        VERIFIED: TaskStatus.VERIFIED,
       };
-      const targetStatus = statusMap[options.status.toUpperCase()] || options.status.toLowerCase() as TaskStatus;
+      const targetStatus =
+        statusMap[options.status.toUpperCase()] ||
+        (options.status.toLowerCase() as TaskStatus);
       where.status = targetStatus;
     }
 
     // Handle priority mapping
     if (options.priority && options.priority !== 'ALL') {
       const priorityMap: Record<string, TaskPriority> = {
-        'LOW': TaskPriority.LOW,
-        'NORMAL': TaskPriority.MEDIUM,
-        'MEDIUM': TaskPriority.MEDIUM,
-        'HIGH': TaskPriority.HIGH,
-        'URGENT': TaskPriority.URGENT,
+        LOW: TaskPriority.LOW,
+        NORMAL: TaskPriority.MEDIUM,
+        MEDIUM: TaskPriority.MEDIUM,
+        HIGH: TaskPriority.HIGH,
+        URGENT: TaskPriority.URGENT,
       };
-      const targetPriority = priorityMap[options.priority.toUpperCase()] || options.priority.toLowerCase() as TaskPriority;
+      const targetPriority =
+        priorityMap[options.priority.toUpperCase()] ||
+        (options.priority.toLowerCase() as TaskPriority);
       where.priority = targetPriority;
     }
 
     if (options.roomId) {
-      const matchingRoom = rooms.find(r => r.id === options.roomId || r.roomNumber === options.roomId);
+      const matchingRoom = rooms.find(
+        (r) => r.id === options.roomId || r.roomNumber === options.roomId,
+      );
       if (matchingRoom) {
         where.roomId = matchingRoom.id;
       } else {
@@ -110,15 +120,18 @@ export class HousekeepingService {
       where.assignedTo = options.assignedTo;
     }
 
-    const paginatedResult = await paginate<HousekeepingTask>(this.taskRepository, {
-      page: options.page,
-      limit: options.limit,
-      where,
-      order: { createdAt: 'DESC' },
-    });
+    const paginatedResult = await paginate<HousekeepingTask>(
+      this.taskRepository,
+      {
+        page: options.page,
+        limit: options.limit,
+        where,
+        order: { createdAt: 'DESC' },
+      },
+    );
 
     // 4. Map results
-    const items = paginatedResult.items.map(task => {
+    const items = paginatedResult.items.map((task) => {
       const room = roomMap[task.roomId];
       const staff = task.assignedTo ? staffMap[task.assignedTo] : null;
 
@@ -160,7 +173,7 @@ export class HousekeepingService {
     const s = await this.getSchema(hotelId);
     const roomCheck = await this.dataSource.query(
       `SELECT id FROM "${s}"."rooms" WHERE id = $1 AND "deletedAt" IS NULL`,
-      [task.roomId]
+      [task.roomId],
     );
     if (roomCheck.length === 0) {
       throw new NotFoundException('Task not found for this property');
@@ -175,7 +188,7 @@ export class HousekeepingService {
     let targetRoomId = data.roomId;
     const roomQuery = await this.dataSource.query(
       `SELECT id FROM "${s}"."rooms" WHERE (id = $1 OR "roomNumber" = $2) AND "deletedAt" IS NULL`,
-      [data.roomId, data.roomId]
+      [data.roomId, data.roomId],
     );
     if (roomQuery.length > 0) {
       targetRoomId = roomQuery[0].id;
@@ -184,22 +197,26 @@ export class HousekeepingService {
     }
 
     const priorityMap: Record<string, TaskPriority> = {
-      'LOW': TaskPriority.LOW,
-      'NORMAL': TaskPriority.MEDIUM,
-      'MEDIUM': TaskPriority.MEDIUM,
-      'HIGH': TaskPriority.HIGH,
-      'URGENT': TaskPriority.URGENT,
+      LOW: TaskPriority.LOW,
+      NORMAL: TaskPriority.MEDIUM,
+      MEDIUM: TaskPriority.MEDIUM,
+      HIGH: TaskPriority.HIGH,
+      URGENT: TaskPriority.URGENT,
     };
-    const targetPriority = data.priority ? (priorityMap[data.priority.toUpperCase()] || TaskPriority.MEDIUM) : TaskPriority.MEDIUM;
+    const targetPriority = data.priority
+      ? priorityMap[data.priority.toUpperCase()] || TaskPriority.MEDIUM
+      : TaskPriority.MEDIUM;
 
     const statusMap: Record<string, TaskStatus> = {
-      'PENDING': TaskStatus.PENDING,
-      'ASSIGNED': TaskStatus.ASSIGNED,
-      'IN_PROGRESS': TaskStatus.IN_PROGRESS,
-      'COMPLETED': TaskStatus.COMPLETED,
-      'VERIFIED': TaskStatus.VERIFIED,
+      PENDING: TaskStatus.PENDING,
+      ASSIGNED: TaskStatus.ASSIGNED,
+      IN_PROGRESS: TaskStatus.IN_PROGRESS,
+      COMPLETED: TaskStatus.COMPLETED,
+      VERIFIED: TaskStatus.VERIFIED,
     };
-    const targetStatus = data.status ? (statusMap[data.status.toUpperCase()] || TaskStatus.PENDING) : TaskStatus.PENDING;
+    const targetStatus = data.status
+      ? statusMap[data.status.toUpperCase()] || TaskStatus.PENDING
+      : TaskStatus.PENDING;
 
     const task = this.taskRepository.create({
       roomId: targetRoomId,
@@ -207,7 +224,8 @@ export class HousekeepingService {
       description: data.description || '',
       priority: targetPriority,
       status: targetStatus,
-      scheduledDate: data.scheduledDate || new Date().toISOString().split('T')[0],
+      scheduledDate:
+        data.scheduledDate || new Date().toISOString().split('T')[0],
     });
 
     return this.taskRepository.save(task);
@@ -224,7 +242,7 @@ export class HousekeepingService {
     if (data.roomId) {
       const roomQuery = await this.dataSource.query(
         `SELECT id FROM "${s}"."rooms" WHERE (id = $1 OR "roomNumber" = $2) AND "deletedAt" IS NULL`,
-        [data.roomId, data.roomId]
+        [data.roomId, data.roomId],
       );
       if (roomQuery.length === 0) {
         throw new NotFoundException(`Room '${data.roomId}' not found`);
@@ -234,15 +252,17 @@ export class HousekeepingService {
 
     if (data.status) {
       const statusMap: Record<string, TaskStatus> = {
-        'PENDING': TaskStatus.PENDING,
-        'ASSIGNED': TaskStatus.ASSIGNED,
-        'IN_PROGRESS': TaskStatus.IN_PROGRESS,
-        'COMPLETED': TaskStatus.COMPLETED,
-        'VERIFIED': TaskStatus.VERIFIED,
+        PENDING: TaskStatus.PENDING,
+        ASSIGNED: TaskStatus.ASSIGNED,
+        IN_PROGRESS: TaskStatus.IN_PROGRESS,
+        COMPLETED: TaskStatus.COMPLETED,
+        VERIFIED: TaskStatus.VERIFIED,
       };
-      const mappedStatus = statusMap[data.status.toUpperCase()] || data.status.toLowerCase() as TaskStatus;
+      const mappedStatus =
+        statusMap[data.status.toUpperCase()] ||
+        (data.status.toLowerCase() as TaskStatus);
       task.status = mappedStatus;
-      
+
       if (mappedStatus === TaskStatus.COMPLETED) {
         task.completedAt = new Date();
       }
@@ -250,29 +270,36 @@ export class HousekeepingService {
 
     if (data.priority) {
       const priorityMap: Record<string, TaskPriority> = {
-        'LOW': TaskPriority.LOW,
-        'NORMAL': TaskPriority.MEDIUM,
-        'MEDIUM': TaskPriority.MEDIUM,
-        'HIGH': TaskPriority.HIGH,
-        'URGENT': TaskPriority.URGENT,
+        LOW: TaskPriority.LOW,
+        NORMAL: TaskPriority.MEDIUM,
+        MEDIUM: TaskPriority.MEDIUM,
+        HIGH: TaskPriority.HIGH,
+        URGENT: TaskPriority.URGENT,
       };
-      task.priority = priorityMap[data.priority.toUpperCase()] || data.priority.toLowerCase() as TaskPriority;
+      task.priority =
+        priorityMap[data.priority.toUpperCase()] ||
+        (data.priority.toLowerCase() as TaskPriority);
     }
 
     if (data.description !== undefined) task.description = data.description;
     if (data.notes !== undefined) task.notes = data.notes;
-    if (data.scheduledDate !== undefined) task.scheduledDate = data.scheduledDate;
+    if (data.scheduledDate !== undefined)
+      task.scheduledDate = data.scheduledDate;
 
     return this.taskRepository.save(task);
   }
 
-  async assign(id: string, staffId: string, hotelId: string): Promise<HousekeepingTask> {
+  async assign(
+    id: string,
+    staffId: string,
+    hotelId: string,
+  ): Promise<HousekeepingTask> {
     const task = await this.findById(id, hotelId);
 
     const s = await this.getSchema(hotelId);
     const staffQuery = await this.dataSource.query(
       `SELECT id FROM "${s}"."staff" WHERE id = $1 AND "deletedAt" IS NULL`,
-      [staffId]
+      [staffId],
     );
     if (staffQuery.length === 0) {
       throw new NotFoundException(`Staff member not found`);
@@ -283,7 +310,11 @@ export class HousekeepingService {
     return this.taskRepository.save(task);
   }
 
-  async complete(id: string, notes?: string, hotelId?: string): Promise<HousekeepingTask> {
+  async complete(
+    id: string,
+    notes?: string,
+    hotelId?: string,
+  ): Promise<HousekeepingTask> {
     const task = await this.findById(id, hotelId!);
     task.status = TaskStatus.COMPLETED;
     task.completedAt = new Date();

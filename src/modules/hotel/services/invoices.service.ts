@@ -18,8 +18,18 @@ export class InvoicesService {
   private baseQuery() {
     return this.invoiceRepository
       .createQueryBuilder('invoice')
-      .leftJoinAndMapOne('invoice.booking', Booking, 'booking', 'booking.id = invoice."bookingId"')
-      .leftJoinAndMapOne('booking.guest', Guest, 'guest', 'guest.id = booking."guestId"');
+      .leftJoinAndMapOne(
+        'invoice.booking',
+        Booking,
+        'booking',
+        'booking.id = invoice."bookingId"',
+      )
+      .leftJoinAndMapOne(
+        'booking.guest',
+        Guest,
+        'guest',
+        'guest.id = booking."guestId"',
+      );
   }
 
   async findAll(options: {

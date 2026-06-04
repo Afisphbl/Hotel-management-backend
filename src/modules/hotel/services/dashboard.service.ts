@@ -220,7 +220,7 @@ export class DashboardService {
         end: monthEnd,
       })
       .getRawOne();
-    
+
     const monthlyProfit = Number(monthProfitResult?.profit || 0);
     const monthlyExpenses = Number(monthProfitResult?.expenses || 0);
 
@@ -228,7 +228,17 @@ export class DashboardService {
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [occupancyTrend, revenueTrend, bookingTrend, expenseTrend, expenseByAccount, recentExpenses, heatmap, bookingSource, revenue30d] = await Promise.all([
+    const [
+      occupancyTrend,
+      revenueTrend,
+      bookingTrend,
+      expenseTrend,
+      expenseByAccount,
+      recentExpenses,
+      heatmap,
+      bookingSource,
+      revenue30d,
+    ] = await Promise.all([
       this.generateOccupancyTrend(monthStart, now),
       this.generateRevenueTrend(monthStart, now),
       this.generateBookingTrend(monthStart, now),
@@ -236,7 +246,10 @@ export class DashboardService {
         .createQueryBuilder('ledger')
         .select(`TO_CHAR(ledger."entryDate", 'YYYY-MM-DD')`, 'date')
         .addSelect('SUM(ledger.debit)', 'expenses')
-        .where('ledger."entryDate" BETWEEN :start AND :end', { start: monthStart, end: now })
+        .where('ledger."entryDate" BETWEEN :start AND :end', {
+          start: monthStart,
+          end: now,
+        })
         .andWhere('ledger.debit > 0')
         .groupBy('date')
         .orderBy('date', 'ASC')
@@ -245,7 +258,10 @@ export class DashboardService {
         .createQueryBuilder('ledger')
         .select('ledger.accountId', 'accountId')
         .addSelect('SUM(ledger.debit)', 'total')
-        .where('ledger."entryDate" BETWEEN :start AND :end', { start: monthStart, end: now })
+        .where('ledger."entryDate" BETWEEN :start AND :end', {
+          start: monthStart,
+          end: now,
+        })
         .andWhere('ledger.debit > 0')
         .groupBy('ledger.accountId')
         .orderBy('SUM(ledger.debit)', 'DESC')
@@ -293,17 +309,19 @@ export class DashboardService {
       totalRevenue: Number(totalRevenue?.revenue || 0),
       monthlyProfit,
       monthlyExpenses,
-      expenseTrend: expenseTrend.map(r => ({
+      expenseTrend: expenseTrend.map((r) => ({
         date: r.date,
         expenses: Number(r.expenses),
       })),
-      expenseByAccount: expenseByAccount.map(r => ({
+      expenseByAccount: expenseByAccount.map((r) => ({
         accountId: r.accountId,
         total: Number(r.total),
       })),
       recentExpenses: await (async () => {
-        const refundEntries = recentExpenses.filter(e => e.referenceType === 'REFUND');
-        const refundIds = refundEntries.map(e => e.referenceId);
+        const refundEntries = recentExpenses.filter(
+          (e) => e.referenceType === 'REFUND',
+        );
+        const refundIds = refundEntries.map((e) => e.referenceId);
         const refundMap = new Map<string, Refund>();
         if (refundIds.length > 0) {
           const refunds = await this.refundRepository.find({
@@ -312,7 +330,7 @@ export class DashboardService {
           });
           for (const r of refunds) refundMap.set(r.id, r);
         }
-        return recentExpenses.map(e => {
+        return recentExpenses.map((e) => {
           let display = e.description;
           if (e.referenceType === 'REFUND') {
             const refund = refundMap.get(e.referenceId);
@@ -323,7 +341,10 @@ export class DashboardService {
               const invoiceLabel = refund.invoice?.invoiceNumber
                 ? `Invoice ${refund.invoice.invoiceNumber}`
                 : null;
-              const label = guestName || invoiceLabel || `payment ${refund.paymentId.slice(0, 8)}...`;
+              const label =
+                guestName ||
+                invoiceLabel ||
+                `payment ${refund.paymentId.slice(0, 8)}...`;
               display = `Refund (${refund.reason})${label ? ` - ${label}` : ''}`;
             }
           }
@@ -399,14 +420,14 @@ export class DashboardService {
       totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
     const hotelRooms = await this.roomRepository.find({ select: ['id'] });
-    const roomIds = hotelRooms.map(r => r.id);
+    const roomIds = hotelRooms.map((r) => r.id);
     let bookingIds: string[] = [];
     if (roomIds.length > 0) {
       const bookingRooms = await this.bookingRoomRepository.find({
         where: { roomId: In(roomIds) },
         select: ['bookingId'],
       });
-      bookingIds = [...new Set(bookingRooms.map(br => br.bookingId))];
+      bookingIds = [...new Set(bookingRooms.map((br) => br.bookingId))];
     }
 
     if (bookingIds.length === 0) {
@@ -416,8 +437,18 @@ export class DashboardService {
         occupancyTrend: [],
         bookingSource: [],
         bookingDistribution: [],
-        guestStatistics: { totalGuests: 0, newGuests: 0, returningGuests: 0, averageStay: 0 },
-        financialMetrics: { totalRevenue: 0, averageDailyRate: 0, revenuePAR: 0, occupancyRate },
+        guestStatistics: {
+          totalGuests: 0,
+          newGuests: 0,
+          returningGuests: 0,
+          averageStay: 0,
+        },
+        financialMetrics: {
+          totalRevenue: 0,
+          averageDailyRate: 0,
+          revenuePAR: 0,
+          occupancyRate,
+        },
       };
     }
 
@@ -482,7 +513,10 @@ export class DashboardService {
         .createQueryBuilder('guest')
         .innerJoin(Booking, 'booking', 'booking."guestId" = guest.id')
         .where('booking.id IN (:...bookingIds)', { bookingIds })
-        .andWhere('booking."createdAt" BETWEEN :start AND :end', { start: startDate, end: now })
+        .andWhere('booking."createdAt" BETWEEN :start AND :end', {
+          start: startDate,
+          end: now,
+        })
         .select('COUNT(DISTINCT guest.id)', 'count')
         .getRawOne(),
     ]);
@@ -501,7 +535,8 @@ export class DashboardService {
                 Math.max(
                   1,
                   Math.round(
-                    (now.getTime() - new Date(now.getFullYear(), 0, 1).getTime()) /
+                    (now.getTime() -
+                      new Date(now.getFullYear(), 0, 1).getTime()) /
                       (1000 * 60 * 60 * 24),
                   ),
                 )),
@@ -509,9 +544,10 @@ export class DashboardService {
         : 0;
 
     // Booking distribution (by source as percentages for admin pie chart)
-    const bookingDistribution = bookingSource.length > 0
-      ? bookingSource.map((r: any) => ({ name: r.name, value: r.value }))
-      : [];
+    const bookingDistribution =
+      bookingSource.length > 0
+        ? bookingSource.map((r: any) => ({ name: r.name, value: r.value }))
+        : [];
 
     return {
       revenueByMonth,
@@ -526,9 +562,7 @@ export class DashboardService {
         totalGuests: totalGuestsCount,
         newGuests: guestsInPeriodCount,
         returningGuests: Math.max(0, totalGuestsCount - guestsInPeriodCount),
-        averageStay: Number(
-          Number(avgStayResult?.avgStay || 0).toFixed(1),
-        ),
+        averageStay: Number(Number(avgStayResult?.avgStay || 0).toFixed(1)),
       },
       financialMetrics: {
         totalRevenue: Number(totalRevenueResult?.revenue || 0),
@@ -567,9 +601,15 @@ export class DashboardService {
   }
 
   async generateHeatmap(days: number = 14) {
-    const rooms = await this.roomRepository.find({ order: { roomNumber: 'ASC' } });
+    const rooms = await this.roomRepository.find({
+      order: { roomNumber: 'ASC' },
+    });
     const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const endDate = new Date(startDate.getTime() + days * 24 * 60 * 60 * 1000);
 
     const endDateStr = endDate.toISOString().split('T')[0];
@@ -587,7 +627,10 @@ export class DashboardService {
       relations: ['booking'],
     });
 
-    const roomNightMap: Record<string, Record<string, { status: RoomNightStatus; bookingStatus?: string }>> = {};
+    const roomNightMap: Record<
+      string,
+      Record<string, { status: RoomNightStatus; bookingStatus?: string }>
+    > = {};
     for (const rn of roomNights) {
       if (!roomNightMap[rn.roomId]) roomNightMap[rn.roomId] = {};
       roomNightMap[rn.roomId][rn.date] = {
@@ -596,13 +639,16 @@ export class DashboardService {
       };
     }
 
-    return rooms.map(room => {
+    return rooms.map((room) => {
       const dates: string[] = [];
       for (let i = 0; i < days; i++) {
         const dStr = dateStrs[i];
 
         // Room physical status takes priority
-        if (room.status === RoomStatus.MAINTENANCE || room.status === RoomStatus.OUT_OF_ORDER) {
+        if (
+          room.status === RoomStatus.MAINTENANCE ||
+          room.status === RoomStatus.OUT_OF_ORDER
+        ) {
           dates.push('out_of_order');
           continue;
         }
@@ -611,7 +657,10 @@ export class DashboardService {
         if (rn) {
           if (rn.status === RoomNightStatus.BLOCKED) {
             dates.push('blocked');
-          } else if (rn.status === RoomNightStatus.HELD || rn.bookingStatus === BookingStatus.HOLD) {
+          } else if (
+            rn.status === RoomNightStatus.HELD ||
+            rn.bookingStatus === BookingStatus.HOLD
+          ) {
             dates.push('hold');
           } else {
             dates.push('confirmed');
@@ -634,10 +683,7 @@ export class DashboardService {
   ): Promise<{ month: string; revenue: number }[]> {
     const rows = await this.invoiceRepository
       .createQueryBuilder('invoice')
-      .select(
-        `TO_CHAR(invoice."updatedAt", 'YYYY-MM')`,
-        'monthKey',
-      )
+      .select(`TO_CHAR(invoice."updatedAt", 'YYYY-MM')`, 'monthKey')
       .addSelect('COALESCE(SUM(invoice.amount), 0)', 'revenue')
       .where('invoice.status = :status', { status: InvoiceStatus.PAID })
       .andWhere('invoice."updatedAt" BETWEEN :start AND :end', {
@@ -650,8 +696,18 @@ export class DashboardService {
       .getRawMany();
 
     const monthNames = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return rows.map((r) => {
       const monthIndex = parseInt(r.monthKey.split('-')[1], 10) - 1;
