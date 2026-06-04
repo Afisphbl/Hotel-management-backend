@@ -13,6 +13,7 @@ import {
 } from '../../database/entities/global/platform-user.entity';
 import { Role } from '../../database/entities/global/role.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcrypt';
 
@@ -35,6 +36,7 @@ export class UserManagementService {
   constructor(
     private dataSource: DataSource,
     private redisService: RedisService,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   private get userRepository(): Repository<PlatformUser> {
@@ -202,6 +204,8 @@ export class UserManagementService {
       });
     }
 
+    await this.passwordPolicyService.assertCompliant(data.password);
+
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const user = this.userRepository.create({
       email: data.email,
@@ -287,6 +291,8 @@ export class UserManagementService {
       if (match)
         throw new BadRequestException('Cannot reuse a previous password');
     }
+
+    await this.passwordPolicyService.assertCompliant(newPassword);
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     history.push(user.password);
