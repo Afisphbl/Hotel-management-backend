@@ -26,6 +26,7 @@ import { HotelUserAccess } from '../../../database/entities/hotel-user-access.en
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
   private readonly backofficeUrl: string;
+  private readonly frontendUrl: string;
 
   constructor(
     @InjectRepository(Hotel)
@@ -42,6 +43,8 @@ export class BillingService {
   ) {
     this.backofficeUrl =
       config.get<string>('BACKOFFICE_URL') || 'http://localhost:5000';
+    this.frontendUrl =
+      config.get<string>('FRONTEND_URL') || 'http://abdures.localhost:3000';
   }
 
   // ── Hotel Owner: Check payment status for current month ──
@@ -125,7 +128,7 @@ export class BillingService {
     const lastName = lastParts.join(' ') || firstName;
 
     const callbackUrl = `${this.backofficeUrl}/api/v1/webhooks/chapa/subscription`;
-    const finalReturnUrl = returnUrl || `${this.backofficeUrl}/api/v1/billing/owner/return`;
+    const finalReturnUrl = returnUrl || `${this.frontendUrl}/hotel/owner/billing`;
 
     try {
       const result = await this.chapaService.initiate({
