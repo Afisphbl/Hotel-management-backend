@@ -22,10 +22,10 @@ export class PublicService {
 
   async findHotelBySubdomain(subdomain: string) {
     const hotel = await this.hotelRepository.findOne({
-      where: { subdomain, status: HotelStatus.ACTIVE },
+      where: { subdomain },
     });
 
-    if (!hotel) {
+    if (!hotel || hotel.status === HotelStatus.INACTIVE) {
       throw new NotFoundException('Hotel not found');
     }
 

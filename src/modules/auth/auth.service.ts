@@ -255,9 +255,22 @@ export class AuthService {
         throw new UnauthorizedException('Hotel not found');
       }
       if (hotel.status !== HotelStatus.ACTIVE) {
-        throw new UnauthorizedException(
-          `Hotel is ${hotel.status === HotelStatus.SUSPENDED ? 'suspended' : 'inactive'}. Please contact support.`,
-        );
+        // Allow HOTEL_OWNER to login even when suspended so they can pay the bill
+        if (hotel.status === HotelStatus.SUSPENDED) {
+          const access = await this.accessRepository.findOne({
+            where: { userId: user.id, hotelId },
+          });
+          const role = access?.roleId
+            ? await this.roleRepository.findOne({ where: { id: access.roleId } })
+            : null;
+          if (role?.name !== 'HOTEL_OWNER') {
+            throw new UnauthorizedException(
+              'Hotel is suspended. Please contact the hotel owner.',
+            );
+          }
+        } else {
+          throw new UnauthorizedException('Hotel is inactive. Please contact support.');
+        }
       }
 
       // Impersonation check: Platform users with proper permissions can bypass normal access checks
@@ -310,9 +323,17 @@ export class AuthService {
           where: { id: resolvedHotelId },
         });
         if (hotel && hotel.status !== HotelStatus.ACTIVE) {
-          throw new UnauthorizedException(
-            `Hotel is ${hotel.status === HotelStatus.SUSPENDED ? 'suspended' : 'inactive'}. Please contact support.`,
-          );
+          // Allow HOTEL_OWNER to login even when suspended
+          const hotelRole = hotelAccess.roleId
+            ? await this.roleRepository.findOne({ where: { id: hotelAccess.roleId } })
+            : null;
+          if (hotelRole?.name !== 'HOTEL_OWNER') {
+            throw new UnauthorizedException(
+              hotel.status === HotelStatus.SUSPENDED
+                ? 'Hotel is suspended. Please contact the hotel owner.'
+                : 'Hotel is inactive. Please contact support.',
+            );
+          }
         }
 
         // Load role explicitly by roleId (entity stores roleId as plain column)

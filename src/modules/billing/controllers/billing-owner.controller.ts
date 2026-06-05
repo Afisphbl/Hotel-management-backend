@@ -12,12 +12,11 @@ import { BillingService } from '../services/billing.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
-import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 
 @Controller('billing')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
 @Scopes(UserScope.HOTEL)
 export class BillingOwnerController {
   constructor(private readonly billingService: BillingService) {}
