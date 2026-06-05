@@ -30,9 +30,10 @@ export enum NotificationType {
   PAYMENT_OVERDUE = 'payment_overdue',
   ACCOUNT_SUSPENDED = 'account_suspended',
   ACCOUNT_REACTIVATED = 'account_reactivated',
+  BILL_SUBMITTED = 'bill_submitted',
 }
 
-@Entity({ name: 'notifications' })
+@Entity({ name: 'notifications', schema: 'global' })
 @Index(['userId', 'status'])
 @Index(['type'])
 export class Notification extends BaseEntity {

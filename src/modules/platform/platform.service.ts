@@ -700,6 +700,7 @@ export class PlatformService {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "bookingId" UUID NOT NULL REFERENCES "${s}"."bookings"(id),
         "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id),
+        "roomTypeId" UUID REFERENCES "${s}"."room_types"(id),
         price NUMERIC(12,2) NOT NULL,
         "nightPrices" JSONB,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

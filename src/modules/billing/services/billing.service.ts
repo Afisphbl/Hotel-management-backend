@@ -19,7 +19,7 @@ import {
 } from '../../../database/entities/notification.entity';
 import { ChapaService } from '../../public-booking/chapa.service';
 import { NotificationService } from '../../workers/services/notification.service';
-import { User } from '../../../database/entities/user.entity';
+import { User, UserScope } from '../../../database/entities/user.entity';
 import { HotelUserAccess } from '../../../database/entities/hotel-user-access.entity';
 
 @Injectable()
@@ -44,7 +44,7 @@ export class BillingService {
     this.backofficeUrl =
       config.get<string>('BACKOFFICE_URL') || 'http://localhost:5000';
     this.frontendUrl =
-      config.get<string>('FRONTEND_URL') || 'http://abdures.localhost:3000';
+      config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
   // ── Hotel Owner: Check payment status for current month ──
@@ -128,7 +128,8 @@ export class BillingService {
     const lastName = lastParts.join(' ') || firstName;
 
     const callbackUrl = `${this.backofficeUrl}/api/v1/webhooks/chapa/subscription`;
-    const finalReturnUrl = returnUrl || `${this.frontendUrl}/hotel/owner/billing`;
+    const baseUrl = returnUrl || this.frontendUrl;
+    const finalReturnUrl = `${baseUrl}/hotel/owner/billing`;
 
     try {
       const result = await this.chapaService.initiate({
@@ -152,6 +153,8 @@ export class BillingService {
       saved.transactionId = txRef;
       saved.gatewayResponse = { ...result, initiatedAt: new Date() };
       await this.paymentRepository.save(saved);
+
+      await this.notifySuperAdmins(hotel, saved);
 
       return {
         checkoutUrl: result.checkoutUrl,
@@ -190,6 +193,8 @@ export class BillingService {
       receiptUrl,
     });
     await this.paymentRepository.save(payment);
+
+    await this.notifySuperAdmins(hotel, payment);
 
     return { success: true, message: 'Receipt uploaded. Awaiting admin confirmation.' };
   }
@@ -492,8 +497,19 @@ export class BillingService {
     payment: SubscriptionPayment,
     isManual = false,
   ) {
+    // Look up the HOTEL_OWNER role id once
+    const roleRows = await this.accessRepository.manager.query(
+      `SELECT id FROM global.roles WHERE name = 'HOTEL_OWNER' LIMIT 1`,
+    );
+    const ownerRoleId: string | undefined = roleRows[0]?.id;
+
+    // Only notify users who are HOTEL_OWNER on this specific hotel
     const ownerUsers = await this.accessRepository.find({
-      where: { hotelId: hotel.id, status: 'ACTIVE' as any },
+      where: {
+        hotelId: hotel.id,
+        status: 'ACTIVE' as any,
+        ...(ownerRoleId ? { roleId: ownerRoleId } : {}),
+      },
     });
 
     const notifiedIds = new Set<string>();
@@ -530,5 +546,30 @@ export class BillingService {
         email: hotel.ownerEmail,
       });
     }
+  }
+
+  private async notifySuperAdmins(hotel: Hotel, payment: SubscriptionPayment) {
+    const superAdmins = await this.userRepository
+      .createQueryBuilder('u')
+      .innerJoin('u.role', 'r')
+      .where('u.scope = :scope', { scope: UserScope.PLATFORM })
+      .andWhere('r.name = :role', { role: 'SUPER_ADMIN' })
+      .andWhere('u.isActive = true')
+      .getMany();
+
+    const month = payment.periodStart
+      ? new Date(payment.periodStart).toLocaleString('default', { month: 'long', year: 'numeric' })
+      : 'this month';
+
+    await this.notificationService.sendBulk(
+      superAdmins.map((admin) => ({
+        userId: admin.id,
+        type: NotificationType.BILL_SUBMITTED,
+        title: 'Bill Submitted',
+        body: `${hotel.name} submitted a bill of ${payment.amount} ${payment.currency} for ${month}. Please review.`,
+        data: { hotelId: hotel.id, paymentId: payment.id, amount: payment.amount },
+        channel: NotificationChannel.IN_APP,
+      })),
+    );
   }
 }

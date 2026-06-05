@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Raw } from 'typeorm';
+import { Repository, Raw, IsNull } from 'typeorm';
 import {
   Notification,
   NotificationChannel,
@@ -74,9 +74,10 @@ export class NotificationService {
   }
 
   async markAllRead(userId: string): Promise<void> {
-    await this.notificationRepository.update({ userId, readAt: null } as any, {
-      readAt: new Date(),
-    });
+    await this.notificationRepository.update(
+      { userId, readAt: IsNull() },
+      { readAt: new Date() },
+    );
   }
 
   async findByUser(userId: string, limit = 50): Promise<Notification[]> {
@@ -89,7 +90,7 @@ export class NotificationService {
 
   async countUnread(userId: string): Promise<number> {
     return this.notificationRepository.count({
-      where: { userId, readAt: null } as any,
+      where: { userId, readAt: IsNull() },
     });
   }
 
@@ -103,14 +104,14 @@ export class NotificationService {
         where: {
           userId,
           type,
-          readAt: null,
+          readAt: IsNull(),
           data: Raw(alias => `${alias} @> '{"hotelId": "${hotelId}"}'`),
-        } as any,
+        },
       });
       return count > 0;
     }
     const count = await this.notificationRepository.count({
-      where: { userId, type, readAt: null } as any,
+      where: { userId, type, readAt: IsNull() },
     });
     return count > 0;
   }

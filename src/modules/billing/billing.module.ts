@@ -10,13 +10,14 @@ import { Hotel } from '../../database/entities/hotel.entity';
 import { SubscriptionPayment } from '../../database/entities/global/subscription-payment.entity';
 import { User } from '../../database/entities/user.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
+import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import { PublicBookingModule } from '../public-booking/public-booking.module';
 import { WorkersModule } from '../workers/workers.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    TypeOrmModule.forFeature([Hotel, SubscriptionPayment, User, HotelUserAccess]),
+    TypeOrmModule.forFeature([Hotel, SubscriptionPayment, User, HotelUserAccess, PlatformUser]),
     PublicBookingModule,
     WorkersModule,
   ],

@@ -22,7 +22,7 @@ export class BillingWebhookController {
     config: ConfigService,
   ) {
     this.frontendUrl =
-      config.get<string>('FRONTEND_URL') || 'http://abdures.localhost:3000';
+      config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   }
 
   @Post('subscription')

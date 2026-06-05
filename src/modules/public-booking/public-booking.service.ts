@@ -24,7 +24,7 @@ export class PublicBookingService {
   ) {}
 
   getFrontendUrl(): string {
-    return this.config.get('FRONTEND_URL', 'http://abdures.localhost:3000');
+    return this.config.get('FRONTEND_URL', 'http://localhost:3000');
   }
 
   private async getSchema(hotelId: string): Promise<string> {

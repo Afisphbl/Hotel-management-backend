@@ -51,7 +51,8 @@ async function main() {
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,
     `CREATE TABLE IF NOT EXISTS "${s}"."booking_rooms" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "bookingId" UUID NOT NULL REFERENCES "${s}"."bookings"(id),
-      "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id), price NUMERIC(12,2) NOT NULL, "nightPrices" JSONB,
+      "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id), "roomTypeId" UUID REFERENCES "${s}"."room_types"(id),
+      price NUMERIC(12,2) NOT NULL, "nightPrices" JSONB,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(), "deletedAt" TIMESTAMPTZ)`,
     `CREATE TABLE IF NOT EXISTS "${s}"."room_nights" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "roomId" UUID NOT NULL REFERENCES "${s}"."rooms"(id),
