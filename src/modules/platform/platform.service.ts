@@ -494,6 +494,10 @@ export class PlatformService {
       });
       await queryRunner.manager.save(subscription);
 
+      // Sync monthlyRate with subscription price
+      savedHotel.monthlyRate = subPrice;
+      await queryRunner.manager.save(Hotel, savedHotel);
+
       // Create Feature Flags
       if (data.features && Array.isArray(data.features)) {
         for (const featureName of data.features) {
@@ -1774,7 +1778,15 @@ export class PlatformService {
     if (data.endDate) sub.endDate = new Date(data.endDate);
     if (data.trialEndDate) sub.trialEndDate = new Date(data.trialEndDate);
     if (data.features) sub.features = data.features;
-    return this.subscriptionRepository.save(sub);
+    const saved = await this.subscriptionRepository.save(sub);
+
+    // Sync monthlyRate with subscription price
+    if (data.price !== undefined && sub.hotel) {
+      sub.hotel.monthlyRate = data.price;
+      await this.hotelRepository.save(sub.hotel);
+    }
+
+    return saved;
   }
 
   async deleteSubscription(id: string) {
