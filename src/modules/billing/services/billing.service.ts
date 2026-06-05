@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, MoreThanOrEqual } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Hotel, HotelStatus } from '../../../database/entities/hotel.entity';
 import {
@@ -417,7 +417,7 @@ export class BillingService {
     const completedThisMonth = await this.paymentRepository.find({
       where: {
         status: SubscriptionPaymentStatus.COMPLETED,
-        periodStart: MoreThan(startOfMonth),
+        paidAt: MoreThanOrEqual(startOfMonth),
       },
     });
 

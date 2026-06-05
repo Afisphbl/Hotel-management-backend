@@ -1273,12 +1273,11 @@ export class PlatformService {
       };
     }
 
-    const [totalHotels, activeSubscriptions, activeUsers] = await Promise.all([
+    const [totalHotels, activeSubscriptions] = await Promise.all([
       this.hotelRepository.count(),
       this.subscriptionRepository.count({
         where: { status: SubscriptionStatus.ACTIVE },
       }),
-      this.userRepository.count({ where: { isActive: true } }),
     ]);
 
     const mrrResult = await this.subscriptionRepository
@@ -1289,39 +1288,49 @@ export class PlatformService {
 
     const mrr = Number(mrrResult?.mrr || 0);
 
-    const hotels = await this.hotelRepository.find({
-      where: { status: HotelStatus.ACTIVE },
+    // Count distinct hotel owners
+    const ownerResult = await this.hotelRepository
+      .createQueryBuilder('hotel')
+      .select('COUNT(DISTINCT hotel.ownerEmail)', 'count')
+      .where('hotel.ownerEmail IS NOT NULL')
+      .andWhere("hotel.ownerEmail != ''")
+      .getRawOne();
+
+    const hotelOwners = Number(ownerResult?.count || 0);
+
+    // Compute growth by comparing with the previous snapshot if available
+    let mrrGrowth = 0;
+    let hotelsGrowth = 0;
+
+    const snapshots = await this.snapshotRepository.find({
+      where: { snapshotType: SnapshotType.PLATFORM_KPI },
+      order: { periodStart: 'DESC' },
+      take: 2,
     });
 
-    const bookingCounts = await Promise.all(
-      hotels.map(async (h) => {
-        try {
-          const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
-          )) as unknown as Array<{ count: string }>;
-          return parseInt(countRes[0]?.count || '0', 10);
-        } catch {
-          return 0;
-        }
-      }),
-    );
-
-    const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+    if (snapshots.length > 1 && snapshots[1].data) {
+      const prev = snapshots[1].data;
+      if (prev.mrr > 0) {
+        mrrGrowth = Math.round(((mrr - prev.mrr) / prev.mrr) * 100);
+      }
+      if (prev.totalHotels > 0) {
+        hotelsGrowth = Math.round(((totalHotels - prev.totalHotels) / prev.totalHotels) * 100);
+      }
+    }
 
     return {
       totalHotels,
       activeSubscriptions,
       mrr,
-      totalBookings,
-      activeUsers,
-      mrrGrowth: 0,
-      hotelsGrowth: 0,
+      hotelOwners,
+      mrrGrowth,
+      hotelsGrowth,
       isCached: false,
     };
   }
 
   async getPlatformRevenueChart(): Promise<
-    Array<{ month: string; revenue: number; bookings: number }>
+    Array<{ month: string; revenue: number; collected: number }>
   > {
     const latestSnapshot = await this.snapshotRepository.findOne({
       where: { snapshotType: SnapshotType.PLATFORM_REVENUE },
@@ -1332,7 +1341,42 @@ export class PlatformService {
       return latestSnapshot.data.chart;
     }
 
-    return [];
+    // Live computation fallback: query actual completed payments per month
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+
+    const chartData = await Promise.all(
+      Array.from({ length: 6 }).map(async (_, i) => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - (5 - i));
+        const year = d.getFullYear();
+        const monthIndex = d.getMonth();
+
+        const startOfMonth = new Date(year, monthIndex, 1);
+        const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+        const paymentResult = await this.dataSource
+          .getRepository('SubscriptionPayment')
+          .createQueryBuilder('p')
+          .select('COALESCE(SUM(p.amount), 0)', 'total')
+          .where('p.status = :status', { status: 'completed' })
+          .andWhere('p.paidAt >= :start', { start: startOfMonth })
+          .andWhere('p.paidAt <= :end', { end: endOfMonth })
+          .getRawOne();
+
+        const revenue = Number(paymentResult?.total || 0);
+
+        return {
+          month: monthNames[monthIndex],
+          revenue,
+          collected: revenue,
+        };
+      }),
+    );
+
+    return chartData;
   }
 
   // --- Global Settings ---
@@ -1388,6 +1432,54 @@ export class PlatformService {
       { name: 'Pro', value: proCount, color: '#C9973A' },
       { name: 'Enterprise', value: entCount, color: '#0F1B2D' },
     ];
+  }
+
+  async getHotelRegistrationsTrend() {
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
+    twelveMonthsAgo.setDate(1);
+    twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+    const hotels = await this.hotelRepository
+      .createQueryBuilder('hotel')
+      .select("to_char(hotel.createdAt, 'YYYY-MM')", 'month')
+      .addSelect('COUNT(*)', 'count')
+      .where('hotel.createdAt >= :start', { start: twelveMonthsAgo })
+      .groupBy("to_char(hotel.createdAt, 'YYYY-MM')")
+      .orderBy('month', 'ASC')
+      .getRawMany();
+
+    // Fill in missing months with 0
+    const result: Array<{ month: string; registrations: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const found = hotels.find(h => h.month === month);
+      result.push({
+        month,
+        registrations: found ? Number(found.count) : 0,
+      });
+    }
+
+    return result;
+  }
+
+  async getStorageUsageOverview() {
+    const hotels = await this.hotelRepository.find({
+      where: { deletedAt: null } as any,
+      select: ['id', 'name', 'storageUsedMb', 'status'],
+    });
+
+    const totalStorageMb = hotels.reduce((s, h) => s + Number(h.storageUsedMb || 0), 0);
+    const hotelCount = hotels.length;
+
+    return {
+      totalStorageMb,
+      averagePerHotel: hotelCount > 0 ? Math.round(totalStorageMb / hotelCount) : 0,
+      totalHotels: hotelCount,
+      hotels,
+    };
   }
 
   async getPlatformAuditLogs(hotelId?: string) {

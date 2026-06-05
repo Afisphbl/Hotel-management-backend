@@ -41,12 +41,11 @@ export class AnalyticsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [totalHotels, activeSubscriptions, activeUsers] = await Promise.all([
+    const [totalHotels, activeSubscriptions] = await Promise.all([
       this.hotelRepository.count(),
       this.dataSource.getRepository(Subscription).count({
         where: { status: SubscriptionStatus.ACTIVE },
       }),
-      this.dataSource.getRepository(User).count({ where: { isActive: true } }),
     ]);
 
     // MRR calculation
@@ -58,30 +57,15 @@ export class AnalyticsService {
       .getRawOne()) as { mrr: string | null } | null;
     const mrr = Number(mrrResult?.mrr || 0);
 
-    // Bookings across all active hotel schemas - Parallelized
-    const hotels = await this.hotelRepository.find({
-      where: { status: HotelStatus.ACTIVE },
-    });
-
-    this.logger.log(`Querying ${hotels.length} hotel schemas in parallel...`);
-
-    const bookingCounts = await Promise.all(
-      hotels.map(async (h) => {
-        try {
-          const countRes = (await this.dataSource.query(
-            `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"`,
-          )) as unknown as Array<{ count: string }>;
-          return parseInt(countRes[0]?.count || '0', 10);
-        } catch (err) {
-          this.logger.warn(
-            `Failed to count bookings for hotel ${h.id}: ${err.message}`,
-          );
-          return 0;
-        }
-      }),
-    );
-
-    const totalBookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+    // Count distinct hotel owners
+    const ownerResult = (await this.dataSource
+      .getRepository(Hotel)
+      .createQueryBuilder('hotel')
+      .select('COUNT(DISTINCT hotel.ownerEmail)', 'count')
+      .where('hotel.ownerEmail IS NOT NULL')
+      .andWhere("hotel.ownerEmail != ''")
+      .getRawOne()) as { count: string } | null;
+    const hotelOwners = Number(ownerResult?.count || 0);
 
     const previousSnapshot = await this.snapshotRepository.findOne({
       where: { snapshotType: SnapshotType.PLATFORM_KPI },
@@ -107,8 +91,7 @@ export class AnalyticsService {
       totalHotels,
       activeSubscriptions,
       mrr,
-      totalBookings,
-      activeUsers,
+      hotelOwners,
       mrrGrowth,
       hotelsGrowth,
       timestamp: new Date().toISOString(),
@@ -127,25 +110,10 @@ export class AnalyticsService {
     const today = new Date();
     const periodStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    // Calculate last 6 months revenue
     const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-
-    const hotels = await this.hotelRepository.find({
-      where: { status: HotelStatus.ACTIVE },
-    });
 
     const revenueData = await Promise.all(
       Array.from({ length: 6 }).map(async (_, i) => {
@@ -157,43 +125,21 @@ export class AnalyticsService {
         const startOfMonth = new Date(year, monthIndex, 1);
         const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
 
-        const subSum = (await this.dataSource
-          .getRepository(Subscription)
-          .createQueryBuilder('sub')
-          .select('SUM(sub.price)', 'total')
-          .where('sub.startDate <= :end', { end: endOfMonth })
-          .andWhere('(sub.endDate IS NULL OR sub.endDate >= :start)', {
-            start: startOfMonth,
-          })
-          .andWhere('sub.status != :status', {
-            status: SubscriptionStatus.CANCELLED,
-          })
-          .getRawOne()) as { total: string | null } | null;
+        const paymentResult = (await this.dataSource
+          .getRepository('SubscriptionPayment')
+          .createQueryBuilder('p')
+          .select('COALESCE(SUM(p.amount), 0)', 'total')
+          .where('p.status = :status', { status: 'completed' })
+          .andWhere('p.paidAt >= :start', { start: startOfMonth })
+          .andWhere('p.paidAt <= :end', { end: endOfMonth })
+          .getRawOne()) as { total: string } | null;
 
-        const revenue = Number(subSum?.total || 0);
-
-        // Parallelize bookings count for this month across all hotels
-        const bookingCounts = await Promise.all(
-          hotels.map(async (h) => {
-            try {
-              const countRes = (await this.dataSource.query(
-                `SELECT COUNT(*) as count FROM "${h.schemaName}"."bookings"
-                 WHERE "createdAt" BETWEEN $1 AND $2`,
-                [startOfMonth, endOfMonth],
-              )) as unknown as Array<{ count: string }>;
-              return parseInt(countRes[0]?.count || '0', 10);
-            } catch {
-              return 0;
-            }
-          }),
-        );
-
-        const bookings = bookingCounts.reduce((sum, count) => sum + count, 0);
+        const revenue = Number(paymentResult?.total || 0);
 
         return {
           month: monthNames[monthIndex],
           revenue,
-          bookings,
+          collected: revenue,
         };
       }),
     );

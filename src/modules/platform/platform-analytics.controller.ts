@@ -50,6 +50,16 @@ export class PlatformAnalyticsController {
     return this.platformService.getPlatformAuditLogs(hotelId);
   }
 
+  @Get('hotel-registrations')
+  async getHotelRegistrationsTrend() {
+    return this.platformService.getHotelRegistrationsTrend();
+  }
+
+  @Get('storage-usage')
+  async getStorageUsageOverview() {
+    return this.platformService.getStorageUsageOverview();
+  }
+
   @Get('mrr')
   async getMRRBreakdown() {
     return this.revenueAnalyticsService.getMRRBreakdown();
