@@ -74,18 +74,37 @@ export class BillingCronService {
       .getMany();
   }
 
-  private async getOwnerEmail(hotel: Hotel): Promise<string | null> {
-    if (hotel.ownerEmail) return hotel.ownerEmail;
+  private async getOwnerUsers(hotel: Hotel): Promise<Array<{ userId: string; email: string | null }>> {
+    const result: Array<{ userId: string; email: string | null }> = [];
 
-    const access = await this.accessRepository.findOne({
+    const accessList = await this.accessRepository.find({
       where: { hotelId: hotel.id, status: 'ACTIVE' as any },
     });
-    if (!access) return null;
 
-    const user = await this.userRepository.findOne({
-      where: { id: access.userId },
-    });
-    return user?.email || null;
+    const seen = new Set<string>();
+    for (const access of accessList) {
+      if (seen.has(access.userId)) continue;
+      seen.add(access.userId);
+
+      const user = await this.userRepository.findOne({
+        where: { id: access.userId },
+      });
+      result.push({
+        userId: access.userId,
+        email: user?.email || null,
+      });
+    }
+
+    if (result.length === 0 && hotel.ownerEmail) {
+      const user = await this.userRepository.findOne({
+        where: { email: hotel.ownerEmail },
+      });
+      if (user) {
+        result.push({ userId: user.id, email: user.email });
+      }
+    }
+
+    return result;
   }
 
   private async sendPaymentReminders(reminderNumber: number): Promise<void> {
@@ -101,37 +120,57 @@ export class BillingCronService {
     );
 
     for (const hotel of dueHotels) {
-      const ownerEmail = await this.getOwnerEmail(hotel);
+      const ownerUsers = await this.getOwnerUsers(hotel);
       const ownerName = hotel.ownerName || 'Hotel Owner';
+      const amount = hotel.monthlyRate || 0;
+      const currency = hotel.currency || 'ETB';
 
-      const html = paymentReminderTemplate({
-        ownerName,
-        hotelName: hotel.name,
-        amount: hotel.monthlyRate || 0,
-        currency: hotel.currency || 'ETB',
-        dueDate: new Date().toISOString().slice(0, 10),
-        reminderNumber,
-        payUrl: `${this.getFrontendUrl()}/owner/billing`,
-      });
+      const body = `Your monthly subscription of ${amount} ${currency} for ${hotel.name} is due. Please complete your payment to keep your account active.`;
 
-      await this.notificationService.send({
-        userId: hotel.id,
-        type: NotificationType.PAYMENT_REMINDER,
-        title: reminderNumber === 1
-          ? 'Payment Reminder: Monthly subscription due'
-          : 'Urgent: Second payment reminder — account at risk',
-        body: html,
-        data: {
-          hotelId: hotel.id,
-          amount: hotel.monthlyRate,
+      for (const owner of ownerUsers) {
+        await this.notificationService.send({
+          userId: owner.userId,
+          type: NotificationType.PAYMENT_REMINDER,
+          title: reminderNumber === 1
+            ? 'Monthly Payment Due'
+            : 'Urgent: Payment Overdue — Account at Risk',
+          body,
+          data: {
+            hotelId: hotel.id,
+            amount,
+            reminderNumber,
+          },
+          channel: owner.email ? NotificationChannel.BOTH : NotificationChannel.IN_APP,
+          email: owner.email || undefined,
+        });
+      }
+
+      if (ownerUsers.length === 0) {
+        const html = paymentReminderTemplate({
+          ownerName,
+          hotelName: hotel.name,
+          amount,
+          currency,
+          dueDate: new Date().toISOString().slice(0, 10),
           reminderNumber,
-        },
-        channel: ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
-        email: ownerEmail || undefined,
-      });
+          payUrl: `${this.getFrontendUrl()}/owner/billing`,
+        });
+
+        await this.notificationService.send({
+          userId: hotel.id,
+          type: NotificationType.PAYMENT_REMINDER,
+          title: reminderNumber === 1
+            ? 'Monthly Payment Due'
+            : 'Urgent: Payment Overdue — Account at Risk',
+          body: html,
+          data: { hotelId: hotel.id, amount, reminderNumber },
+          channel: hotel.ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
+          email: hotel.ownerEmail || undefined,
+        });
+      }
 
       this.logger.log(
-        `[REMINDER ${reminderNumber}] Sent to hotel "${hotel.name}" (${hotel.id}) — ${ownerEmail || 'no email'}`,
+        `[REMINDER ${reminderNumber}] Sent to ${ownerUsers.length} user(s) for hotel "${hotel.name}"`,
       );
     }
   }
@@ -149,35 +188,49 @@ export class BillingCronService {
     );
 
     for (const hotel of dueHotels) {
-      const ownerEmail = await this.getOwnerEmail(hotel);
-      const ownerName = hotel.ownerName || 'Hotel Owner';
-
       hotel.status = HotelStatus.SUSPENDED;
       await this.hotelRepository.save(hotel);
 
-      const html = accountSuspendedTemplate({
-        ownerName,
-        hotelName: hotel.name,
-        amount: hotel.monthlyRate || 0,
-        currency: hotel.currency || 'ETB',
-        payUrl: `${this.getFrontendUrl()}/owner/billing`,
-      });
+      const ownerUsers = await this.getOwnerUsers(hotel);
+      const amount = hotel.monthlyRate || 0;
+      const currency = hotel.currency || 'ETB';
 
-      await this.notificationService.send({
-        userId: hotel.id,
-        type: NotificationType.ACCOUNT_SUSPENDED,
-        title: 'Account Suspended — Payment Required',
-        body: html,
-        data: {
-          hotelId: hotel.id,
-          amount: hotel.monthlyRate,
-        },
-        channel: ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
-        email: ownerEmail || undefined,
-      });
+      const body = `Your account for ${hotel.name} has been suspended due to non-payment of ${amount} ${currency}. Please pay to reactivate.`;
+
+      for (const owner of ownerUsers) {
+        await this.notificationService.send({
+          userId: owner.userId,
+          type: NotificationType.ACCOUNT_SUSPENDED,
+          title: 'Account Suspended — Payment Required',
+          body,
+          data: { hotelId: hotel.id, amount },
+          channel: owner.email ? NotificationChannel.BOTH : NotificationChannel.IN_APP,
+          email: owner.email || undefined,
+        });
+      }
+
+      if (ownerUsers.length === 0) {
+        const html = accountSuspendedTemplate({
+          ownerName: hotel.ownerName || 'Hotel Owner',
+          hotelName: hotel.name,
+          amount,
+          currency,
+          payUrl: `${this.getFrontendUrl()}/owner/billing`,
+        });
+
+        await this.notificationService.send({
+          userId: hotel.id,
+          type: NotificationType.ACCOUNT_SUSPENDED,
+          title: 'Account Suspended — Payment Required',
+          body: html,
+          data: { hotelId: hotel.id, amount },
+          channel: hotel.ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
+          email: hotel.ownerEmail || undefined,
+        });
+      }
 
       this.logger.log(
-        `[SUSPENDED] Hotel "${hotel.name}" (${hotel.id}) — ${ownerEmail || 'no email'}`,
+        `[SUSPENDED] Hotel "${hotel.name}" — ${ownerUsers.length} user(s) notified`,
       );
     }
   }
