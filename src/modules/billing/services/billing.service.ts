@@ -107,7 +107,6 @@ export class BillingService {
     const now = new Date();
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     const endOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
-    const txRef = `sub_${hotelId}_${Date.now()}`;
 
     const payment = this.paymentRepository.create({
       hotelId,
@@ -119,6 +118,7 @@ export class BillingService {
       periodEnd: endOfMonth,
     });
     const saved = await this.paymentRepository.save(payment);
+    const txRef = `SUB${Date.now()}${Math.random().toString(36).substring(2, 8)}`;
 
     const ownerName = hotel.ownerName || hotel.ownerEmail.split('@')[0] || 'Hotel Owner';
     const [firstName, ...lastParts] = ownerName.split(' ');
@@ -137,8 +137,8 @@ export class BillingService {
         txRef,
         returnUrl: `${finalReturnUrl}?tx_ref=${txRef}&hotel_id=${hotelId}`,
         callbackUrl,
-        title: `Monthly Subscription - ${hotel.name}`,
-        description: `Platform subscription for ${hotel.name} — ${startOfMonth.toISOString().slice(0, 7)}`,
+        title: `Sub ${hotel.name}`.substring(0, 20),
+        description: `${hotel.name} ${startOfMonth.toISOString().slice(0, 7)}`.substring(0, 40),
         meta: {
           paymentId: saved.id,
           hotelId,

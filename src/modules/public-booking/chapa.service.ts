@@ -73,7 +73,8 @@ export class ChapaService {
     console.log('[ChapaService] Response:', { status: res.status, data });
 
     if (data.status !== 'success') {
-      throw new BadRequestException(`Chapa init failed: ${data.message}`);
+      const errMsg = typeof data.message === 'object' ? JSON.stringify(data.message) : (data.message || 'Unknown error');
+      throw new BadRequestException(`Chapa init failed: ${errMsg}`);
     }
     return {
       checkoutUrl: data.data.checkout_url as string,
