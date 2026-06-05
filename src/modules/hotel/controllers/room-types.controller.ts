@@ -14,6 +14,7 @@ import { RoomTypesService } from '../services/room-types.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
@@ -22,7 +23,7 @@ import { CreateRoomTypeDto, UpdateRoomTypeDto } from '../dto/room-type.dto';
 import { success, paginated } from '../common/response.interceptor';
 
 @Controller('hotel/room-types')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class RoomTypesController {
   constructor(private roomTypesService: RoomTypesService) {}

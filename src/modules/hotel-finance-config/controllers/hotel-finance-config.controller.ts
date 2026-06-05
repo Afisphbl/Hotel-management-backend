@@ -14,11 +14,12 @@ import { UpdateHotelFinanceConfigDto } from '../dto/hotel-finance-config.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 
 @Controller('hotel/finance-config')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard)
 @Scopes(UserScope.HOTEL)
 export class HotelFinanceConfigController {
   constructor(private readonly configService: HotelFinanceConfigService) {}

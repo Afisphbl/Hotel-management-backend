@@ -13,6 +13,7 @@ import { LedgerService } from '../services/ledger.service';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
@@ -20,7 +21,7 @@ import { CreateLedgerEntryDto, QueryLedgerDto } from '../dto/ledger.dto';
 import { success, paginated } from '../common/response';
 
 @Controller('finance/ledger')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class LedgerController {
   constructor(private ledgerService: LedgerService) {}

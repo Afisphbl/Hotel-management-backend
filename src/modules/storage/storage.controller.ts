@@ -12,6 +12,7 @@ import { StorageService } from './storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { PlanLimitGuard } from '../../auth/guards/plan-limit.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
@@ -43,6 +44,7 @@ class StorageUsageDto {
   JwtAuthGuard,
   ScopeGuard,
   TenantGuard,
+  SuspensionGuard,
   PermissionsGuard,
   PlanLimitGuard,
 )

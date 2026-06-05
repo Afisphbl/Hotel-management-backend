@@ -12,7 +12,7 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
-    if (user.permissions?.includes('*')) {
+    if (user.permissions?.includes('*') && user.scope === 'PLATFORM') {
       return true;
     }
 
@@ -23,10 +23,9 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (piiPermission) {
-      // if (!user.permissions?.includes(piiPermission)) {
       if (
         !user.permissions?.includes(piiPermission) &&
-        !user.permissions?.includes('*')
+        !(user.permissions?.includes('*') && user.scope === 'PLATFORM')
       ) {
         return false;
       }
@@ -42,12 +41,10 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    // permissions are embedded in JWT and potentially cached in Redis
-    // The JwtStrategy should populate req.user.permissions
     return requiredPermissions.every(
       (permission) =>
         user.permissions?.includes(permission) ||
-        user.permissions?.includes('*'),
+        (user.permissions?.includes('*') && user.scope === 'PLATFORM'),
     );
   }
 }

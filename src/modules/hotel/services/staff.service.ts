@@ -92,7 +92,7 @@ export class StaffService {
   async create(data: any, hotelId: string) {
     const s = await this.getSchema(hotelId);
     const password = data.password
-      ? await bcrypt.hash(data.password, 10)
+      ? await bcrypt.hash(data.password, 12)
       : null;
     const rows = await this.dataSource.query(
       `INSERT INTO "${s}"."staff" ("userId","firstName","lastName","email","password","phone","role","employmentType","status","hourlyRate","department","joinedAt")
@@ -135,7 +135,7 @@ export class StaffService {
       if (data[key] !== undefined) {
         let value = data[key];
         if (key === 'password') {
-          value = await bcrypt.hash(value, 10);
+          value = await bcrypt.hash(value, 12);
         }
         params.push(value);
         fields.push(`"${key}" = $${params.length}`);

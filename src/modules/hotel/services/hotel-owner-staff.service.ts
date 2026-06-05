@@ -214,7 +214,7 @@ export class HotelOwnerStaffService {
       userId = existingUser.id;
     } else {
       tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const hashedPassword = await bcrypt.hash(tempPassword, 12);
       const user = this.userRepository.create({
         email: data.email,
         password: hashedPassword,

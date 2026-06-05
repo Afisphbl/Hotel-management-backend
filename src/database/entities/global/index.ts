@@ -21,3 +21,4 @@ export * from './platform-tax-rule.entity';
 export * from './locale-setting.entity';
 export * from './consent-record.entity';
 export * from './custom-report.entity';
+export * from './subscription-payment.entity';

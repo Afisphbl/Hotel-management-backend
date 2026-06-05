@@ -17,6 +17,7 @@ import {
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
@@ -24,7 +25,7 @@ import { CreatePaymentDto, QueryPaymentDto } from '../dto/payment.dto';
 import { success, paginated } from '../common/response';
 
 @Controller('finance/payments')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class PaymentsController {
   constructor(private paymentsService: PaymentsService) {}

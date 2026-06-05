@@ -15,6 +15,7 @@ import { BookingsService } from './bookings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
@@ -30,7 +31,7 @@ import {
 } from './dto/create-booking.dto';
 
 @Controller('hotel/bookings')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class BookingsController {
   constructor(private bookingsService: BookingsService) {}
@@ -100,9 +101,11 @@ export class BookingsController {
     @Body() _dto: ConfirmBookingDto,
     @Request() req: any,
   ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
     const booking = await this.bookingsService.confirm(
       id,
       _dto.idempotencyKey,
+      hotelId,
       req.user.userId,
     );
     return { success: true, data: booking };
@@ -114,8 +117,10 @@ export class BookingsController {
     @Body() dto: CancelBookingDto,
     @Request() req: any,
   ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
     const booking = await this.bookingsService.cancel(
       id,
+      hotelId,
       dto.reason,
       req.user.userId,
     );
@@ -124,13 +129,23 @@ export class BookingsController {
 
   @Post(':id/checkin')
   async checkin(@Param('id') id: string, @Request() req: any) {
-    const booking = await this.bookingsService.checkin(id, req.user.userId);
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const booking = await this.bookingsService.checkin(
+      id,
+      hotelId,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 
   @Post(':id/checkout')
   async checkout(@Param('id') id: string, @Request() req: any) {
-    const booking = await this.bookingsService.checkout(id, req.user.userId);
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const booking = await this.bookingsService.checkout(
+      id,
+      hotelId,
+      req.user.userId,
+    );
     return { success: true, data: booking };
   }
 
@@ -156,9 +171,11 @@ export class BookingsController {
     @Body() dto: UpdateBookingStatusDto,
     @Request() req: any,
   ) {
+    const hotelId = req.user.hotel_id || req.user.hotelId;
     const booking = await this.bookingsService.transitionStatus(
       id,
       dto.status,
+      hotelId,
       req.user.userId,
     );
     return { success: true, data: booking };

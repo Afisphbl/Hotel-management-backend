@@ -397,7 +397,7 @@ export class PlatformService {
             temporaryPassword = rawPassword;
           }
           await this.passwordPolicyService.assertCompliant(rawPassword);
-          const hashedPassword = await bcrypt.hash(rawPassword, 10);
+          const hashedPassword = await bcrypt.hash(rawPassword, 12);
 
           user = queryRunner.manager.create(User, {
             email: data.ownerEmail,
@@ -1559,7 +1559,7 @@ export class PlatformService {
       data.password ||
       (await this.passwordPolicyService.generateTemporaryPassword());
     await this.passwordPolicyService.assertCompliant(rawPassword);
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    const hashedPassword = await bcrypt.hash(rawPassword, 12);
     const user = this.userRepository.create({
       ...data,
       password: hashedPassword,

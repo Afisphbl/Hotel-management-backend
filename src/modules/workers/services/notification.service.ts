@@ -7,6 +7,7 @@ import {
   NotificationStatus,
   NotificationType,
 } from '../../../database/entities/notification.entity';
+import { EmailService } from './email.service';
 
 export interface SendNotificationOptions {
   userId: string;
@@ -25,6 +26,7 @@ export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
+    private readonly emailService: EmailService,
   ) {}
 
   async send(options: SendNotificationOptions): Promise<Notification> {
@@ -92,8 +94,25 @@ export class NotificationService {
   }
 
   private async dispatchEmail(options: SendNotificationOptions): Promise<void> {
-    this.logger.log(
-      `[EMAIL] To: ${options.email || options.userId} | Subject: ${options.title}`,
-    );
+    const recipient = options.email;
+    if (!recipient) {
+      this.logger.warn(`No email address for user ${options.userId}, skipping email`);
+      return;
+    }
+
+    try {
+      const sent = await this.emailService.send({
+        to: recipient,
+        subject: options.title,
+        html: options.body,
+      });
+      if (sent) {
+        this.logger.log(`[EMAIL] Sent to ${recipient} | Subject: ${options.title}`);
+      } else {
+        this.logger.warn(`[EMAIL] Failed to send to ${recipient}`);
+      }
+    } catch (err: any) {
+      this.logger.error(`[EMAIL] Error sending to ${recipient}: ${err.message}`);
+    }
   }
 }

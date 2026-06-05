@@ -14,6 +14,7 @@ import { AnalyticsSnapshotProcessor } from './processors/analytics-snapshot.proc
 import { NotificationProcessor } from './processors/notification.processor';
 
 import { NotificationService } from './services/notification.service';
+import { EmailService } from './services/email.service';
 import { PdfGeneratorService } from './services/pdf-generator.service';
 import { AnalyticsService } from './services/analytics.service';
 import { NotificationsController } from './controllers/notifications.controller';
@@ -42,9 +43,10 @@ import { NotificationsController } from './controllers/notifications.controller'
     AnalyticsSnapshotProcessor,
     NotificationProcessor,
     NotificationService,
+    EmailService,
     PdfGeneratorService,
     AnalyticsService,
   ],
-  exports: [NotificationService, PdfGeneratorService, AnalyticsService],
+  exports: [NotificationService, EmailService, PdfGeneratorService, AnalyticsService],
 })
 export class WorkersModule {}

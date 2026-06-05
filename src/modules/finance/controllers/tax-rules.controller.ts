@@ -15,6 +15,7 @@ import { TaxRulesService } from '../services/tax-rules.service';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
@@ -26,7 +27,7 @@ import {
 import { success, paginated } from '../common/response';
 
 @Controller('finance/tax-rules')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class TaxRulesController {
   constructor(private taxRulesService: TaxRulesService) {}

@@ -415,10 +415,8 @@ export class PublicBookingService {
 
   async getBookingStatus(bookingId: string) {
     const rows = await this.dataSource.query(
-      `SELECT b.id, b.status, b."checkIn", b."checkOut", b."totalPrice",
-              g."firstName", g."lastName", g.email
+      `SELECT b.id, b.status, b."checkIn", b."checkOut", b."totalPrice"
        FROM bookings b
-       LEFT JOIN guests g ON g.id = b."guestId"
        WHERE b.id = $1 AND b."deletedAt" IS NULL
        LIMIT 1`,
       [bookingId],
@@ -430,11 +428,6 @@ export class PublicBookingService {
       checkIn: rows[0].checkIn,
       checkOut: rows[0].checkOut,
       totalPrice: rows[0].totalPrice,
-      guest: {
-        firstName: rows[0].firstName,
-        lastName: rows[0].lastName,
-        email: rows[0].email,
-      },
     };
   }
 }

@@ -26,6 +26,10 @@ export enum NotificationType {
   MAINTENANCE_TICKET = 'maintenance_ticket',
   SHIFT_REMINDER = 'shift_reminder',
   NEW_REVIEW = 'new_review',
+  PAYMENT_REMINDER = 'payment_reminder',
+  PAYMENT_OVERDUE = 'payment_overdue',
+  ACCOUNT_SUSPENDED = 'account_suspended',
+  ACCOUNT_REACTIVATED = 'account_reactivated',
 }
 
 @Entity({ name: 'notifications' })

@@ -14,6 +14,7 @@ import { RoomsService } from '../services/rooms.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { PlanLimitGuard } from '../../../auth/guards/plan-limit.guard';
 import { PlanLimit } from '../../../common/decorators/plan-limit.decorator';
@@ -26,7 +27,7 @@ import { success, paginated } from '../common/response.interceptor';
 import { TenantQuotaService } from '../../../common/services/tenant-quota.service';
 
 @Controller('hotel/rooms')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard, PermissionsGuard)
 @Scopes(UserScope.HOTEL)
 export class RoomsController {
   constructor(

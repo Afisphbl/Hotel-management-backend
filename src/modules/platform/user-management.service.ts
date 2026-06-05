@@ -202,7 +202,7 @@ export class UserManagementService {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = this.userRepository.create({
       email: data.email,
       password: hashedPassword,
@@ -288,7 +288,7 @@ export class UserManagementService {
         throw new BadRequestException('Cannot reuse a previous password');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     history.push(user.password);
     if (history.length > 10) history.shift();
 

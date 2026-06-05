@@ -3,13 +3,14 @@ import { DashboardService } from '../services/dashboard.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 
 import { success } from '../common/response.interceptor';
 
 @Controller('hotel/dashboard')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard)
 @Scopes(UserScope.HOTEL)
 export class HotelOwnerDashboardController {
   constructor(private dashboardService: DashboardService) {}

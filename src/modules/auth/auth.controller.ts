@@ -197,10 +197,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Body() refreshTokenDto: RefreshTokenDto, @Request() req: any) {
     const userId = req.user.userId;
+
+    // Revoke refresh token
     const result = await this.authService.revokeRefreshToken(
       refreshTokenDto.refreshToken,
       userId,
     );
+
+    // Revoke access token
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      await this.authService.revokeAccessToken(token);
+    }
+
     if (req.user.supportAccessId) {
       await this.authService.revokeSupportAccess(req.user.supportAccessId);
     }

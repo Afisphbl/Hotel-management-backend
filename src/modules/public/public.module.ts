@@ -21,7 +21,7 @@ import { WorkersModule } from '../workers/workers.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
+        signOptions: { expiresIn: config.get('JWT_EXPIRATION', '1h') },
       }),
     }),
     HotelModule,

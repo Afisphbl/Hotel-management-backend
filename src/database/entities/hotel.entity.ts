@@ -83,4 +83,13 @@ export class Hotel extends BaseEntity {
 
   @Column({ default: false })
   maintenanceMode: boolean;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
+  monthlyRate: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastPaidAt: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  billingPeriodStart: Date;
 }

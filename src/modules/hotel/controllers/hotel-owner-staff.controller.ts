@@ -14,13 +14,14 @@ import { HotelOwnerStaffService } from '../services/hotel-owner-staff.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../../common/guards/scope.guard';
 import { TenantGuard } from '../../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../../common/guards/suspension.guard';
 import { Scopes } from '../../../common/decorators/scopes.decorator';
 import { UserScope } from '../../../database/entities/user.entity';
 import { HotelAccessStatus } from '../../../database/entities/hotel-user-access.entity';
 import { success } from '../common/response.interceptor';
 
 @Controller('hotel/owner/staff')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard)
 @Scopes(UserScope.HOTEL)
 export class HotelOwnerStaffController {
   constructor(private readonly ownerStaffService: HotelOwnerStaffService) {}

@@ -28,6 +28,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { authenticator } from 'otplib';
 import * as qrcode from 'qrcode';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AuthService {
@@ -56,6 +57,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private userManagementService: UserManagementService,
+    private redisService: RedisService,
   ) {}
 
   async findHotelBySubdomain(subdomain: string): Promise<any> {
@@ -523,6 +525,24 @@ export class AuthService {
     return { success: true };
   }
 
+  async revokeAccessToken(token: string): Promise<void> {
+    try {
+      const decoded: any = this.jwtService.decode(token);
+      if (!decoded || !decoded.exp) return;
+
+      const ttl = decoded.exp - Math.floor(Date.now() / 1000);
+      if (ttl > 0) {
+        await this.redisService.set(
+          `revoked_token:${token}`,
+          'true',
+          ttl,
+        );
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to revoke access token: ${e.message}`);
+    }
+  }
+
   async cleanupExpiredTokens() {
     const expiredTokens = await this.refreshTokenRepository.find({
       where: {
@@ -606,7 +626,7 @@ export class AuthService {
     if (!isValid)
       throw new UnauthorizedException('Current password is incorrect');
 
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, 12);
     await this.userRepository.update(userId, { password: hashed });
 
     // Sync the new password hash to tenant staff tables

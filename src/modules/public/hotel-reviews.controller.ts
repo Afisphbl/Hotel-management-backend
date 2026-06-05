@@ -13,11 +13,12 @@ import { ReviewsService } from './reviews.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ScopeGuard } from '../../common/guards/scope.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { SuspensionGuard } from '../../common/guards/suspension.guard';
 import { Scopes } from '../../common/decorators/scopes.decorator';
 import { UserScope } from '../../database/entities/user.entity';
 
 @Controller('hotel/reviews')
-@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, ScopeGuard, TenantGuard, SuspensionGuard)
 @Scopes(UserScope.HOTEL)
 export class HotelReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}

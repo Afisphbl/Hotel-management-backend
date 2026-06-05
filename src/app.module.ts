@@ -13,6 +13,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { WorkersModule } from './modules/workers/workers.module';
 import { HotelFinanceConfigModule } from './modules/hotel-finance-config/hotel-finance-config.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { validateEnv } from './config/env.validation';
 import { RedisModule } from './modules/redis/redis.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
@@ -98,6 +99,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     PlatformModule,
     WorkersModule,
     HotelFinanceConfigModule,
+    BillingModule,
   ],
   providers: [
     RateLimitMiddleware,

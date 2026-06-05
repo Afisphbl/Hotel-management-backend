@@ -116,7 +116,7 @@ export class RoomsService {
       ),
       this.dataSource.query(
         `SELECT COUNT(*)::int AS count FROM "${s}"."rooms" r WHERE ${where}`,
-        params,
+        params.slice(0, -2),
       ),
     ]);
 

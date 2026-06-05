@@ -40,7 +40,7 @@ export class StaffService {
   async create(dto: CreateStaffDto): Promise<Staff> {
     const data = { ...dto };
     if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+      data.password = await bcrypt.hash(data.password, 12);
     }
     return this.staffRepository.save(this.staffRepository.create(data));
   }
@@ -49,7 +49,7 @@ export class StaffService {
     const staff = await this.findById(id);
     const data = { ...dto };
     if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+      data.password = await bcrypt.hash(data.password, 12);
     }
     Object.assign(staff, data);
     return this.staffRepository.save(staff);
