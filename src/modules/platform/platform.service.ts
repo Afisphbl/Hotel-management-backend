@@ -678,10 +678,22 @@ export class PlatformService {
         "totalPrice" NUMERIC(12,2) NOT NULL,
         "idempotencyKey" VARCHAR NOT NULL UNIQUE,
         "priceSnapshot" JSONB,
+        source VARCHAR(50),
+        notes TEXT,
+        "numGuests" INT,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "deletedAt" TIMESTAMPTZ
       )
+    `);
+    await queryRunner.query(`
+      ALTER TABLE "${s}"."bookings" ADD COLUMN IF NOT EXISTS source VARCHAR(50)
+    `);
+    await queryRunner.query(`
+      ALTER TABLE "${s}"."bookings" ADD COLUMN IF NOT EXISTS notes TEXT
+    `);
+    await queryRunner.query(`
+      ALTER TABLE "${s}"."bookings" ADD COLUMN IF NOT EXISTS "numGuests" INT
     `);
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "${s}"."booking_rooms" (

@@ -58,7 +58,7 @@ export class BillingService {
     const currentPayment = await this.paymentRepository.findOne({
       where: {
         hotelId,
-        periodStart: MoreThan(startOfMonth),
+        periodStart: MoreThanOrEqual(startOfMonth),
         status: SubscriptionPaymentStatus.COMPLETED,
       },
     });
@@ -376,7 +376,7 @@ export class BillingService {
         const currentPayment = await this.paymentRepository.findOne({
           where: {
             hotelId: hotel.id,
-            periodStart: MoreThan(startOfMonth),
+            periodStart: MoreThanOrEqual(startOfMonth),
             status: SubscriptionPaymentStatus.COMPLETED,
           },
         });
