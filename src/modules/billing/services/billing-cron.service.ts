@@ -128,6 +128,13 @@ export class BillingCronService {
       const body = `Your monthly subscription of ${amount} ${currency} for ${hotel.name} is due. Please complete your payment to keep your account active.`;
 
       for (const owner of ownerUsers) {
+        const alreadyNotified = await this.notificationService.hasUnreadByType(
+          owner.userId,
+          NotificationType.PAYMENT_REMINDER,
+          hotel.id,
+        );
+        if (alreadyNotified) continue;
+
         await this.notificationService.send({
           userId: owner.userId,
           type: NotificationType.PAYMENT_REMINDER,
@@ -145,7 +152,7 @@ export class BillingCronService {
         });
       }
 
-      if (ownerUsers.length === 0) {
+      if (ownerUsers.length === 0 && hotel.ownerEmail) {
         const html = paymentReminderTemplate({
           ownerName,
           hotelName: hotel.name,
@@ -159,13 +166,11 @@ export class BillingCronService {
         await this.notificationService.send({
           userId: hotel.id,
           type: NotificationType.PAYMENT_REMINDER,
-          title: reminderNumber === 1
-            ? 'Monthly Payment Due'
-            : 'Urgent: Payment Overdue — Account at Risk',
+          title: reminderNumber === 1 ? 'Monthly Payment Due' : 'Urgent: Payment Overdue — Account at Risk',
           body: html,
           data: { hotelId: hotel.id, amount, reminderNumber },
-          channel: hotel.ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
-          email: hotel.ownerEmail || undefined,
+          channel: NotificationChannel.EMAIL,
+          email: hotel.ownerEmail,
         });
       }
 
@@ -198,6 +203,13 @@ export class BillingCronService {
       const body = `Your account for ${hotel.name} has been suspended due to non-payment of ${amount} ${currency}. Please pay to reactivate.`;
 
       for (const owner of ownerUsers) {
+        const alreadyNotified = await this.notificationService.hasUnreadByType(
+          owner.userId,
+          NotificationType.ACCOUNT_SUSPENDED,
+          hotel.id,
+        );
+        if (alreadyNotified) continue;
+
         await this.notificationService.send({
           userId: owner.userId,
           type: NotificationType.ACCOUNT_SUSPENDED,
@@ -209,7 +221,7 @@ export class BillingCronService {
         });
       }
 
-      if (ownerUsers.length === 0) {
+      if (ownerUsers.length === 0 && hotel.ownerEmail) {
         const html = accountSuspendedTemplate({
           ownerName: hotel.ownerName || 'Hotel Owner',
           hotelName: hotel.name,
@@ -224,8 +236,8 @@ export class BillingCronService {
           title: 'Account Suspended — Payment Required',
           body: html,
           data: { hotelId: hotel.id, amount },
-          channel: hotel.ownerEmail ? NotificationChannel.EMAIL : NotificationChannel.IN_APP,
-          email: hotel.ownerEmail || undefined,
+          channel: NotificationChannel.EMAIL,
+          email: hotel.ownerEmail,
         });
       }
 

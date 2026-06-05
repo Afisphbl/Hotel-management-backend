@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Raw } from 'typeorm';
 import {
   Notification,
   NotificationChannel,
@@ -91,6 +91,28 @@ export class NotificationService {
     return this.notificationRepository.count({
       where: { userId, readAt: null } as any,
     });
+  }
+
+  async hasUnreadByType(
+    userId: string,
+    type: NotificationType,
+    hotelId?: string,
+  ): Promise<boolean> {
+    if (hotelId) {
+      const count = await this.notificationRepository.count({
+        where: {
+          userId,
+          type,
+          readAt: null,
+          data: Raw(alias => `${alias} @> '{"hotelId": "${hotelId}"}'`),
+        } as any,
+      });
+      return count > 0;
+    }
+    const count = await this.notificationRepository.count({
+      where: { userId, type, readAt: null } as any,
+    });
+    return count > 0;
   }
 
   private async dispatchEmail(options: SendNotificationOptions): Promise<void> {

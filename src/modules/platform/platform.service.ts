@@ -632,11 +632,23 @@ export class PlatformService {
         "basePrice" NUMERIC(12,2),
         "baseCapacity" INT,
         status VARCHAR NOT NULL DEFAULT 'available',
+        images TEXT[],
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "deletedAt" TIMESTAMPTZ,
         UNIQUE("hotelId", "roomNumber")
       )
+    `);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = '${s}' AND table_name = 'rooms' AND column_name = 'images'
+        ) THEN
+          ALTER TABLE "${s}"."rooms" ADD COLUMN images TEXT[];
+        END IF;
+      END $$;
     `);
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "${s}"."guests" (
