@@ -406,6 +406,75 @@ export class BillingService {
     return results;
   }
 
+  // ── Super Admin: Aggregated billing summary for dashboard ──
+
+  async getBillingSummary() {
+    const now = new Date();
+    const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+    const hotels = await this.hotelRepository.find({ where: { deletedAt: null } as any });
+
+    const completedThisMonth = await this.paymentRepository.find({
+      where: {
+        status: SubscriptionPaymentStatus.COMPLETED,
+        periodStart: MoreThan(startOfMonth),
+      },
+    });
+
+    const pendingPayments = await this.paymentRepository.find({
+      where: { status: SubscriptionPaymentStatus.PENDING },
+    });
+
+    const hotelsWithRate = hotels.filter(h => h.monthlyRate && h.monthlyRate > 0);
+    const paidHotelIds = new Set(completedThisMonth.map(p => p.hotelId));
+
+    const collectedThisMonth = completedThisMonth.reduce((s, p) => s + Number(p.amount), 0);
+    const pendingAmount = pendingPayments.reduce((s, p) => s + Number(p.amount), 0);
+    const totalMonthlyRevenue = hotelsWithRate.reduce((s, h) => s + Number(h.monthlyRate), 0);
+
+    const overdueCount = hotelsWithRate.filter(h =>
+      !paidHotelIds.has(h.id) && h.lastPaidAt != null && h.lastPaidAt < startOfMonth
+    ).length;
+
+    const twelveMonthsAgo = new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth(), 1));
+    const monthlyData = await this.paymentRepository
+      .createQueryBuilder('p')
+      .select("to_char(p.paidAt, 'YYYY-MM')", 'month')
+      .addSelect('SUM(p.amount)', 'amount')
+      .where('p.status = :status', { status: SubscriptionPaymentStatus.COMPLETED })
+      .andWhere('p.paidAt >= :start', { start: twelveMonthsAgo })
+      .groupBy("to_char(p.paidAt, 'YYYY-MM')")
+      .orderBy('month', 'ASC')
+      .getRawMany();
+
+    return {
+      totalHotels: hotels.length,
+      hotelsWithRate: hotelsWithRate.length,
+      paidThisMonth: paidHotelIds.size,
+      overdueCount,
+      collectedThisMonth,
+      pendingAmount,
+      totalMonthlyRevenue,
+      monthlyCollectionHistory: monthlyData.map(d => ({
+        month: d.month,
+        amount: Number(d.amount),
+      })),
+    };
+  }
+
+  // ── Super Admin: List pending payments for a hotel ──
+
+  async getPendingPayments(hotelId: string) {
+    await this.findHotelOrFail(hotelId);
+    return this.paymentRepository.find({
+      where: {
+        hotelId,
+        status: SubscriptionPaymentStatus.PENDING,
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   // ── Helpers ──
 
   async findHotelOrFail(hotelId: string): Promise<Hotel> {

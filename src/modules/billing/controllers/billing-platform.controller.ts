@@ -45,9 +45,21 @@ export class BillingPlatformController {
     return { success: true, data };
   }
 
+  @Get('summary')
+  async getBillingSummary() {
+    const data = await this.billingService.getBillingSummary();
+    return { success: true, data };
+  }
+
   @Get(':hotelId/history')
   async getPaymentHistory(@Param('hotelId') id: string) {
     const data = await this.billingService.getPaymentHistory(id);
+    return { success: true, data };
+  }
+
+  @Get(':hotelId/pending-payments')
+  async getPendingPayments(@Param('hotelId') id: string) {
+    const data = await this.billingService.getPendingPayments(id);
     return { success: true, data };
   }
 
