@@ -45,6 +45,12 @@ export class BillingPlatformController {
     return { success: true, data };
   }
 
+  @Get(':hotelId/history')
+  async getPaymentHistory(@Param('hotelId') id: string) {
+    const data = await this.billingService.getPaymentHistory(id);
+    return { success: true, data };
+  }
+
   @Patch(':hotelId/rate')
   @HttpCode(HttpStatus.OK)
   async setMonthlyRate(@Param('hotelId') id: string, @Body() dto: SetRateDto) {
