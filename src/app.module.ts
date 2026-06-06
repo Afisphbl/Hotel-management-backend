@@ -21,6 +21,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { PublicModule } from './modules/public/public.module';
 import { PublicBookingModule } from './modules/public-booking/public-booking.module';
+import { AiModule } from './modules/ai/ai.module';
 import { RateLimiterModule } from './common/rate-limiter/rate-limiter.module';
 import { ShardingModule } from './common/sharding/sharding.module';
 import { RateLimitMiddleware } from './common/middleware/rate-limit.middleware';
@@ -100,6 +101,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     WorkersModule,
     HotelFinanceConfigModule,
     BillingModule,
+    AiModule,
   ],
   providers: [
     RateLimitMiddleware,
