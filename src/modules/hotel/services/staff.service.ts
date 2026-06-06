@@ -57,6 +57,7 @@ export class StaffService {
     }
 
     const where = conditions.join(' AND ');
+    const whereParams = [...params];
     params.push(limit, offset);
     const [rows, countResult] = await Promise.all([
       this.dataSource.query(
@@ -65,7 +66,7 @@ export class StaffService {
       ),
       this.dataSource.query(
         `SELECT COUNT(*)::int AS count FROM "${s}"."staff" WHERE ${where}`,
-        params,
+        whereParams,
       ),
     ]);
 

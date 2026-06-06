@@ -9,6 +9,9 @@ export class CreateMaintenanceDto {
   @IsString()
   roomId: string;
 
+  @IsString()
+  reportedBy: string;
+
   @IsOptional()
   @IsString()
   assignedTo?: string;

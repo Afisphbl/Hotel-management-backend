@@ -7,6 +7,8 @@ import {
   TaskStatus,
   TaskPriority,
 } from '../../../database/entities/housekeeping-task.entity';
+import { User } from '../../../database/entities/user.entity';
+import { HotelUserAccess, HotelAccessStatus } from '../../../database/entities/hotel-user-access.entity';
 import { paginate, PaginatedResult } from '../common/pagination.helper';
 
 @Injectable()
@@ -16,6 +18,10 @@ export class HousekeepingService {
     private taskRepository: Repository<HousekeepingTask>,
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
+    @InjectRepository(HotelUserAccess)
+    private accessRepository: Repository<HotelUserAccess>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private dataSource: DataSource,
   ) {}
 
@@ -302,10 +308,43 @@ export class HousekeepingService {
       [staffId],
     );
     if (staffQuery.length === 0) {
-      throw new NotFoundException(`Staff member not found`);
+      const access = await this.accessRepository.findOne({
+        where: { id: staffId, hotelId, status: HotelAccessStatus.ACTIVE },
+      });
+      if (!access) {
+        throw new NotFoundException(`Staff member not found`);
+      }
+      const user = await this.userRepository.findOne({
+        where: { id: access.userId },
+      });
+      if (!user) {
+        throw new NotFoundException(`Staff member not found`);
+      }
+      const existing = await this.dataSource.query(
+        `SELECT id FROM "${s}"."staff" WHERE "userId" = $1 AND "deletedAt" IS NULL LIMIT 1`,
+        [user.id],
+      );
+      if (existing.length > 0) {
+        task.assignedTo = existing[0].id;
+      } else {
+        const newStaff = await this.dataSource.query(
+          `INSERT INTO "${s}"."staff" ("userId","firstName","lastName","email","role","status")
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+          [
+            user.id,
+            user.firstName || '',
+            user.lastName || '',
+            user.email || '',
+            'housekeeping_staff',
+            'active',
+          ],
+        );
+        task.assignedTo = newStaff[0].id;
+      }
+    } else {
+      task.assignedTo = staffId;
     }
 
-    task.assignedTo = staffId;
     task.status = TaskStatus.ASSIGNED;
     return this.taskRepository.save(task);
   }
