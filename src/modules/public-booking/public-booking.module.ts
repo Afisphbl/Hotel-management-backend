@@ -29,6 +29,6 @@ import { HotelModule } from '../hotel/hotel.module';
   ],
   controllers: [PublicBookingController],
   providers: [PublicBookingService, ChapaService],
-  exports: [ChapaService],
+  exports: [PublicBookingService, ChapaService],
 })
 export class PublicBookingModule {}

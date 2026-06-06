@@ -4,9 +4,10 @@ import { AiService } from './ai.service';
 import { AiController } from './ai.controller';
 import { HotelsModule } from '../hotels/hotels.module';
 import { HotelModule } from '../hotel/hotel.module';
+import { PublicBookingModule } from '../public-booking/public-booking.module';
 
 @Module({
-  imports: [ConfigModule, HotelsModule, HotelModule],
+  imports: [ConfigModule, HotelsModule, HotelModule, PublicBookingModule],
   controllers: [AiController],
   providers: [AiService],
   exports: [AiService],

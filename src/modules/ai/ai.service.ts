@@ -2,6 +2,7 @@ import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI, Type } from '@google/genai';
 import { RoomsService } from '../hotel/services/rooms.service';
+import { PublicBookingService } from '../public-booking/public-booking.service';
 
 @Injectable()
 export class AiService {
@@ -12,6 +13,7 @@ export class AiService {
   constructor(
     private configService: ConfigService,
     private roomsService: RoomsService,
+    private publicBookingService: PublicBookingService,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_AI_API_KEY');
     if (!apiKey || apiKey === 'your_api_key_here' || apiKey === '') {
@@ -100,14 +102,20 @@ export class AiService {
       ${JSON.stringify(context)}
 
       TOOLS:
-      You have access to a tool to check real-time room availability. 
-      If the user asks for available rooms for specific dates, call the checkAvailability tool.
+      1. checkAvailability: Use this to find available rooms for specific dates.
+      2. createBooking: Use this to initiate a reservation for a guest. 
       
-      Rules:
-      1. Be polite, professional, and helpful. 
-      2. Use tools when needed to give accurate, real-time answers.
-      3. If you don't know something, suggest contacting staff.
-      4. Keep responses concise and friendly.
+      Rules for Booking:
+      - Before calling createBooking, you MUST collect the guest's: First Name, Last Name, Email, and optionally Phone Number.
+      - You also need the roomId, checkIn date, checkOut date, and numGuests.
+      - If any of these are missing, ask the guest for them politely.
+      - Once you call createBooking, tell the guest their booking is prepared and provide the checkout URL as a clear, clickable Markdown link (e.g., [Click here to pay and confirm](url)).
+      
+      General Rules:
+      - Be polite, professional, and helpful. 
+      - Use tools when needed to give accurate, real-time answers.
+      - If you don't know something, suggest contacting staff.
+      - Keep responses concise and friendly.
     `;
 
     try {
@@ -139,6 +147,25 @@ export class AiService {
                     },
                     required: ['startDate', 'endDate']
                   }
+                },
+                {
+                  name: 'createBooking',
+                  description: 'Initiates a room reservation and generates a payment link.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      firstName: { type: Type.STRING },
+                      lastName: { type: Type.STRING },
+                      email: { type: Type.STRING },
+                      phoneNumber: { type: Type.STRING },
+                      roomId: { type: Type.STRING },
+                      checkIn: { type: Type.STRING, description: 'YYYY-MM-DD' },
+                      checkOut: { type: Type.STRING, description: 'YYYY-MM-DD' },
+                      numGuests: { type: Type.NUMBER },
+                      notes: { type: Type.STRING }
+                    },
+                    required: ['firstName', 'lastName', 'email', 'roomId', 'checkIn', 'checkOut', 'numGuests']
+                  }
                 }
               ]
             }
@@ -152,7 +179,6 @@ export class AiService {
 
       let result = await chat.sendMessage({ message: [{ text: message }] });
 
-      // Handle function calls (loop in case of multiple calls)
       while (result.functionCalls?.length) {
         const functionResponses = await Promise.all(
           result.functionCalls.map(async (call) => {
@@ -165,28 +191,48 @@ export class AiService {
                   startDate,
                   endDate
                 );
-                
-                // Format availability for the AI to understand easily
                 const simplifiedAvailability = availability
                   .filter(a => a.available)
                   .map(a => ({
+                    roomId: a.room.id,
                     roomNumber: a.room.roomNumber,
                     roomType: a.room.roomType?.name,
                     price: Number(a.room.effectivePrice || a.room.basePrice),
                     capacity: a.room.baseCapacity
                   }));
+                return { name: call.name, response: { content: simplifiedAvailability } };
+              } catch (err) {
+                return { name: call.name, response: { error: 'Failed to check availability' } };
+              }
+            }
 
+            if (call.name === 'createBooking') {
+              const args = call.args as any;
+              try {
+                const bookingResult = await this.publicBookingService.createPublicBooking({
+                  hotelId,
+                  ...args
+                });
                 return {
                   name: call.name,
-                  response: { content: simplifiedAvailability }
+                  response: { 
+                    content: {
+                      success: true,
+                      bookingId: bookingResult.bookingId,
+                      checkoutUrl: bookingResult.checkoutUrl,
+                      totalPrice: bookingResult.totalPrice
+                    }
+                  }
                 };
               } catch (err) {
-                return {
-                  name: call.name,
-                  response: { error: 'Failed to check availability' }
+                this.logger.error(`Booking tool error: ${err.message}`);
+                return { 
+                  name: call.name, 
+                  response: { error: err.message || 'Failed to create booking' } 
                 };
               }
             }
+
             return { name: call.name, response: { error: 'Unknown function' } };
           })
         );
