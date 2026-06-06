@@ -66,6 +66,7 @@ export class AiController {
   async chat(
     @Body('message') message: string,
     @Body('history') history: any[],
+    @Body('user') user: any,
     @Query('hotelId') hotelId: string,
   ) {
     if (!hotelId) {
@@ -92,7 +93,7 @@ export class AiController {
       })),
     };
 
-    const response = await this.aiService.chat(message, history || [], context, hotelId);
+    const response = await this.aiService.chat(message, history || [], context, hotelId, user);
 
     return {
       success: true,

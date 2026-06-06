@@ -89,10 +89,19 @@ export class AiService {
     }
   }
 
-  async chat(message: string, history: any[], context: any, hotelId: string): Promise<string> {
+  async chat(message: string, history: any[], context: any, hotelId: string, user?: any): Promise<string> {
     if (!this.ai) {
       throw new InternalServerErrorException('AI Service is not configured.');
     }
+
+    const authContext = user 
+      ? `The current user is LOGGED IN as "${user.name}" with email "${user.email}". 
+         When booking, use these details and DO NOT ask the user for their name or email. 
+         Just confirm you are using their account details.`
+      : `The user is NOT LOGGED IN. 
+         Before allowing them to book/reserve a room via the createBooking tool, you MUST tell them to log in first.
+         Provide this link: [Click here to login](/login). 
+         Do not call createBooking until they are logged in.`;
 
     const systemPrompt = `
       You are the helpful "LuxeHotel" AI Concierge.
@@ -101,14 +110,16 @@ export class AiService {
       Current Hotel Context:
       ${JSON.stringify(context)}
 
+      User Authentication State:
+      ${authContext}
+
       TOOLS:
       1. checkAvailability: Use this to find available rooms for specific dates.
       2. createBooking: Use this to initiate a reservation for a guest. 
       
       Rules for Booking:
-      - Before calling createBooking, you MUST collect the guest's: First Name, Last Name, Email, and optionally Phone Number.
-      - You also need the roomId, checkIn date, checkOut date, and numGuests.
-      - If any of these are missing, ask the guest for them politely.
+      - ONLY use createBooking if the user is LOGGED IN.
+      - You need the roomId, checkIn date, checkOut date, and numGuests.
       - Once you call createBooking, tell the guest their booking is prepared and provide the checkout URL as a clear, clickable Markdown link (e.g., [Click here to pay and confirm](url)).
       
       General Rules:
