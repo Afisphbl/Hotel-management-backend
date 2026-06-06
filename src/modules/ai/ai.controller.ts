@@ -93,11 +93,12 @@ export class AiController {
       })),
     };
 
-    const response = await this.aiService.chat(message, history || [], context, hotelId, user);
+    const result = await this.aiService.chat(message, history || [], context, hotelId, user);
 
     return {
       success: true,
-      response,
+      response: result.text,
+      checkoutUrl: result.checkoutUrl,
     };
   }
 }

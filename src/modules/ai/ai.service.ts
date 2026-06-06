@@ -89,10 +89,12 @@ export class AiService {
     }
   }
 
-  async chat(message: string, history: any[], context: any, hotelId: string, user?: any): Promise<string> {
+  async chat(message: string, history: any[], context: any, hotelId: string, user?: any): Promise<{ text: string, checkoutUrl?: string }> {
     if (!this.ai) {
       throw new InternalServerErrorException('AI Service is not configured.');
     }
+
+    let detectedCheckoutUrl: string | undefined;
 
     const authContext = user 
       ? `The current user is LOGGED IN as "${user.name}" with email "${user.email}". 
@@ -224,6 +226,9 @@ export class AiService {
                   hotelId,
                   ...args
                 });
+                // Capture the checkout URL so we can return it as metadata
+                detectedCheckoutUrl = bookingResult.checkoutUrl;
+                
                 return {
                   name: call.name,
                   response: { 
@@ -255,7 +260,10 @@ export class AiService {
         });
       }
 
-      return result.text || 'No response generated';
+      return {
+        text: result.text || 'No response generated',
+        checkoutUrl: detectedCheckoutUrl
+      };
     } catch (error) {
       this.logger.error(`Error in AI chat: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to process chat message');
