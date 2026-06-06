@@ -1,6 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
+import { RoomsService } from '../hotel/services/rooms.service';
 
 @Injectable()
 export class AiService {
@@ -8,7 +9,10 @@ export class AiService {
   private ai: GoogleGenAI;
   private readonly DEFAULT_MODEL = 'gemini-3.5-flash';
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private roomsService: RoomsService,
+  ) {
     const apiKey = this.configService.get<string>('GOOGLE_AI_API_KEY');
     if (!apiKey || apiKey === 'your_api_key_here' || apiKey === '') {
       this.logger.warn('GOOGLE_AI_API_KEY is not set correctly in .env');
@@ -83,7 +87,7 @@ export class AiService {
     }
   }
 
-  async chat(message: string, history: any[], context: any): Promise<string> {
+  async chat(message: string, history: any[], context: any, hotelId: string): Promise<string> {
     if (!this.ai) {
       throw new InternalServerErrorException('AI Service is not configured.');
     }
@@ -95,9 +99,15 @@ export class AiService {
       Current Hotel Context:
       ${JSON.stringify(context)}
 
-      Be polite, professional, and helpful. Use the context provided to answer questions accurately.
-      If you don't know the answer, politely suggest they contact the hotel staff directly.
-      Keep your responses concise and friendly.
+      TOOLS:
+      You have access to a tool to check real-time room availability. 
+      If the user asks for available rooms for specific dates, call the checkAvailability tool.
+      
+      Rules:
+      1. Be polite, professional, and helpful. 
+      2. Use tools when needed to give accurate, real-time answers.
+      3. If you don't know something, suggest contacting staff.
+      4. Keep responses concise and friendly.
     `;
 
     try {
@@ -105,6 +115,34 @@ export class AiService {
         model: this.DEFAULT_MODEL,
         config: {
           systemInstruction: systemPrompt,
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'checkAvailability',
+                  description: 'Checks real-time room availability for a specific hotel and date range.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      startDate: {
+                        type: Type.STRING,
+                        description: 'Check-in date in YYYY-MM-DD format.'
+                      },
+                      endDate: {
+                        type: Type.STRING,
+                        description: 'Check-out date in YYYY-MM-DD format.'
+                      },
+                      roomTypeId: {
+                        type: Type.STRING,
+                        description: 'Optional ID of the room type to filter by.'
+                      }
+                    },
+                    required: ['startDate', 'endDate']
+                  }
+                }
+              ]
+            }
+          ]
         },
         history: history.map(h => ({
           role: h.role,
@@ -112,7 +150,54 @@ export class AiService {
         })),
       });
 
-      const result = await chat.sendMessage({ message: [{ text: message }] });
+      let result = await chat.sendMessage({ message: [{ text: message }] });
+
+      // Handle function calls (loop in case of multiple calls)
+      while (result.functionCalls?.length) {
+        const functionResponses = await Promise.all(
+          result.functionCalls.map(async (call) => {
+            if (call.name === 'checkAvailability') {
+              const { startDate, endDate, roomTypeId } = call.args as any;
+              try {
+                const availability = await this.roomsService.getAvailability(
+                  hotelId,
+                  roomTypeId,
+                  startDate,
+                  endDate
+                );
+                
+                // Format availability for the AI to understand easily
+                const simplifiedAvailability = availability
+                  .filter(a => a.available)
+                  .map(a => ({
+                    roomNumber: a.room.roomNumber,
+                    roomType: a.room.roomType?.name,
+                    price: Number(a.room.effectivePrice || a.room.basePrice),
+                    capacity: a.room.baseCapacity
+                  }));
+
+                return {
+                  name: call.name,
+                  response: { content: simplifiedAvailability }
+                };
+              } catch (err) {
+                return {
+                  name: call.name,
+                  response: { error: 'Failed to check availability' }
+                };
+              }
+            }
+            return { name: call.name, response: { error: 'Unknown function' } };
+          })
+        );
+
+        result = await chat.sendMessage({
+          message: functionResponses.map(res => ({
+            functionResponse: res
+          }))
+        });
+      }
+
       return result.text || 'No response generated';
     } catch (error) {
       this.logger.error(`Error in AI chat: ${error.message}`, error.stack);
