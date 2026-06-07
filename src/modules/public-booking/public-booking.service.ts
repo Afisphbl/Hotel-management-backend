@@ -23,8 +23,17 @@ export class PublicBookingService {
     private pricingService: PricingService,
   ) {}
 
-  getFrontendUrl(): string {
-    return this.config.get('FRONTEND_URL', 'http://localhost:3000');
+  getFrontendUrl(subdomain?: string): string {
+    const base = this.config.get('FRONTEND_URL', 'http://localhost:3000');
+    if (!subdomain) return base;
+    const url = new URL(base);
+    url.hostname = `${subdomain}.${url.hostname}`;
+    return url.toString().replace(/\/$/, '');
+  }
+
+  async getHotelSubdomain(hotelId: string): Promise<string | undefined> {
+    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId }, select: ['subdomain'] });
+    return hotel?.subdomain || undefined;
   }
 
   private async getSchema(hotelId: string): Promise<string> {

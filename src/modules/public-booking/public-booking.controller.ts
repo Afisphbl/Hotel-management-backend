@@ -55,7 +55,8 @@ export class PublicBookingController {
       txRef,
       hotelId,
     );
-    const frontendUrl = this.publicBookingService.getFrontendUrl();
+    const subdomain = await this.publicBookingService.getHotelSubdomain(hotelId);
+    const frontendUrl = this.publicBookingService.getFrontendUrl(subdomain);
     const status = result.status === 'success' ? 'success' : 'failed';
     const url = `${frontendUrl}/cabins?payment=${status}&booking=${id}`;
     return { url, statusCode: 302 };

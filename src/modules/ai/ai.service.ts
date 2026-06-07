@@ -8,7 +8,7 @@ import { PublicBookingService } from '../public-booking/public-booking.service';
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private ai: GoogleGenAI;
-  private readonly DEFAULT_MODEL = 'gemini-3.5-flash';
+  private readonly DEFAULT_MODEL = 'gemini-3.1-flash-lite';
 
   constructor(
     private configService: ConfigService,
@@ -119,9 +119,15 @@ export class AiService {
       1. checkAvailability: Use this to find available rooms for specific dates.
       2. createBooking: Use this to initiate a reservation for a guest. 
       
+      CRITICAL ROOM RULES:
+      - You do NOT know which room numbers exist. NEVER tell a guest a room does or does not exist based on your own assumptions.
+      - When a user mentions a specific room number (e.g. "room 901"), ALWAYS call checkAvailability first to look it up. The checkAvailability results will include roomNumber — find the matching room and use its roomId.
+      - If checkAvailability returns no room matching that number, only then say the room was not found in availability results.
+      - NEVER invent a range of room numbers (e.g. "102 to 510"). You only know what the tool returns.
+
       Rules for Booking:
       - ONLY use createBooking if the user is LOGGED IN.
-      - You need the roomId, checkIn date, checkOut date, and numGuests.
+      - You need the roomId (UUID from checkAvailability results), checkIn date, checkOut date, and numGuests.
       - Once you call createBooking, tell the guest their booking is prepared and provide the checkout URL as a clear, clickable Markdown link (e.g., [Click here to pay and confirm](url)).
       
       General Rules:
