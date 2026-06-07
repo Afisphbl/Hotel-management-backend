@@ -59,6 +59,7 @@ import { ShiftsService } from './services/shifts.service';
 import { InvoicesService } from './services/invoices.service';
 import { PaymentsService } from './services/payments.service';
 import { DashboardService } from './services/dashboard.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 
 const entities = [
   Booking,
@@ -130,7 +131,17 @@ const services = [
     }),
   ],
   controllers,
-  providers: [...services, PlanLimitGuard, TenantQuotaService],
-  exports: [PricingService, RoomsService, RoomTypesService, HotelManagementService],
+  providers: [
+    ...services,
+    PlanLimitGuard,
+    TenantQuotaService,
+    PasswordPolicyService,
+  ],
+  exports: [
+    PricingService,
+    RoomsService,
+    RoomTypesService,
+    HotelManagementService,
+  ],
 })
 export class HotelModule {}

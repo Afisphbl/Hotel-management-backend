@@ -15,6 +15,7 @@ import { Role } from '../../database/entities/global/role.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcrypt';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 
 export interface AccountLockoutConfig {
   maxFailedAttempts: number;
@@ -35,6 +36,7 @@ export class UserManagementService {
   constructor(
     private dataSource: DataSource,
     private redisService: RedisService,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   private get userRepository(): Repository<PlatformUser> {
@@ -193,6 +195,8 @@ export class UserManagementService {
     if (existing)
       throw new ConflictException('User with this email already exists');
 
+    await this.passwordPolicyService.assertCompliant(data.password);
+
     let role = data.roleId
       ? await this.roleRepository.findOne({ where: { id: data.roleId } })
       : null;
@@ -271,6 +275,8 @@ export class UserManagementService {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
+    await this.passwordPolicyService.assertCompliant(newPassword);
+
     const user = await this.userRepository.findOne({
       where: { id: userId },
       select: ['id', 'password', 'passwordHistory', 'lastPasswordChangeAt'],
