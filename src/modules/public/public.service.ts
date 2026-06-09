@@ -10,6 +10,7 @@ import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Hotel, HotelStatus } from '../../database/entities/hotel.entity';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 
 @Injectable()
 export class PublicService {
@@ -18,6 +19,7 @@ export class PublicService {
     private hotelRepository: Repository<Hotel>,
     private dataSource: DataSource,
     private jwtService: JwtService,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async findHotelBySubdomain(subdomain: string) {
@@ -86,6 +88,8 @@ export class PublicService {
     if (existing.length > 0) {
       throw new ConflictException('A guest with this email already exists');
     }
+
+    await this.passwordPolicyService.assertCompliant(dto.password);
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 

@@ -7,6 +7,7 @@ import {
   StaffRole,
   StaffStatus,
 } from '../../../database/entities/staff.entity';
+import { PasswordPolicyService } from '../../../common/services/password-policy.service';
 
 @Injectable()
 export class StaffService {
@@ -14,6 +15,7 @@ export class StaffService {
     @InjectRepository(Hotel)
     private hotelRepository: Repository<Hotel>,
     private dataSource: DataSource,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   private async getSchema(hotelId: string): Promise<string> {
@@ -92,6 +94,9 @@ export class StaffService {
 
   async create(data: any, hotelId: string) {
     const s = await this.getSchema(hotelId);
+    if (data.password) {
+      await this.passwordPolicyService.assertCompliant(data.password);
+    }
     const password = data.password
       ? await bcrypt.hash(data.password, 12)
       : null;
@@ -136,6 +141,7 @@ export class StaffService {
       if (data[key] !== undefined) {
         let value = data[key];
         if (key === 'password') {
+          await this.passwordPolicyService.assertCompliant(value);
           value = await bcrypt.hash(value, 12);
         }
         params.push(value);
