@@ -153,6 +153,12 @@ export class PublicBookingService {
       }
       const totalPrice = nightPrices.reduce((sum, n) => sum + n.price, 0);
 
+      if (totalPrice <= 0) {
+        throw new BadRequestException(
+          'Room pricing is not configured. Please contact the hotel to complete your booking.',
+        );
+      }
+
       const bookingResult = await queryRunner.query(
         `INSERT INTO "${schema}"."bookings"
          ("guestId", "checkIn", "checkOut", "status", "totalPrice", "idempotencyKey", "source", "notes", "numGuests", "priceSnapshot")

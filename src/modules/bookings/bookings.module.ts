@@ -1,12 +1,14 @@
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { Queue } from 'bullmq';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 import { PricingService } from './pricing.service';
 import { HoldExpiryProcessor } from './processors/hold-expiry.processor';
 import { BookingReminderProcessor } from './processors/booking-reminder.processor';
+import { DailyBookingProcessor } from './processors/daily-booking-processor';
 import { Booking } from '../../database/entities/booking.entity';
 import { BookingRoom } from '../../database/entities/booking-room.entity';
 import { RoomNight } from '../../database/entities/room-night.entity';
@@ -45,6 +47,7 @@ import { Hotel } from '../../database/entities/hotel.entity';
       { name: 'booking-reminders' },
       { name: 'outbox-relay' },
     ),
+    ScheduleModule.forRoot(),
   ],
   controllers: [BookingsController],
   providers: [
@@ -52,6 +55,7 @@ import { Hotel } from '../../database/entities/hotel.entity';
     PricingService,
     HoldExpiryProcessor,
     BookingReminderProcessor,
+    DailyBookingProcessor,
   ],
   exports: [BookingsService],
 })

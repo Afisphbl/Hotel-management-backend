@@ -1,7 +1,11 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Query, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Query, BadRequestException, NotFoundException, UseGuards, Request } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { HotelManagementService } from '../hotel/services/hotel-management.service';
 import { RoomTypesService } from '../hotel/services/room-types.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ScopeGuard } from '../../common/guards/scope.guard';
+import { Scopes } from '../../common/decorators/scopes.decorator';
+import { UserScope } from '../../database/entities/user.entity';
 
 @Controller('ai')
 export class AiController {
@@ -100,5 +104,25 @@ export class AiController {
       response: result.text,
       checkoutUrl: result.checkoutUrl,
     };
+  }
+
+  @Post('staff-chat')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, ScopeGuard)
+  @Scopes(UserScope.HOTEL)
+  async staffChat(
+    @Body('message') message: string,
+    @Body('history') history: any[],
+    @Request() req: any,
+  ) {
+    if (!message) throw new BadRequestException('message is required');
+    const hotelId = req.user.hotel_id || req.user.hotelId;
+    const userId = req.user.userId || req.user.sub;
+    const role = req.user.role;
+    if (!['HOTEL_ADMIN', 'HOTEL_MANAGER', 'SUPER_ADMIN'].includes(role)) {
+      throw new BadRequestException('Insufficient role for staff AI');
+    }
+    const result = await this.aiService.staffChat(message, history || [], hotelId, userId);
+    return { success: true, response: result.text };
   }
 }

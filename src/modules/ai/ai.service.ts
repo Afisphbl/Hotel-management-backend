@@ -3,23 +3,33 @@ import { ConfigService } from '@nestjs/config';
 import { GoogleGenAI, Type } from '@google/genai';
 import { RoomsService } from '../hotel/services/rooms.service';
 import { PublicBookingService } from '../public-booking/public-booking.service';
+import { BookingsService } from '../bookings/bookings.service';
+import { RoomStatus } from '../../database/entities/room.entity';
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private ai: GoogleGenAI;
-  private readonly DEFAULT_MODEL = 'gemini-3.1-flash-lite';
+  private staffAi: GoogleGenAI;
+  private readonly DEFAULT_MODEL = 'gemini-2.0-flash-lite';
+  private readonly STAFF_MODEL = 'gemini-3.1-flash-lite';
 
   constructor(
     private configService: ConfigService,
     private roomsService: RoomsService,
     private publicBookingService: PublicBookingService,
+    private bookingsService: BookingsService,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_AI_API_KEY');
     if (!apiKey || apiKey === 'your_api_key_here' || apiKey === '') {
       this.logger.warn('GOOGLE_AI_API_KEY is not set correctly in .env');
     } else {
       this.ai = new GoogleGenAI({ apiKey });
+    }
+
+    const staffKey = this.configService.get<string>('GOOGLE_AI_STAFF_API_KEY');
+    if (staffKey && staffKey !== '') {
+      this.staffAi = new GoogleGenAI({ apiKey: staffKey });
     }
   }
 
@@ -274,5 +284,166 @@ export class AiService {
       this.logger.error(`Error in AI chat: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to process chat message');
     }
+  }
+
+  async staffChat(
+    message: string,
+    history: any[],
+    hotelId: string,
+    userId: string,
+  ): Promise<{ text: string }> {
+    if (!this.staffAi) {
+      throw new InternalServerErrorException('Staff AI is not configured. Check GOOGLE_AI_STAFF_API_KEY.');
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const systemPrompt = `You are an intelligent hotel operations assistant for staff.
+Today's date is ${today}. Hotel ID: ${hotelId}.
+
+You can perform the following actions using tools:
+- getBookings: search bookings by status, date, guest name, or room number
+- getTodayActions: get bookings that need check-in or check-out today
+- updateBookingStatus: change a booking status (confirm, cancel, check_in, check_out)
+- updateRoomStatus: change a room's status (available, occupied, cleaning, maintenance)
+
+Rules:
+- Always call getTodayActions when asked about today's check-ins or check-outs.
+- When checking in a booking, also update the room status to 'occupied'.
+- When checking out a booking, also update the room status to 'available'.
+- Be concise and direct. Confirm every action you take.
+- If an action fails, explain why clearly.`;
+
+    const tools: any[] = [
+      {
+        functionDeclarations: [
+          {
+            name: 'getBookings',
+            description: 'Search and list bookings with optional filters.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                status: { type: Type.STRING, description: 'Filter by booking status: PENDING, HOLD, CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED' },
+                dateFrom: { type: Type.STRING, description: 'Filter check-in from date YYYY-MM-DD' },
+                dateTo: { type: Type.STRING, description: 'Filter check-in to date YYYY-MM-DD' },
+                search: { type: Type.STRING, description: 'Search by guest name or room number' },
+              },
+            },
+          },
+          {
+            name: 'getTodayActions',
+            description: 'Get bookings that need check-in today (CONFIRMED with checkIn=today) or check-out today (CHECKED_IN with checkOut=today).',
+            parameters: { type: Type.OBJECT, properties: {} },
+          },
+          {
+            name: 'updateBookingStatus',
+            description: 'Update a booking status.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                bookingId: { type: Type.STRING },
+                action: { type: Type.STRING, description: 'One of: confirm, cancel, checkin, checkout' },
+              },
+              required: ['bookingId', 'action'],
+            },
+          },
+          {
+            name: 'updateRoomStatus',
+            description: 'Update a room status.',
+            parameters: {
+              type: Type.OBJECT,
+              properties: {
+                roomId: { type: Type.STRING },
+                status: { type: Type.STRING, description: 'One of: available, occupied, cleaning, maintenance' },
+              },
+              required: ['roomId', 'status'],
+            },
+          },
+        ],
+      },
+    ];
+
+    const chat = this.staffAi.chats.create({
+      model: this.STAFF_MODEL,
+      config: { systemInstruction: systemPrompt, tools },
+      history: history.map((h) => ({ role: h.role, parts: [{ text: h.parts[0].text }] })),
+    });
+
+    let result = await chat.sendMessage({ message: [{ text: message }] });
+
+    while (result.functionCalls?.length) {
+      const responses = await Promise.all(
+        result.functionCalls.map(async (call) => {
+          try {
+            if (call.name === 'getBookings') {
+              const args = call.args as any;
+              const data = await this.bookingsService.findAll({
+                hotelId,
+                status: args.status,
+                dateFrom: args.dateFrom,
+                dateTo: args.dateTo,
+                search: args.search,
+                page: 1,
+                limit: 20,
+              });
+              return { name: call.name, response: { content: data.items.map((b: any) => ({
+                id: b.id, status: b.status, checkIn: b.checkIn, checkOut: b.checkOut,
+                guest: `${b.guest?.firstName} ${b.guest?.lastName}`,
+                rooms: b.bookingRooms?.map((br: any) => ({ roomId: br.roomId, roomNumber: br.room?.roomNumber })),
+              })) } };
+            }
+
+            if (call.name === 'getTodayActions') {
+              const [checkIns, checkOuts] = await Promise.all([
+                this.bookingsService.findAll({ hotelId, status: 'CONFIRMED' as any, dateFrom: today, dateTo: today, page: 1, limit: 50 }),
+                this.bookingsService.findAll({ hotelId, status: 'CHECKED_IN' as any, page: 1, limit: 50 }),
+              ]);
+              const todayCheckouts = checkOuts.items.filter((b: any) => b.checkOut?.split('T')[0] === today);
+              return { name: call.name, response: { content: {
+                checkIns: checkIns.items.map((b: any) => ({
+                  id: b.id, guest: `${b.guest?.firstName} ${b.guest?.lastName}`, checkIn: b.checkIn,
+                  rooms: b.bookingRooms?.map((br: any) => ({ roomId: br.roomId, roomNumber: br.room?.roomNumber })),
+                })),
+                checkOuts: todayCheckouts.map((b: any) => ({
+                  id: b.id, guest: `${b.guest?.firstName} ${b.guest?.lastName}`, checkOut: b.checkOut,
+                  rooms: b.bookingRooms?.map((br: any) => ({ roomId: br.roomId, roomNumber: br.room?.roomNumber })),
+                })),
+              } } };
+            }
+
+            if (call.name === 'updateBookingStatus') {
+              const { bookingId, action } = call.args as any;
+              if (action === 'checkin') {
+                await this.bookingsService.checkin(bookingId, hotelId, userId);
+              } else if (action === 'checkout') {
+                await this.bookingsService.checkout(bookingId, hotelId, userId);
+              } else if (action === 'confirm') {
+                await this.bookingsService.confirm(bookingId, `staff-${Date.now()}`, hotelId, userId);
+              } else if (action === 'cancel') {
+                await this.bookingsService.cancel(bookingId, hotelId, undefined, userId);
+              }
+              return { name: call.name, response: { content: { success: true, bookingId, action } } };
+            }
+
+            if (call.name === 'updateRoomStatus') {
+              const { roomId, status } = call.args as any;
+              await this.roomsService.updateStatus(roomId, status as RoomStatus, hotelId);
+              return { name: call.name, response: { content: { success: true, roomId, status } } };
+            }
+
+            return { name: call.name, response: { error: 'Unknown function' } };
+          } catch (err) {
+            this.logger.error(`Staff AI tool error [${call.name}]: ${err.message}`);
+            return { name: call.name, response: { error: err.message } };
+          }
+        }),
+      );
+
+      result = await chat.sendMessage({
+        message: responses.map((r) => ({ functionResponse: r })),
+      });
+    }
+
+    return { text: result.text || 'No response generated' };
   }
 }
