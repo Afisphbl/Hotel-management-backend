@@ -23,6 +23,7 @@ import {
 } from '../../database/entities/global/support-access.entity';
 import { UserManagementService } from '../platform/user-management.service';
 import { PlatformUser } from '../../database/entities/global/platform-user.entity';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
@@ -58,6 +59,7 @@ export class AuthService {
     private configService: ConfigService,
     private userManagementService: UserManagementService,
     private redisService: RedisService,
+    private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async findHotelBySubdomain(subdomain: string): Promise<any> {
@@ -646,6 +648,8 @@ export class AuthService {
     const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid)
       throw new UnauthorizedException('Current password is incorrect');
+
+    await this.passwordPolicyService.assertCompliant(newPassword);
 
     const hashed = await bcrypt.hash(newPassword, 12);
     await this.userRepository.update(userId, { password: hashed });
