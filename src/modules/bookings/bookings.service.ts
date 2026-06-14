@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   ConflictException,
@@ -193,6 +193,7 @@ export class BookingsService {
       LEFT JOIN "${s}".booking_rooms br ON br."bookingId" = b.id AND br."deletedAt" IS NULL
       LEFT JOIN "${s}".rooms r ON r.id = br."roomId"
       LEFT JOIN "${s}".room_types rt ON rt.id = COALESCE(br."roomTypeId", r."roomTypeId")
+      WHERE b."deletedAt" IS NULL ${andCond}
       GROUP BY b.id, g."firstName", g."lastName", g.email, g.phone
       ORDER BY b."createdAt" DESC LIMIT $${i++} OFFSET $${i++}`,
       [...params, limit, offset],

@@ -1,10 +1,13 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { GoogleGenAI, Type } from '@google/genai';
 import { RoomsService } from '../hotel/services/rooms.service';
 import { PublicBookingService } from '../public-booking/public-booking.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { RoomStatus } from '../../database/entities/room.entity';
+import { Hotel } from '../../database/entities/hotel.entity';
 
 @Injectable()
 export class AiService {
@@ -12,13 +15,14 @@ export class AiService {
   private ai: GoogleGenAI;
   private staffAi: GoogleGenAI;
   private readonly DEFAULT_MODEL = 'gemini-2.0-flash-lite';
-  private readonly STAFF_MODEL = 'gemini-3.1-flash-lite';
+  private readonly STAFF_MODEL = 'gemini-2.0-flash';
 
   constructor(
     private configService: ConfigService,
     private roomsService: RoomsService,
     private publicBookingService: PublicBookingService,
     private bookingsService: BookingsService,
+    @InjectRepository(Hotel) private hotelRepository: Repository<Hotel>,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_AI_API_KEY');
     if (!apiKey || apiKey === 'your_api_key_here' || apiKey === '') {
@@ -296,7 +300,17 @@ export class AiService {
       throw new InternalServerErrorException('Staff AI is not configured. Check GOOGLE_AI_STAFF_API_KEY.');
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const hotel = await this.hotelRepository.findOne({ where: { id: hotelId } });
+    const rawTz = hotel?.timezone || 'UTC';
+    // Normalize "GMT+3" → "Etc/GMT-3" (POSIX sign is inverted)
+    const timezone = rawTz.replace(/^GMT([+-])(\d+)$/, (_, sign, h) =>
+      `Etc/GMT${sign === '+' ? '-' : '+'}${h}`
+    );
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD in hotel tz
+
+    console.log('[AI staffChat] UTC now:', new Date().toISOString());
+    console.log('[AI staffChat] Hotel raw timezone:', rawTz, '→ normalized:', timezone);
+    console.log('[AI staffChat] today (hotel tz):', today);
 
     const systemPrompt = `You are an intelligent hotel operations assistant for staff.
 Today's date is ${today}. Hotel ID: ${hotelId}.
@@ -370,6 +384,8 @@ Rules:
     });
 
     let result = await chat.sendMessage({ message: [{ text: message }] });
+    console.log('[AI staffChat] initial response text:', result.text);
+    console.log('[AI staffChat] function calls:', result.functionCalls?.map(c => c.name) ?? 'none');
 
     while (result.functionCalls?.length) {
       const responses = await Promise.all(
@@ -395,12 +411,16 @@ Rules:
 
             if (call.name === 'getTodayActions') {
               const [checkIns, checkOuts] = await Promise.all([
-                this.bookingsService.findAll({ hotelId, status: 'CONFIRMED' as any, dateFrom: today, dateTo: today, page: 1, limit: 50 }),
+                this.bookingsService.findAll({ hotelId, status: 'CONFIRMED' as any, dateFrom: today, page: 1, limit: 50 }),
                 this.bookingsService.findAll({ hotelId, status: 'CHECKED_IN' as any, page: 1, limit: 50 }),
               ]);
+              const todayCheckIns = checkIns.items.filter((b: any) => b.checkIn?.split('T')[0] === today);
+              console.log('[AI getTodayActions] today:', today);
+              console.log('[AI getTodayActions] raw checkIns:', checkIns.items.map((b: any) => ({ id: b.id, checkIn: b.checkIn, split: b.checkIn?.split('T')[0] })));
+              console.log('[AI getTodayActions] filtered checkIns count:', todayCheckIns.length);
               const todayCheckouts = checkOuts.items.filter((b: any) => b.checkOut?.split('T')[0] === today);
               return { name: call.name, response: { content: {
-                checkIns: checkIns.items.map((b: any) => ({
+                checkIns: todayCheckIns.map((b: any) => ({
                   id: b.id, guest: `${b.guest?.firstName} ${b.guest?.lastName}`, checkIn: b.checkIn,
                   rooms: b.bookingRooms?.map((br: any) => ({ roomId: br.roomId, roomNumber: br.room?.roomNumber })),
                 })),
