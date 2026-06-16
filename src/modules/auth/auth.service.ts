@@ -123,6 +123,19 @@ export class AuthService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  generateMfaToken(userId: string, hotelId?: string | null): string {
+    return this.jwtService.sign(
+      {
+        sub: userId,
+        hotelId: hotelId || null,
+        purpose: 'mfa_verification',
+      },
+      {
+        expiresIn: '5m',
+      },
+    );
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     const [user, platformUser] = await Promise.all([
       this.userRepository.findOne({
