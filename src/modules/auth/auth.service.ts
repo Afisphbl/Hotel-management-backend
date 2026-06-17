@@ -224,6 +224,26 @@ export class AuthService {
     return true;
   }
 
+  async generateMfaToken(userId: string, hotelId?: string | null): Promise<string> {
+    const payload = {
+      sub: userId,
+      hotelId: hotelId || null,
+      type: 'mfa',
+    };
+
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+    });
+  }
+
+  async verifyMfaToken(token: string): Promise<any> {
+    const payload = this.jwtService.verify(token);
+    if (payload.type !== 'mfa') {
+      throw new UnauthorizedException('Invalid MFA token type');
+    }
+    return payload;
+  }
+
   async login(
     user: any,
     hotelId?: string | null,
