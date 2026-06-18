@@ -22,6 +22,7 @@ import {
   SupportAccessStatus,
 } from '../../database/entities/global/support-access.entity';
 import { UserManagementService } from '../platform/user-management.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -58,6 +59,7 @@ export class AuthService {
     private configService: ConfigService,
     private userManagementService: UserManagementService,
     private redisService: RedisService,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async findHotelBySubdomain(subdomain: string): Promise<any> {
@@ -433,6 +435,33 @@ export class AuthService {
     };
   }
 
+  generateMfaToken(userId: string, hotelId?: string | null): string {
+    const payload = {
+      sub: userId,
+      hotelId: hotelId ?? null,
+      purpose: 'mfa',
+    };
+
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m', // Short-lived MFA token
+    });
+  }
+
+  verifyMfaToken(token: string): { userId: string; hotelId: string | null } {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.purpose !== 'mfa') {
+        throw new UnauthorizedException('Invalid token purpose');
+      }
+      return {
+        userId: payload.sub,
+        hotelId: payload.hotelId,
+      };
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async generateRefreshToken(
     userId: string,
     hotelId: string | null | undefined,
@@ -646,6 +675,8 @@ export class AuthService {
     const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid)
       throw new UnauthorizedException('Current password is incorrect');
+
+    await this.passwordPolicyService.assertCompliant(newPassword);
 
     const hashed = await bcrypt.hash(newPassword, 12);
     await this.userRepository.update(userId, { password: hashed });
