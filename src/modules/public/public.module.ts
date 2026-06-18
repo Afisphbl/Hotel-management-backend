@@ -12,6 +12,7 @@ import { Hotel } from '../../database/entities/hotel.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { HotelModule } from '../hotel/hotel.module';
 import { WorkersModule } from '../workers/workers.module';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 
 @Module({
   imports: [
@@ -33,6 +34,6 @@ import { WorkersModule } from '../workers/workers.module';
     PublicReviewsController,
     HotelReviewsController,
   ],
-  providers: [PublicService, ReviewsService],
+  providers: [PublicService, ReviewsService, PasswordPolicyService],
 })
 export class PublicModule {}
