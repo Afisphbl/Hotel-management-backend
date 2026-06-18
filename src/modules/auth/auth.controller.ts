@@ -41,13 +41,9 @@ class Verify2faDto {
   @IsString()
   code: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  userId?: string;
-
-  @IsOptional()
-  @IsString()
-  tempToken?: string;
+  mfaToken: string;
 }
 
 @Controller('auth')
@@ -86,14 +82,12 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Check if 2FA is required for Platform users
+    // Check if 2FA is required
     if (user.twoFactorEnabled && !loginDto.twoFactorCode) {
-      // Return a temporary token to be used for 2FA verification
-      // For simplicity here, we'll just return that 2FA is needed and the user ID
-      // In production, use a short-lived signed token (e.g., 'mfa_token')
+      const mfaToken = await this.authService.generateMfaToken(user.id, hotelId);
       return {
         requires_2fa: true,
-        userId: user.id,
+        mfaToken,
       };
     }
 
@@ -144,10 +138,9 @@ export class AuthController {
   @Post('verify-2fa')
   @HttpCode(HttpStatus.OK)
   async verify2fa(@Body() dto: Verify2faDto, @Request() req: any) {
-    // This is used for the second step of login if requires_2fa was returned
-    const user = await this.authService.findUserById(
-      dto.userId || dto.tempToken || '',
-    );
+    const payload = await this.authService.verifyMfaToken(dto.mfaToken);
+
+    const user = await this.authService.findUserById(payload.sub);
     if (!user) throw new UnauthorizedException('User not found');
 
     await this.authService.verify2FACode(user.id, dto.code);
@@ -157,7 +150,7 @@ export class AuthController {
       ipAddress: req.ip,
     };
 
-    return this.authService.login(user, null, metadata);
+    return this.authService.login(user, payload.hotelId, metadata);
   }
 
   @Post('impersonate')
