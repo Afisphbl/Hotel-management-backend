@@ -1,0 +1,4 @@
+## 2025-05-23 - MFA Authentication Bypass
+**Vulnerability:** The 2FA verification flow was using a raw `userId` (or `tempToken` placeholder) passed in the request body to identify which user was verifying their code. This allowed an attacker to bypass the password check stage by directly calling the `verify-2fa` endpoint with a known `userId` and then brute-forcing the 6-digit TOTP code (or exploiting users with weak/no 2FA).
+**Learning:** Placeholders or "simplicity" implementations in authentication flows often create critical bypasses. Even if 2FA is "enabled", if the link between the first factor (password) and second factor (TOTP) is not securely signed, the factors can be decoupled.
+**Prevention:** Always use short-lived, purpose-bound, signed tokens (e.g., JWT with a `type: 'mfa'` claim) to link multi-step authentication stages. The token should contain all necessary context (like `userId` and `hotelId`) and be verified at each subsequent step.

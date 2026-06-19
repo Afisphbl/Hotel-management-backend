@@ -224,6 +224,29 @@ export class AuthService {
     return true;
   }
 
+  generateMfaToken(userId: string, hotelId?: string | null): string {
+    const payload = {
+      sub: userId,
+      hotelId: hotelId || null,
+      type: 'mfa',
+    };
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+    });
+  }
+
+  verifyMfaToken(token: string): any {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload && typeof payload === 'object' && payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return payload;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async login(
     user: any,
     hotelId?: string | null,
@@ -261,7 +284,9 @@ export class AuthService {
             where: { userId: user.id, hotelId },
           });
           const role = access?.roleId
-            ? await this.roleRepository.findOne({ where: { id: access.roleId } })
+            ? await this.roleRepository.findOne({
+                where: { id: access.roleId },
+              })
             : null;
           if (role?.name !== 'HOTEL_OWNER') {
             throw new UnauthorizedException(
@@ -269,7 +294,9 @@ export class AuthService {
             );
           }
         } else {
-          throw new UnauthorizedException('Hotel is inactive. Please contact support.');
+          throw new UnauthorizedException(
+            'Hotel is inactive. Please contact support.',
+          );
         }
       }
 
@@ -325,7 +352,9 @@ export class AuthService {
         if (hotel && hotel.status !== HotelStatus.ACTIVE) {
           // Allow HOTEL_OWNER to login even when suspended
           const hotelRole = hotelAccess.roleId
-            ? await this.roleRepository.findOne({ where: { id: hotelAccess.roleId } })
+            ? await this.roleRepository.findOne({
+                where: { id: hotelAccess.roleId },
+              })
             : null;
           if (hotelRole?.name !== 'HOTEL_OWNER') {
             throw new UnauthorizedException(
@@ -553,11 +582,7 @@ export class AuthService {
 
       const ttl = decoded.exp - Math.floor(Date.now() / 1000);
       if (ttl > 0) {
-        await this.redisService.set(
-          `revoked_token:${token}`,
-          'true',
-          ttl,
-        );
+        await this.redisService.set(`revoked_token:${token}`, 'true', ttl);
       }
     } catch (e) {
       this.logger.warn(`Failed to revoke access token: ${e.message}`);
