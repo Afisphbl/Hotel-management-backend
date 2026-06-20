@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PublicController } from './public.controller';
 import { PublicService } from './public.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { PublicRoomsController } from './public-rooms.controller';
 import { PublicReviewsController } from './public-reviews.controller';
 import { HotelReviewsController } from './hotel-reviews.controller';
@@ -33,6 +34,6 @@ import { WorkersModule } from '../workers/workers.module';
     PublicReviewsController,
     HotelReviewsController,
   ],
-  providers: [PublicService, ReviewsService],
+  providers: [PublicService, ReviewsService, PasswordPolicyService],
 })
 export class PublicModule {}

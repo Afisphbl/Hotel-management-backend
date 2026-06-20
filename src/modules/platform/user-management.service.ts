@@ -14,6 +14,7 @@ import {
 import { Role } from '../../database/entities/global/role.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { RedisService } from '../redis/redis.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import * as bcrypt from 'bcrypt';
 
 export interface AccountLockoutConfig {
@@ -35,6 +36,7 @@ export class UserManagementService {
   constructor(
     private dataSource: DataSource,
     private redisService: RedisService,
+    private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
   private get userRepository(): Repository<PlatformUser> {
@@ -202,6 +204,9 @@ export class UserManagementService {
       });
     }
 
+    // Enforce password complexity policy
+    await this.passwordPolicyService.assertCompliant(data.password);
+
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = this.userRepository.create({
       email: data.email,
@@ -280,6 +285,9 @@ export class UserManagementService {
     const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid)
       throw new BadRequestException('Current password is incorrect');
+
+    // Enforce password complexity policy
+    await this.passwordPolicyService.assertCompliant(newPassword);
 
     const history = user.passwordHistory || [];
     for (const oldHash of history) {
