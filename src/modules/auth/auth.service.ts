@@ -123,6 +123,25 @@ export class AuthService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  generateMfaToken(user: any, hotelId?: string | null) {
+    const payload = {
+      sub: user.id,
+      hotelId: hotelId ?? null,
+      type: 'mfa',
+    };
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+    });
+  }
+
+  verifyMfaToken(token: string) {
+    const payload = this.jwtService.verify(token);
+    if (payload.type !== 'mfa') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+    return payload;
+  }
+
   async validateUser(email: string, pass: string): Promise<any> {
     const [user, platformUser] = await Promise.all([
       this.userRepository.findOne({
