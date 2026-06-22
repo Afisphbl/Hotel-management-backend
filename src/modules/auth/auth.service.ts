@@ -22,7 +22,6 @@ import {
   SupportAccessStatus,
 } from '../../database/entities/global/support-access.entity';
 import { UserManagementService } from '../platform/user-management.service';
-import { PlatformUser } from '../../database/entities/global/platform-user.entity';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
@@ -218,10 +217,43 @@ export class AuthService {
     });
 
     if (!isValid) {
+      // Record failed MFA attempt for platform users to prevent brute force
+      const platformUser = await this.userManagementService.findByEmail(
+        user.email,
+      );
+      if (platformUser) {
+        await this.userManagementService.recordFailedLogin(platformUser.id);
+      }
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
     return true;
+  }
+
+  generateMfaToken(userId: string, hotelId?: string | null): string {
+    const payload = {
+      sub: userId,
+      hotelId,
+      type: 'mfa',
+    };
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+    });
+  }
+
+  verifyMfaToken(token: string): { userId: string; hotelId?: string | null } {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return {
+        userId: payload.sub,
+        hotelId: payload.hotelId,
+      };
+    } catch {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
   }
 
   async login(
