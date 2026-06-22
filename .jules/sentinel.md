@@ -1,0 +1,4 @@
+## 2025-05-23 - MFA Authentication Bypass
+**Vulnerability:** The `verify-2fa` endpoint allowed authentication completion using only a raw `userId`. An attacker could bypass the password verification step by directly calling this endpoint with a targeted user's ID and brute-forcing the 6-digit TOTP code.
+**Learning:** Multi-step authentication flows (like 2FA) must securely link stages. Simply returning a user ID from the first stage is insufficient as it provides no proof that the first stage was successfully completed by the user.
+**Prevention:** Use short-lived, signed, purpose-bound tokens (e.g., `mfaToken`) to link authentication stages. Ensure the second stage requires this token and verify its integrity and expiration. Additionally, implement rate limiting/brute-force protection on all authentication steps, including 2FA.
