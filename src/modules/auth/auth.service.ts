@@ -218,10 +218,32 @@ export class AuthService {
     });
 
     if (!isValid) {
+      await this.userManagementService.recordFailedLogin(userId);
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
     return true;
+  }
+
+  generateMfaToken(user: any, hotelId?: string | null) {
+    const payload = {
+      sub: user.id,
+      hotelId: hotelId ?? null,
+      type: 'mfa',
+    };
+    return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
+  verifyMfaToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return payload;
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
   }
 
   async login(
