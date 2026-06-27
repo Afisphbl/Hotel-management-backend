@@ -202,11 +202,14 @@ export class AuthService {
     return { success: true };
   }
 
-  async verify2FACode(userId: string, code: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      select: ['id', 'twoFactorSecret', 'twoFactorEnabled'],
-    });
+  async verify2FACode(userOrId: User | string, code: string) {
+    const user =
+      typeof userOrId === 'string'
+        ? await this.userRepository.findOne({
+            where: { id: userOrId },
+            select: ['id', 'email', 'twoFactorSecret', 'twoFactorEnabled'],
+          })
+        : userOrId;
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException('2FA not enabled');
@@ -218,10 +221,43 @@ export class AuthService {
     });
 
     if (!isValid) {
+      const platformUser = await this.userManagementService.findByEmail(
+        user.email,
+      );
+      if (platformUser) {
+        await this.userManagementService.recordFailedLogin(platformUser.id);
+      }
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
     return true;
+  }
+
+  generateMfaToken(userId: string, hotelId?: string | null) {
+    const payload = {
+      sub: userId,
+      hotelId: hotelId ?? null,
+      type: 'mfa',
+    };
+
+    return this.jwtService.sign(payload, {
+      expiresIn: '5m',
+    });
+  }
+
+  verifyMfaToken(token: string): { userId: string; hotelId: string | null } {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return {
+        userId: payload.sub,
+        hotelId: payload.hotelId,
+      };
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
   }
 
   async login(
