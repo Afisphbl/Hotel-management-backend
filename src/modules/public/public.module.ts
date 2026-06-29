@@ -12,9 +12,11 @@ import { Hotel } from '../../database/entities/hotel.entity';
 import { HotelUserAccess } from '../../database/entities/hotel-user-access.entity';
 import { HotelModule } from '../hotel/hotel.module';
 import { WorkersModule } from '../workers/workers.module';
+import { PlatformModule } from '../platform/platform.module';
 
 @Module({
   imports: [
+    PlatformModule,
     TypeOrmModule.forFeature([Hotel, HotelUserAccess]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

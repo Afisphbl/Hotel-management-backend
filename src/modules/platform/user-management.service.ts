@@ -14,6 +14,7 @@ import {
 import { Role } from '../../database/entities/global/role.entity';
 import { GlobalSetting } from '../../database/entities/global/global-setting.entity';
 import { RedisService } from '../redis/redis.service';
+import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import * as bcrypt from 'bcrypt';
 
 export interface AccountLockoutConfig {
@@ -35,6 +36,7 @@ export class UserManagementService {
   constructor(
     private dataSource: DataSource,
     private redisService: RedisService,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   private get userRepository(): Repository<PlatformUser> {
@@ -202,6 +204,7 @@ export class UserManagementService {
       });
     }
 
+    await this.passwordPolicyService.assertCompliant(data.password);
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const user = this.userRepository.create({
       email: data.email,
@@ -288,6 +291,7 @@ export class UserManagementService {
         throw new BadRequestException('Cannot reuse a previous password');
     }
 
+    await this.passwordPolicyService.assertCompliant(newPassword);
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     history.push(user.password);
     if (history.length > 10) history.shift();

@@ -130,5 +130,6 @@ import { CustomReport } from '../../database/entities/global/custom-report.entit
     TenantQuotaService,
     RedisService,
   ],
+  exports: [PasswordPolicyService, UserManagementService],
 })
 export class PlatformModule {}
