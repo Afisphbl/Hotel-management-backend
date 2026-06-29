@@ -21,11 +21,12 @@ import {
 } from '../../database/entities/global';
 import { PasswordPolicyService } from '../../common/services/password-policy.service';
 import { TenantQuotaService } from '../../common/services/tenant-quota.service';
-import { UserManagementService } from '../platform/user-management.service';
 import { RedisService } from '../redis/redis.service';
+import { PlatformModule } from '../platform/platform.module';
 
 @Module({
   imports: [
+    PlatformModule,
     TypeOrmModule.forFeature([
       User,
       Role,
@@ -52,9 +53,7 @@ import { RedisService } from '../redis/redis.service';
   providers: [
     AuthService,
     JwtStrategy,
-    PasswordPolicyService,
     TenantQuotaService,
-    UserManagementService,
     RedisService,
   ],
   controllers: [AuthController],

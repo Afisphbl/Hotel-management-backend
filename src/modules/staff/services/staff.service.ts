@@ -9,12 +9,14 @@ import {
   QueryStaffDto,
 } from '../dto/staff.dto';
 import { PaginatedResult, paginate } from '../../../common/pagination';
+import { PasswordPolicyService } from '../../../common/services/password-policy.service';
 
 @Injectable()
 export class StaffService {
   constructor(
     @InjectRepository(Staff)
     private staffRepository: Repository<Staff>,
+    private passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async findAll(query: QueryStaffDto): Promise<PaginatedResult<Staff>> {
@@ -40,6 +42,7 @@ export class StaffService {
   async create(dto: CreateStaffDto): Promise<Staff> {
     const data = { ...dto };
     if (data.password) {
+      await this.passwordPolicyService.assertCompliant(data.password);
       data.password = await bcrypt.hash(data.password, 12);
     }
     return this.staffRepository.save(this.staffRepository.create(data));
@@ -49,6 +52,7 @@ export class StaffService {
     const staff = await this.findById(id);
     const data = { ...dto };
     if (data.password) {
+      await this.passwordPolicyService.assertCompliant(data.password);
       data.password = await bcrypt.hash(data.password, 12);
     }
     Object.assign(staff, data);
