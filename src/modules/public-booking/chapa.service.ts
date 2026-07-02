@@ -50,58 +50,99 @@ export class ChapaService {
       body.meta = params.meta;
     }
 
-    const jsonBody = JSON.stringify(body);
+    const redactedBody = {
+      ...body,
+      email: body.email ? '***@***.***' : undefined,
+      first_name: body.first_name ? '***' : undefined,
+      last_name: body.last_name ? '***' : undefined,
+      phone_number: body.phone_number ? '***' : undefined,
+    };
+
     console.log(
       '[ChapaService] POST',
       `${this.baseUrl}/transaction/initialize`,
       {
         secretKeyPrefix: this.secretKey?.substring(0, 12) + '...',
-        body,
+        body: redactedBody,
       },
     );
 
-    const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.secretKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const data = await res.json();
-    console.log('[ChapaService] Response:', { status: res.status, data });
+    try {
+      const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
 
-    if (data.status !== 'success') {
-      const errMsg = typeof data.message === 'object' ? JSON.stringify(data.message) : (data.message || 'Unknown error');
-      throw new BadRequestException(`Chapa init failed: ${errMsg}`);
+      const data = (await res.json()) as Record<string, unknown>;
+      console.log('[ChapaService] Response:', {
+        status: res.status,
+        success: data.status === 'success',
+        message: data.message,
+      });
+
+      if (data.status !== 'success') {
+        const message = data.message;
+        const errMsg =
+          typeof message === 'object'
+            ? JSON.stringify(message)
+            : (message as string) || 'Unknown error';
+        throw new BadRequestException(`Chapa init failed: ${errMsg}`);
+      }
+      const responseData = data.data as Record<string, unknown>;
+      return {
+        checkoutUrl: responseData.checkout_url as string,
+        txRef: params.txRef,
+      };
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return {
-      checkoutUrl: data.data.checkout_url as string,
-      txRef: params.txRef,
-    };
   }
 
   async verify(
     txRef: string,
   ): Promise<{ status: string; amount: number; currency: string }> {
-    const res = await fetch(`${this.baseUrl}/transaction/verify/${txRef}`, {
-      headers: { Authorization: `Bearer ${this.secretKey}` },
-    });
-    const data = await res.json();
-    return {
-      status: data.data?.status ?? 'failed',
-      amount: data.data?.amount ?? 0,
-      currency: data.data?.currency ?? 'ETB',
-    };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const res = await fetch(`${this.baseUrl}/transaction/verify/${txRef}`, {
+        headers: { Authorization: `Bearer ${this.secretKey}` },
+        signal: controller.signal,
+      });
+      const data = (await res.json()) as Record<string, unknown>;
+      const responseData = data.data as Record<string, any>;
+      return {
+        status: (responseData?.status as string) ?? 'failed',
+        amount: (responseData?.amount as number) ?? 0,
+        currency: (responseData?.currency as string) ?? 'ETB',
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (!this.webhookSecret) return false;
+    if (!this.webhookSecret || !signature) return false;
     const hash = crypto
       .createHmac('sha256', this.webhookSecret)
       .update(payload)
       .digest('hex');
-    return hash === signature;
+
+    const hashBuffer = Buffer.from(hash, 'hex');
+    const signatureBuffer = Buffer.from(signature, 'hex');
+
+    if (hashBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(hashBuffer, signatureBuffer);
   }
 }
