@@ -61,16 +61,28 @@ export class StorageController {
     @Body() dto: UploadUrlDto,
     @Request() req: any,
   ) {
+    const hotelId = req.user.hotel_id;
+    // Sanitize key to prevent path traversal and enforce tenant isolation
+    // Split by slash and filter out any path traversal segments
+    const sanitizedKey = dto.key
+      .split(/[/\\]/)
+      .map((segment) => segment.replace(/\.+/g, (match) => (match.length > 1 ? '' : match)))
+      .filter((segment) => segment && segment !== '.')
+      .join('/')
+      .replace(/^\/+/, ''); // Ensure no leading slashes after join
+
+    const finalKey = `hotels/${hotelId}/${sanitizedKey}`;
+
     const url = await this.storageService.getPresignedPutUrl({
-      key: dto.key,
+      key: finalKey,
       contentType: dto.contentType,
     });
 
     return {
       uploadUrl: url,
-      key: dto.key,
+      key: finalKey,
       sizeMb: dto.sizeMb,
-      hotelId: req.user.hotel_id,
+      hotelId,
     };
   }
 
