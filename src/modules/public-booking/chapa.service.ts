@@ -97,11 +97,19 @@ export class ChapaService {
   }
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
-    if (!this.webhookSecret) return false;
+    if (!this.webhookSecret || !signature) return false;
     const hash = crypto
       .createHmac('sha256', this.webhookSecret)
       .update(payload)
       .digest('hex');
-    return hash === signature;
+
+    const hashBuffer = Buffer.from(hash);
+    const signatureBuffer = Buffer.from(signature);
+
+    if (hashBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(hashBuffer, signatureBuffer);
   }
 }
