@@ -202,14 +202,47 @@ export class AuthService {
     return { success: true };
   }
 
+  generateMfaToken(userId: string, hotelId?: string | null): string {
+    return this.jwtService.sign(
+      { sub: userId, hotelId, type: 'mfa' },
+      { expiresIn: '5m' },
+    );
+  }
+
+  verifyMfaToken(token: string): { userId: string; hotelId?: string | null } {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return { userId: payload.sub, hotelId: payload.hotelId };
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async verify2FACode(userId: string, code: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'twoFactorSecret', 'twoFactorEnabled'],
+      select: ['id', 'email', 'twoFactorSecret', 'twoFactorEnabled'],
     });
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException('2FA not enabled');
+    }
+
+    const platformUser = await this.userManagementService.findByEmail(
+      user.email,
+    );
+    if (platformUser) {
+      const lockStatus = await this.userManagementService.checkAccountLockout(
+        user.email,
+      );
+      if (lockStatus.locked) {
+        throw new UnauthorizedException(
+          `Account is locked until ${lockStatus.lockedUntil?.toISOString() ?? 'further notice'}`,
+        );
+      }
     }
 
     const isValid = authenticator.verify({
@@ -218,6 +251,9 @@ export class AuthService {
     });
 
     if (!isValid) {
+      if (platformUser) {
+        await this.userManagementService.recordFailedLogin(platformUser.id);
+      }
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
