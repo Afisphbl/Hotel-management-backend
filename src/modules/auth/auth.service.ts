@@ -202,10 +202,31 @@ export class AuthService {
     return { success: true };
   }
 
-  async verify2FACode(userId: string, code: string) {
+  generateMfaToken(userId: string, hotelId?: string | null) {
+    const payload = {
+      sub: userId,
+      hotel_id: hotelId || null,
+      type: 'mfa',
+    };
+    return this.jwtService.sign(payload, { expiresIn: '5m' });
+  }
+
+  async verifyMfaToken(token: string): Promise<any> {
+    try {
+      const payload = await this.jwtService.verifyAsync(token);
+      if (payload.type !== 'mfa') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+      return payload;
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
+  async verify2FACode(userId: string, code: string, ipAddress?: string) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'twoFactorSecret', 'twoFactorEnabled'],
+      select: ['id', 'email', 'twoFactorSecret', 'twoFactorEnabled'],
     });
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
@@ -218,6 +239,15 @@ export class AuthService {
     });
 
     if (!isValid) {
+      const platformUser = await this.userManagementService.findByEmail(
+        user.email,
+      );
+      if (platformUser) {
+        await this.userManagementService.recordFailedLogin(
+          platformUser.id,
+          ipAddress,
+        );
+      }
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
