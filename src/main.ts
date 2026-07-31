@@ -42,7 +42,7 @@ async function bootstrap() {
   });
 
   // Versioning
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['/', 'health'] });
 
   // Global Validation
   app.useGlobalPipes(

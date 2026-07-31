@@ -59,12 +59,16 @@ class TenantSearchPathService implements OnModuleInit {
         };
 
         if (configService.getOrThrow<boolean>('DB_SYNCHRONIZE')) {
+          const ssl = configService.get<boolean>('DB_SSL')
+            ? { rejectUnauthorized: false }
+            : undefined;
           const client = new Client({
             host: dbConfig.host,
             port: dbConfig.port,
             user: dbConfig.username,
             password: dbConfig.password,
             database: dbConfig.database,
+            ssl,
           });
           await client.connect();
           await client.query('CREATE SCHEMA IF NOT EXISTS global');

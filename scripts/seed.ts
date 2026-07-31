@@ -1630,6 +1630,7 @@ async function provisionTenantSchema(dataSource: DataSource, schemaName: string)
       "baseCapacity" INT NOT NULL,
       "maxExtraBeds" INT NOT NULL DEFAULT 0,
       "basePrice" NUMERIC(12,2) NOT NULL,
+      image VARCHAR,
       "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       "deletedAt" TIMESTAMPTZ
