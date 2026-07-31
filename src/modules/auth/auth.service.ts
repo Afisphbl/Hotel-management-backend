@@ -224,6 +224,28 @@ export class AuthService {
     return true;
   }
 
+  async generateMfaToken(userId: string): Promise<string> {
+    return this.jwtService.sign(
+      { sub: userId, purpose: 'mfa_verification' },
+      { expiresIn: '5m' },
+    );
+  }
+
+  async verifyMfaToken(token: string): Promise<string> {
+    try {
+      const payload = this.jwtService.verify(token) as {
+        sub: string;
+        purpose: string;
+      };
+      if (payload.purpose !== 'mfa_verification') {
+        throw new UnauthorizedException('Invalid token purpose');
+      }
+      return payload.sub;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired MFA token');
+    }
+  }
+
   async login(
     user: any,
     hotelId?: string | null,
